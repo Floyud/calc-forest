@@ -162,13 +162,15 @@ Plus 6 FTS5 virtual tables for knowledge base search.
 
 ## Dify Cloud Integration
 
-**3 Dify Apps (已创建、已发布):**
+**3 Dify Apps — ⚠️ 全部返回 401，需要从 DSL 重新导入:**
 
-| App | Type | API Key | MCP Endpoint | 用途 |
-|---|---|---|---|---|
-| 学生引导助手 | chatflow | `app-6Kq0zwnO8MIZcQZoMbDoPc0c` | `gcSNHMpHZHZptd1r/mcp` | 四步引导法回答学生问题 |
-| 教师诊断助手 | workflow | `app-Sf6Hx45Iv9Zjm3ORUUlFmIrj` | `ozZ7MohdojML3x6e/mcp` | 班级错误分析 + 教学建议 |
-| AI批改画像助手 | workflow | `app-kxypiB5ho1osryrXPpEgSq6j` | `ztmSIlpz3tva6Pl1/mcp` | AI批改 + 学生画像双模式 |
+| App | Type | API Key | 状态 |
+|---|---|---|---|
+| 学生引导助手 | chatflow | `app-6Kq0zwnO8MIZcQZoMbDoPc0c` | 401 — 需重建 |
+| 教师诊断助手 | workflow | `app-Sf6Hx45Iv9Zjm3ORUUlFmIrj` | 401 — 需重建 |
+| AI批改画像助手 | workflow | `app-kxypiB5ho1osryrXPpEgSq6j` | 401 — 需重建 |
+
+**修复方法:** 删除旧 app → 从 `calc_forest/dify/` 导入修正后的 DSL → 绑定知识库 → 发布
 
 **知识库:** `我的计算森林知识库`
 - Dataset ID: `e65030a0-3076-4cd1-b646-d834ecafa55e`
@@ -191,6 +193,57 @@ Plus 6 FTS5 virtual tables for knowledge base search.
 **已知问题 (需在 Dify UI 修复):**
 - 3 个应用的「知识检索」节点 retrieval_mode 从 `hybrid_search` 改为 `multiple`（或 `single`）
 - 修复步骤: 应用 → 编排 → 点击知识检索节点 → 检索设置 → 改检索模式 → 重新发布
+- **或者**：删除旧 app → 从修正后的 DSL 文件重新导入 → 绑定知识库 → 发布
+
+## Local Dify Deployment
+
+**地址:** `http://127.0.0.1:18080`
+**Dify 版本:** 1.14.0
+**部署目录:** `/home/lyzhang/dify/docker/`
+
+**管理员:** `lzha0301@student.monash.edu` / `zly123456`
+**Console API 登录:** password 须 base64 编码
+
+**已安装插件:**
+- `langgenius/openai:0.3.8`
+- `langgenius/deepseek:0.0.15`
+
+**已配置模型供应商:**
+- DeepSeek LLM (deepseek-chat) — credentials configured ✅
+- OpenAI Embedding — ⚠️ 连接验证失败（OpenAI 插件发送 tiktoken 编码的 token ID，本地服务无法解码）
+- 等待 bge-m3 下载完成后，考虑使用其他插件（ollama/localai）替代
+
+**本地模型服务:** `scripts/local_model_server.py`
+- tmux session `models`, `--host 0.0.0.0 --port 8090`
+- Embedding: `all-mpnet-base-v2` (768d) → 待切换 `BAAI/bge-m3` (1024d)
+- Reranker: `jinaai/jina-reranker-v3`
+- GPU: CUDA (RTX 5070 Ti 12GB)
+- Docker 访问地址: `http://172.20.0.1:8090`
+
+**双线路由架构 (dify_client.py):**
+- `Local Dify → Cloud Dify → DeepSeek 直连` 三级回退
+- 环境变量: `LOCAL_DIFY_ENABLED`, `LOCAL_DIFY_BASE_URL`, `LOCAL_DIFY_WORKFLOW_*_KEY`
+
+**本地 Dify Apps (已导入、已发布、已验证):**
+
+| App | Type | API Key | App ID |
+|---|---|---|---|
+| 学生引导助手 | advanced-chat | `app-WhZiyxSsRzCySLHIc5aeB35E` | `80c2a91f-781d-4321-bc8a-36b9bfff060d` |
+| 教师诊断助手 | workflow | `app-RA3FRdUFJUgyykmf3wZ99kbX` | `45757ec4-4517-4c75-9e42-a48b1540da52` |
+| AI批改画像助手 | workflow | `app-6b7wi0lMSYOjqRQj5yFzd3Fn` | `e33ebe48-7f8f-4f6a-8cb3-2fa2f8d67c7b` |
+
+**本地知识库:** `我的计算森林知识库`
+- Dataset ID: `8a588b72-2c02-4d34-b9ef-4f53dee606b0`
+- Indexing: economy (关键词索引，待配置 embedding 后切换为 high_quality)
+- 10 个中文命名的 Markdown 文档已上传
+
+**关键端口:**
+| 服务 | 端口 |
+|---|---|
+| Local Dify | 18080 |
+| 本地模型服务 | 8090 |
+| FastAPI 后端 | 8000 |
+| Next.js 前端 | 3002 |
 
 ## Known Gaps
 
@@ -200,4 +253,6 @@ Plus 6 FTS5 virtual tables for knowledge base search.
 - 4-step guided feedback (standard mode) not yet in code (BI-016).
 - Grade 1-2 mental arithmetic diagnosis rules not yet implemented (BI-017).
 - Dify 知识检索 retrieval_mode 需手动修复（DSL 已修正，Dify Cloud 需手动更新）。
+- Cloud Dify 所有 3 个 API 返回 401（需删除旧 app → 从 DSL 重新导入）。
+- Local Dify Embedding 供应商连接验证失败（OpenAI 插件与本地服务不兼容）。
 - Frontend pages use mock data; only `/diagnose` calls real backend API.

@@ -1,9 +1,9 @@
 app:
   description: 学生引导 chatflow — 用四步引导法帮助小学生理解计算错误，温和地引导学生思考。
-  icon: "\U0001F331"
+  icon: 🌱
   icon_background: '#E4FBF5'
   mode: advanced-chat
-  name: "我的计算森林_学生引导助手"
+  name: 我的计算森林_学生引导助手
   use_icon_as_answer_icon: false
 dependencies: []
 kind: app
@@ -14,7 +14,10 @@ workflow:
   features:
     file_upload:
       enabled: false
-    opening_statement: "你好呀！我是你的计算森林小助手 \U0001F331\n\n如果你在计算中遇到了困难，或者对自己的答案不太确定，随时告诉我，我们一起想办法！"
+    opening_statement: '你好呀！我是你的计算森林小助手 🌱
+
+
+      如果你在计算中遇到了困难，或者对自己的答案不太确定，随时告诉我，我们一起想办法！'
     retriever_resource:
       enabled: true
     sensitive_word_avoidance:
@@ -22,9 +25,9 @@ workflow:
     speech_to_text:
       enabled: false
     suggested_questions:
-    - "我做错了这道题，能帮帮我吗？"
-    - "我算出来的答案好像不太对"
-    - "这道题我不太确定怎么算"
+    - 我做错了这道题，能帮帮我吗？
+    - 我算出来的答案好像不太对
+    - 这道题我不太确定怎么算
     suggested_questions_after_answer:
       enabled: true
     text_to_speech:
@@ -88,32 +91,20 @@ workflow:
       type: custom
       width: 240
     - data:
-        desc: "从知识库检索错因教学策略和引导方法"
+        desc: 从知识库检索错因教学策略和引导方法
         dataset_ids:
         - e65030a0-3076-4cd1-b646-d834ecafa55e
         query_variable_selector:
         - sys
         - query
-        retrieval_mode: multiple
-        multiple_retrieval_config:
-          top_k: 5
-          score_threshold: 0.5
-          reranking_enable: true
-          reranking_mode: weighted_score
-          weights:
-            keyword_setting:
-              keyword_weight: 0.3
-            semantic_setting:
-              semantic_weight: 0.7
-          reranking_model:
-            provider: tongyi
-            model: qwen3-rerank
+        retrieval_mode: single
         selected: false
         single_retrieval_config:
           model:
             provider: deepseek
-            model: deepseek-chat
-        title: "\u77E5\u8BC6\u68C0\u7D22"
+            name: deepseek-chat
+            mode: chat
+        title: 知识检索
         type: knowledge-retrieval
       height: 90
       id: knowledge_retrieval
@@ -134,7 +125,7 @@ workflow:
           variable_selector:
           - knowledge_retrieval
           - result
-        desc: "用四步引导法给学生温暖的反馈"
+        desc: 用四步引导法给学生温暖的反馈
         model:
           completion_params:
             temperature: 0.7
@@ -146,27 +137,49 @@ workflow:
         prompt_template:
         - id: system-prompt
           role: system
-          text: "你是\"我的计算森林\"的学生引导助手。你的目标是帮助小学生理解计算错误的原因，而不是直接告诉答案。\n\
-            \n核心规则：\n\
-            1. 先肯定学生已经做出的正确部分\n\
-            2. 用问题引导学生思考，不直接给答案\n\
-            3. 每次只纠正一个关键错误\n\
-            4. 语言温暖、简短，适合六年级小学生理解\n\
-            5. 如果检索到知识库中对应错因的教学策略，使用该策略引导\n\
-            6. 结尾给出一道同类练习题让学生尝试\n\n\
-            引导四步法：\n\
-            第一步：接纳与安抚 - 先肯定学生的努力\n\
-            第二步：算理引导 - 指出关键步骤，用问题引导学生思考\n\
-            第三步：总结方法 - 帮学生用自己的话总结要点\n\
-            第四步：巩固练习 - 给一道同类简单题让学生尝试\n\n\
-            参考知识库内容来选择合适的引导策略。"
+          text: '你是"我的计算森林"的学生引导助手。你的目标是帮助小学生理解计算错误的原因，而不是直接告诉答案。
+
+
+            核心规则：
+
+            1. 先肯定学生已经做出的正确部分
+
+            2. 用问题引导学生思考，不直接给答案
+
+            3. 每次只纠正一个关键错误
+
+            4. 语言温暖、简短，适合六年级小学生理解
+
+            5. 如果检索到知识库中对应错因的教学策略，使用该策略引导
+
+            6. 结尾给出一道同类练习题让学生尝试
+
+
+            引导四步法：
+
+            第一步：接纳与安抚 - 先肯定学生的努力
+
+            第二步：算理引导 - 指出关键步骤，用问题引导学生思考
+
+            第三步：总结方法 - 帮学生用自己的话总结要点
+
+            第四步：巩固练习 - 给一道同类简单题让学生尝试
+
+
+            参考知识库内容来选择合适的引导策略。'
         - id: user-prompt
           role: user
-          text: "学生输入：{{#sys.query#}}\n\
-            \n知识库参考内容：\n{{#knowledge_retrieval.result#}}\n\
-            \n请按照四步引导法给学生一段温暖、具体、可操作的引导反馈。不要直接给出最终答案。"
+          text: '学生输入：{{#sys.query#}}
+
+
+            知识库参考内容：
+
+            {{#knowledge_retrieval.result#}}
+
+
+            请按照四步引导法给学生一段温暖、具体、可操作的引导反馈。不要直接给出最终答案。'
         selected: false
-        title: "\u5F15\u5BFC\u751F\u6210"
+        title: 引导生成
         type: llm
         vision:
           enabled: false
@@ -187,7 +200,7 @@ workflow:
         desc: ''
         answer: '{{#llm_guidance.text#}}'
         selected: false
-        title: "\u56DE\u590D"
+        title: 回复
         type: answer
       height: 90
       id: answer_node

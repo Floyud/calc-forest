@@ -1,15 +1,9 @@
-"""Dify Workflow 客户端，自动回退到 DeepSeek 直连。
-
-架构:
-    FastAPI → dify_client.py → try Dify Workflow API
-                              → fallback to direct DeepSeek (llm_client.py)
-"""
 from __future__ import annotations
 
-import asyncio
 import json
 import logging
 import os
+import re
 import time
 from typing import Any
 
@@ -17,29 +11,25 @@ import httpx
 
 logger = logging.getLogger(__name__)
 
-# ---------------------------------------------------------------------------
-# Dify 配置
-# ---------------------------------------------------------------------------
 DIFY_BASE_URL = os.getenv("DIFY_BASE_URL", "https://api.dify.ai/v1")
 DIFY_API_KEY = os.getenv("DIFY_API_KEY", "")
 DIFY_ENABLED = os.getenv("DIFY_ENABLED", "false").lower() in ("true", "1", "yes")
 
+LOCAL_DIFY_BASE_URL = os.getenv("LOCAL_DIFY_BASE_URL", "http://127.0.0.1:18080/v1")
+LOCAL_DIFY_ENABLED = os.getenv("LOCAL_DIFY_ENABLED", "false").lower() in ("true", "1", "yes")
+
 DEFAULT_TIMEOUT = 60
 MAX_CONCURRENT_REQUESTS = int(os.getenv("DIFY_MAX_CONCURRENCY", "5"))
-MAX_RETRIES = int(os.getenv("DIFY_MAX_RETRIES", "2"))
-RETRY_DELAY = float(os.getenv("DIFY_RETRY_DELAY", "1.0"))
+
+# chatflow 类型标记 — student_guidance 用 /chat-messages，其余用 /workflows/run
+CHATFLOW_KEYS: set[str] = {"student_guidance"}
 
 
-# ---------------------------------------------------------------------------
-# DifyConfig — 镜像 llm_client._LLMConfig 模式
-# ---------------------------------------------------------------------------
-class DifyConfig:
-    """Dify 连接池与并发控制。"""
+class _DifyTrack:
 
-    def __init__(self) -> None:
-        self.base_url: str = DIFY_BASE_URL
-        self.api_key: str = DIFY_API_KEY
-        self.enabled: bool = DIFY_ENABLED
+    def __init__(self, *, base_url: str, enabled: bool) -> None:
+        self.base_url = base_url.rstrip("/")
+        self.enabled = enabled
         self._client: httpx.AsyncClient | None = None
         self._semaphore: asyncio.Semaphore | None = None
 
@@ -72,12 +62,20 @@ class DifyConfig:
             self._client = None
 
 
+class DifyConfig:
+
+    def __init__(self) -> None:
+        self.local = _DifyTrack(base_url=LOCAL_DIFY_BASE_URL, enabled=LOCAL_DIFY_ENABLED)
+        self.cloud = _DifyTrack(base_url=DIFY_BASE_URL, enabled=DIFY_ENABLED)
+
+    async def close(self) -> None:
+        await self.local.close()
+        await self.cloud.close()
+
+
 dify_config = DifyConfig()
 
 
-# ---------------------------------------------------------------------------
-# Workflow 定义 — 硬编码，后续可迁移到配置文件
-# ---------------------------------------------------------------------------
 WORKFLOWS: dict[str, dict[str, str]] = {
     "student_guidance": {
         "api_key": os.getenv("DIFY_WORKFLOW_GUIDANCE_KEY", ""),
@@ -189,10 +187,38 @@ WORKFLOWS: dict[str, dict[str, str]] = {
     },
 }
 
+LOCAL_WORKFLOWS: dict[str, dict[str, str]] = {
+    "student_guidance": {
+        "api_key": os.getenv("LOCAL_DIFY_WORKFLOW_GUIDANCE_KEY", ""),
+    },
+    "teacher_summary": {
+        "api_key": os.getenv("LOCAL_DIFY_WORKFLOW_SUMMARY_KEY", ""),
+    },
+    "ai_grading": {
+        "api_key": os.getenv("LOCAL_DIFY_WORKFLOW_GRADING_KEY", ""),
+    },
+    "ai_profile": {
+        "api_key": os.getenv("LOCAL_DIFY_WORKFLOW_PROFILE_KEY", ""),
+    },
+    "problem_generation": {
+        "api_key": os.getenv("LOCAL_DIFY_WORKFLOW_PROBLEM_KEY", ""),
+    },
+}
 
-# ---------------------------------------------------------------------------
-# 核心函数：先试 Dify，失败回退到 DeepSeek
-# ---------------------------------------------------------------------------
+
+def _get_api_key(workflow_key: str, track: str) -> str:
+    if track == "local":
+        local_wf = LOCAL_WORKFLOWS.get(workflow_key)
+        if local_wf:
+            return local_wf.get("api_key", "") or DIFY_API_KEY
+        return DIFY_API_KEY
+    # cloud
+    wf = WORKFLOWS.get(workflow_key)
+    if wf:
+        return wf.get("api_key", "") or DIFY_API_KEY
+    return DIFY_API_KEY
+
+
 async def call_dify_or_llm(
     workflow_key: str,
     inputs: dict[str, Any],
@@ -202,86 +228,97 @@ async def call_dify_or_llm(
     max_tokens: int = 2048,
     response_format: dict[str, str] | None = None,
 ) -> dict[str, Any]:
-    """尝试 Dify workflow，失败后回退到 DeepSeek 直连。
+    """尝试 Dify（local → cloud），失败后回退到 DeepSeek。"""
+    # Track 1: Local Dify
+    if dify_config.local.enabled:
+        api_key = _get_api_key(workflow_key, "local")
+        if api_key:
+            try:
+                result = await _call_dify_endpoint(
+                    workflow_key, inputs, user_id,
+                    track=dify_config.local, api_key=api_key, track_label="local",
+                )
+                return result
+            except Exception as exc:
+                logger.warning(
+                    "Local Dify %s 失败，尝试 Cloud: %s", workflow_key, exc,
+                )
 
-    Args:
-        workflow_key: WORKFLOWS 字典中的键。
-        inputs: 传入 workflow 的参数。
-        user_id: Dify 用户标识。
-        temperature: DeepSeek 回退时的温度参数。
-        max_tokens: DeepSeek 回退时的最大 token 数。
-        response_format: DeepSeek 回退时的 response_format 参数。
+    # Track 2: Cloud Dify
+    if dify_config.cloud.enabled:
+        api_key = _get_api_key(workflow_key, "cloud")
+        if api_key:
+            try:
+                result = await _call_dify_endpoint(
+                    workflow_key, inputs, user_id,
+                    track=dify_config.cloud, api_key=api_key, track_label="cloud",
+                )
+                return result
+            except Exception as exc:
+                logger.warning(
+                    "Cloud Dify %s 失败，回退到 DeepSeek: %s", workflow_key, exc,
+                )
 
-    Returns:
-        解析后的 JSON 字典。
-    """
-    if dify_config.enabled and dify_config.api_key:
-        try:
-            return await _call_dify_workflow(workflow_key, inputs, user_id)
-        except Exception as exc:
-            logger.warning(
-                "Dify workflow %s 失败，回退到 DeepSeek: %s", workflow_key, exc,
-            )
+    # Track 3: DeepSeek 直连回退
     return await _call_deepseek_fallback(
         workflow_key, inputs, temperature, max_tokens, response_format,
     )
 
 
-# ---------------------------------------------------------------------------
-# Dify Workflow 调用
-# ---------------------------------------------------------------------------
-async def _call_dify_workflow(
+async def _call_dify_endpoint(
     workflow_key: str,
     inputs: dict[str, Any],
     user_id: str,
+    *,
+    track: _DifyTrack,
+    api_key: str,
+    track_label: str,
 ) -> dict[str, Any]:
-    """POST 到 Dify /workflows/run 接口。"""
-    wf = WORKFLOWS.get(workflow_key)
-    if wf is None:
+    if workflow_key not in WORKFLOWS:
         raise ValueError(f"未知 workflow 键: {workflow_key}")
 
-    api_key = wf["api_key"] or dify_config.api_key
-    url = f"{dify_config.base_url}/workflows/run"
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json",
-    }
-    payload = {
-        "inputs": inputs,
-        "response_mode": "blocking",
-        "user": user_id,
-    }
+    is_chatflow = workflow_key in CHATFLOW_KEYS
+    endpoint = "/chat-messages" if is_chatflow else "/workflows/run"
+    url = f"{track.base_url}{endpoint}"
+    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+
+    if is_chatflow:
+        query = WORKFLOWS[workflow_key]["prompt_user_template"]
+        for key, value in inputs.items():
+            str_value = json.dumps(value, ensure_ascii=False) if not isinstance(value, str) else value
+            query = query.replace("{" + key + "}", str_value)
+        query = re.sub(r"\{[a-zA-Z_][a-zA-Z0-9_]*\}", "", query)
+        payload: dict[str, Any] = {"inputs": {}, "query": query, "response_mode": "blocking", "user": user_id}
+    else:
+        payload = {"inputs": inputs, "response_mode": "blocking", "user": user_id}
 
     t0 = time.monotonic()
-    async with dify_config.get_semaphore():
-        client = await dify_config.get_client()
+    async with track.get_semaphore():
+        client = await track.get_client()
         try:
             resp = await client.post(url, headers=headers, json=payload)
             resp.raise_for_status()
             elapsed = time.monotonic() - t0
             data = resp.json()
-            outputs = data.get("data", {}).get("outputs", {})
-            logger.info(
-                "Dify workflow %s 成功 (%.1fs): task_id=%s",
-                workflow_key, elapsed, data.get("task_id", "?"),
-            )
-            return outputs
+            logger.info("[%s] Dify %s %s ok (%.1fs)", track_label, "chatflow" if is_chatflow else "workflow", workflow_key, elapsed)
+            if is_chatflow:
+                answer = data.get("answer", "").strip()
+                answer = answer.removeprefix("```json").removeprefix("```").removesuffix("```").strip()
+                try:
+                    return json.loads(answer)
+                except json.JSONDecodeError:
+                    return {"raw_content": answer, "parse_error": True}
+            return data.get("data", {}).get("outputs", {})
         except (httpx.ConnectError, httpx.TimeoutException) as exc:
             elapsed = time.monotonic() - t0
-            raise RuntimeError(
-                f"Dify 连接失败 ({elapsed:.1fs}): {exc}"
-            ) from exc
+            raise RuntimeError(f"[{track_label}] Dify 连接失败 ({elapsed:.1fs}): {exc}") from exc
         except httpx.HTTPStatusError as exc:
             elapsed = time.monotonic() - t0
             raise RuntimeError(
-                f"Dify 返回 HTTP {exc.response.status_code} ({elapsed:.1fs}): "
-                f"{exc.response.text[:300]}"
+                f"[{track_label}] Dify HTTP {exc.response.status_code} ({elapsed:.1fs}): {exc.response.text[:300]}"
             ) from exc
 
 
-# ---------------------------------------------------------------------------
-# DeepSeek 直连回退
-# ---------------------------------------------------------------------------
 async def _call_deepseek_fallback(
     workflow_key: str,
     inputs: dict[str, Any],
@@ -289,7 +326,6 @@ async def _call_deepseek_fallback(
     max_tokens: int,
     response_format: dict[str, str] | None,
 ) -> dict[str, Any]:
-    """使用 llm_client.call_deepseek 进行直连 LLM 调用。"""
     from app.services.llm_client import call_deepseek
 
     wf = WORKFLOWS.get(workflow_key)
@@ -307,9 +343,7 @@ async def _call_deepseek_fallback(
         user_content = user_content.replace(placeholder, str_value)
 
     # 清理未替换的模板变量
-    # (保留 JSON 中的花括号，只清理 {variable_name} 形式的)
-    import re
-    user_content = re.sub(r'\{[a-zA-Z_][a-zA-Z0-9_]*\}', '', user_content)
+    user_content = re.sub(r"\{[a-zA-Z_][a-zA-Z0-9_]*\}", "", user_content)
 
     messages = [
         {"role": "system", "content": system_prompt},
@@ -332,7 +366,6 @@ async def _call_deepseek_fallback(
         return json.loads(content)
     except json.JSONDecodeError:
         logger.warning("DeepSeek 回退返回非 JSON，尝试提取: %s", content[:200])
-        # 尝试提取 JSON 对象或数组
         for start_char, end_char in [("{", "}"), ("[", "]")]:
             start = content.find(start_char)
             end = content.rfind(end_char) + 1
@@ -341,13 +374,9 @@ async def _call_deepseek_fallback(
                     return json.loads(content[start:end])
                 except json.JSONDecodeError:
                     continue
-        # 无法解析，返回原始内容
         return {"raw_content": content, "parse_error": True}
 
 
-# ---------------------------------------------------------------------------
-# 便捷函数
-# ---------------------------------------------------------------------------
 async def generate_student_feedback(
     *,
     problem: str,
@@ -356,7 +385,6 @@ async def generate_student_feedback(
     student_id: str = "system",
     grade: int = 6,
 ) -> dict[str, Any]:
-    """生成学生反馈（引导式讲解）。"""
     diag_str = json.dumps(diagnosis, ensure_ascii=False) if isinstance(diagnosis, dict) else diagnosis
     return await call_dify_or_llm(
         "student_guidance",
@@ -376,7 +404,6 @@ async def generate_teacher_summary(
     session_history: str | dict,
     student_id: str = "system",
 ) -> dict[str, Any]:
-    """生成教师诊断摘要。"""
     diag_str = json.dumps(diagnosis, ensure_ascii=False) if isinstance(diagnosis, dict) else diagnosis
     hist_str = json.dumps(session_history, ensure_ascii=False) if isinstance(session_history, dict) else session_history
     return await call_dify_or_llm(
@@ -395,7 +422,6 @@ async def ai_grade_answers(
     student_info: str | dict,
     student_id: str = "system",
 ) -> dict[str, Any]:
-    """AI 辅助批改分析。"""
     grade_str = json.dumps(grading_results, ensure_ascii=False) if isinstance(grading_results, dict) else grading_results
     info_str = json.dumps(student_info, ensure_ascii=False) if isinstance(student_info, dict) else student_info
     return await call_dify_or_llm(
@@ -415,7 +441,6 @@ async def ai_analyze_profile(
     accuracy_trend: str | dict,
     student_id: str = "system",
 ) -> dict[str, Any]:
-    """AI 学习画像分析。"""
     return await call_dify_or_llm(
         "ai_profile",
         {
@@ -435,7 +460,6 @@ async def ai_generate_problems(
     grade: int = 6,
     student_id: str = "system",
 ) -> dict[str, Any]:
-    """AI 生成针对性练习题。"""
     codes_str = ", ".join(error_codes) if isinstance(error_codes, list) else error_codes
     return await call_dify_or_llm(
         "problem_generation",
@@ -449,14 +473,23 @@ async def ai_generate_problems(
     )
 
 
-# ---------------------------------------------------------------------------
-# 状态查询
-# ---------------------------------------------------------------------------
 def get_dify_status() -> dict[str, Any]:
-    """返回 Dify 客户端当前状态（用于 /api/config/dify-status 等端点）。"""
     return {
-        "enabled": dify_config.enabled,
-        "base_url": dify_config.base_url,
-        "api_key_set": bool(dify_config.api_key),
+        "cloud": {
+            "enabled": dify_config.cloud.enabled,
+            "base_url": dify_config.cloud.base_url,
+            "api_key_set": bool(DIFY_API_KEY),
+        },
+        "local": {
+            "enabled": dify_config.local.enabled,
+            "base_url": dify_config.local.base_url,
+            "api_key_set": bool(
+                any(
+                    LOCAL_WORKFLOWS.get(k, {}).get("api_key", "")
+                    for k in WORKFLOWS
+                )
+            ),
+        },
         "workflows_configured": list(WORKFLOWS.keys()),
+        "routing": "local → cloud → deepseek",
     }

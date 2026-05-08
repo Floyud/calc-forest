@@ -1,9 +1,9 @@
 app:
   description: 教师诊断助手 workflow - 班级错误分析 + 教学建议，基于知识库检索 + LLM 分析
-  icon: "\U0001F4CA"
+  icon: 📊
   icon_background: '#FFF3E0'
   mode: workflow
-  name: "\u6211\u7684\u8BA1\u7B97\u68EE\u6797_\u6559\u5E08\u8BCA\u65AD\u52A9\u624B"
+  name: 我的计算森林_教师诊断助手
   use_icon_as_answer_icon: false
 dependencies: []
 kind: app
@@ -90,24 +90,24 @@ workflow:
       zIndex: 0
     nodes:
     - data:
-        desc: "\u63A5\u6536\u8BCA\u65AD\u7ED3\u679C\u548C\u5B66\u751F\u4FE1\u606F"
+        desc: 接收诊断结果和学生信息
         selected: false
         title: Start
         type: start
         variables:
-        - label: "\u8BCA\u65AD\u7ED3\u679C"
+        - label: 诊断结果
           max_length: null
           options: []
           required: true
           type: text-input
           variable: diagnosis
-        - label: "\u5B66\u751F\u4FE1\u606F"
+        - label: 学生信息
           max_length: null
           options: []
           required: true
           type: text-input
           variable: student_info
-        - label: "\u4F1A\u8BDD\u5386\u53F2"
+        - label: 会话历史
           max_length: null
           options: []
           required: false
@@ -127,32 +127,18 @@ workflow:
       type: custom
       width: 280
     - data:
-        code: |
-          import json
-          import re
-
-          def main(diagnosis: str, student_info: str) -> dict:
-              # 尝试 JSON 解析，失败则当作纯文本
-              code = ''
-              try:
-                  diag = json.loads(diagnosis)
-                  if isinstance(diag, dict):
-                      code = diag.get('primary_error', {}).get('code', '')
-              except Exception:
-                  code = ''
-
-              # 从纯文本中提取错因代码
-              if not code:
-                  codes = re.findall(r'E\d{2}', diagnosis)
-                  code = codes[0] if codes else 'E99'
-
-              return {
-                  'retrieval_query': f'\u9519\u56E0{code} \u6559\u5B66\u7B56\u7565 \u73ED\u7EA7\u9519\u8BEF\u5206\u6790 \u5F15\u5BFC\u65B9\u6CD5',
-                  'error_code': code,
-                  'student_summary': student_info[:200],
-              }
+        code: "import json\nimport re\n\ndef main(diagnosis: str, student_info: str)\
+          \ -> dict:\n    # 尝试 JSON 解析，失败则当作纯文本\n    code = ''\n    try:\n       \
+          \ diag = json.loads(diagnosis)\n        if isinstance(diag, dict):\n   \
+          \         code = diag.get('primary_error', {}).get('code', '')\n    except\
+          \ Exception:\n        code = ''\n\n    # 从纯文本中提取错因代码\n    if not code:\n\
+          \        codes = re.findall(r'E\\d{2}', diagnosis)\n        code = codes[0]\
+          \ if codes else 'E99'\n\n    return {\n        'retrieval_query': f'\\u9519\\\
+          u56E0{code} \\u6559\\u5B66\\u7B56\\u7565 \\u73ED\\u7EA7\\u9519\\u8BEF\\\
+          u5206\\u6790 \\u5F15\\u5BFC\\u65B9\\u6CD5',\n        'error_code': code,\n\
+          \        'student_summary': student_info[:200],\n    }\n"
         code_language: python3
-        desc: "\u4ECE\u8BCA\u65AD\u7ED3\u679C\u4E2D\u63D0\u53D6\u9519\u56E0\u4EE3\u7801\uFF0C\u6784\u5EFA\u77E5\u8BC6\u5E93\u68C0\u7D22\u67E5\u8BE2"
+        desc: 从诊断结果中提取错因代码，构建知识库检索查询
         outputs:
           retrieval_query:
             children: null
@@ -164,7 +150,7 @@ workflow:
             children: null
             type: string
         selected: false
-        title: "\u6784\u5EFA\u68C0\u7D22\u67E5\u8BE2"
+        title: 构建检索查询
         type: code
         variables:
         - value_selector:
@@ -189,32 +175,20 @@ workflow:
       type: custom
       width: 320
     - data:
-        desc: "\u68C0\u7D22\u9519\u56E0\u6559\u5B66\u7B56\u7565\u77E5\u8BC6\u5E93"
+        desc: 检索错因教学策略知识库
         dataset_ids:
         - e65030a0-3076-4cd1-b646-d834ecafa55e
         query_variable_selector:
         - build_query
         - retrieval_query
-        retrieval_mode: multiple
-        multiple_retrieval_config:
-          top_k: 5
-          score_threshold: 0.5
-          reranking_enable: true
-          reranking_mode: weighted_score
-          weights:
-            keyword_setting:
-              keyword_weight: 0.3
-            semantic_setting:
-              semantic_weight: 0.7
-          reranking_model:
-            provider: tongyi
-            model: qwen3-rerank
+        retrieval_mode: single
         selected: false
         single_retrieval_config:
           model:
             provider: deepseek
-            model: deepseek-chat
-        title: "\u77E5\u8BC6\u68C0\u7D22"
+            name: deepseek-chat
+            mode: chat
+        title: 知识检索
         type: knowledge-retrieval
       height: 90
       id: knowledge_retrieval
@@ -235,7 +209,7 @@ workflow:
           variable_selector:
           - knowledge_retrieval
           - result
-        desc: "\u57FA\u4E8E\u77E5\u8BC6\u5E93\u5185\u5BB9\u5206\u6790\u9519\u8BEF\u6A21\u5F0F\u5E76\u7ED9\u51FA\u6559\u5B66\u5EFA\u8BAE"
+        desc: 基于知识库内容分析错误模式并给出教学建议
         model:
           completion_params:
             temperature: 0.7
@@ -247,20 +221,34 @@ workflow:
         prompt_template:
         - id: system-prompt
           role: system
-          text: "\u4F60\u662F\u4E00\u4F4D\u6559\u5B66\u5206\u6790\u52A9\u624B\uFF0C\u5E2E\u52A9\u6559\u5E08\u5FEB\u901F\u4E86\u89E3\u5B66\u751F\u9519\u8BEF\u6A21\u5F0F\u3002\n\
-            \u7528\u5BA2\u89C2\u8BED\u8A00\u63CF\u8FF0\u8BC1\u636E\uFF0C\u533A\u5206\u672C\u6B21\u9519\u8BEF\u548C\u957F\u671F\u80FD\u529B\u5224\u65AD\uFF0C\u4E0D\u8981\u8FC7\u5EA6\u63A8\u65AD\u3002\n\
-            \u7ED3\u5408\u77E5\u8BC6\u5E93\u4E2D\u7684\u6559\u5B66\u7B56\u7565\u7ED9\u51FA\u5177\u4F53\u5EFA\u8BAE\u3002\n\
-            \u8F93\u51FA\u4E2D\u6587\uFF0C\u7ED3\u6784\u6E05\u6670\u3002\n\n\
-            \u8BF7\u6309\u4EE5\u4E0B\u7ED3\u6784\u8F93\u51FA\uFF1A\n\
-            \u3010\u9519\u8BEF\u5206\u6790\u3011\u5BA2\u89C2\u63CF\u8FF0\u9519\u8BEF\u7C7B\u578B\u3001\u53EF\u80FD\u539F\u56E0\u3001\u4E0E\u5B66\u751F\u60C5\u51B5\u7684\u5173\u8054\n\
-            \u3010\u6559\u5E08\u5EFA\u8BAE\u3011\u5177\u4F53\u53EF\u64CD\u4F5C\u7684\u6559\u5B66\u5E72\u9884\u5EFA\u8BAE\uFF0C\u5305\u62EC\u5F15\u5BFC\u65B9\u6CD5\u548C\u7EC3\u4E60\u5EFA\u8BAE"
+          text: '你是一位教学分析助手，帮助教师快速了解学生错误模式。
+
+            用客观语言描述证据，区分本次错误和长期能力判断，不要过度推断。
+
+            结合知识库中的教学策略给出具体建议。
+
+            输出中文，结构清晰。
+
+
+            请按以下结构输出：
+
+            【错误分析】客观描述错误类型、可能原因、与学生情况的关联
+
+            【教师建议】具体可操作的教学干预建议，包括引导方法和练习建议'
         - id: user-prompt
           role: user
-          text: "\u8BCA\u65AD\u7ED3\u679C\uFF1A{{#start_node.diagnosis#}}\n\n\
-            \u5B66\u751F\u4FE1\u606F\uFF1A{{#start_node.student_info#}}\n\n\
-            \u77E5\u8BC6\u5E93\u53C2\u8003\u5185\u5BB9\uFF1A\n\
-            {{#knowledge_retrieval.result#}}\n\n\
-            \u8BF7\u5206\u6790\u8BE5\u5B66\u751F\u7684\u9519\u8BEF\u6A21\u5F0F\uFF0C\u7ED3\u5408\u77E5\u8BC6\u5E93\u4E2D\u7684\u6559\u5B66\u7B56\u7565\u7ED9\u51FA\u5177\u4F53\u5EFA\u8BAE\u3002"
+          text: '诊断结果：{{#start_node.diagnosis#}}
+
+
+            学生信息：{{#start_node.student_info#}}
+
+
+            知识库参考内容：
+
+            {{#knowledge_retrieval.result#}}
+
+
+            请分析该学生的错误模式，结合知识库中的教学策略给出具体建议。'
         selected: false
         title: LLM\u5206\u6790
         type: llm
@@ -280,36 +268,22 @@ workflow:
       type: custom
       width: 280
     - data:
-        code: |
-          import re
-
-          def main(llm_text: str, error_code: str) -> dict:
-              teacher_summary = llm_text.strip() if llm_text else ''
-              error_analysis = ''
-              recommendation = ''
-
-              # 解析【错误分析】部分
-              m_err = re.search(r'\u3010\u9519\u8BEF\u5206\u6790\u3011(.*?)(?=\u3010\u6559\u5E08\u5EFA\u8BAE\u3011|$)', teacher_summary, re.DOTALL)
-              if m_err:
-                  error_analysis = m_err.group(1).strip()
-
-              # 解析【教师建议】部分
-              m_rec = re.search(r'\u3010\u6559\u5E08\u5EFA\u8BAE\u3011(.*)', teacher_summary, re.DOTALL)
-              if m_rec:
-                  recommendation = m_rec.group(1).strip()
-
-              # 如果解析失败，整体作为 teacher_summary
-              if not error_analysis and not recommendation:
-                  error_analysis = teacher_summary
-                  recommendation = f'\u5EFA\u8BAE\u9488\u5BF9\u9519\u56E0{error_code}\u8FDB\u884C\u4E13\u9879\u7EC3\u4E60'
-
-              return {
-                  'teacher_summary': teacher_summary,
-                  'error_analysis': error_analysis,
-                  'recommendation': recommendation,
-              }
+        code: "import re\n\ndef main(llm_text: str, error_code: str) -> dict:\n  \
+          \  teacher_summary = llm_text.strip() if llm_text else ''\n    error_analysis\
+          \ = ''\n    recommendation = ''\n\n    # 解析【错误分析】部分\n    m_err = re.search(r'\\\
+          u3010\\u9519\\u8BEF\\u5206\\u6790\\u3011(.*?)(?=\\u3010\\u6559\\u5E08\\\
+          u5EFA\\u8BAE\\u3011|$)', teacher_summary, re.DOTALL)\n    if m_err:\n  \
+          \      error_analysis = m_err.group(1).strip()\n\n    # 解析【教师建议】部分\n   \
+          \ m_rec = re.search(r'\\u3010\\u6559\\u5E08\\u5EFA\\u8BAE\\u3011(.*)', teacher_summary,\
+          \ re.DOTALL)\n    if m_rec:\n        recommendation = m_rec.group(1).strip()\n\
+          \n    # 如果解析失败，整体作为 teacher_summary\n    if not error_analysis and not recommendation:\n\
+          \        error_analysis = teacher_summary\n        recommendation = f'\\\
+          u5EFA\\u8BAE\\u9488\\u5BF9\\u9519\\u56E0{error_code}\\u8FDB\\u884C\\u4E13\\\
+          u9879\\u7EC3\\u4E60'\n\n    return {\n        'teacher_summary': teacher_summary,\n\
+          \        'error_analysis': error_analysis,\n        'recommendation': recommendation,\n\
+          \    }\n"
         code_language: python3
-        desc: "\u89E3\u6790 LLM \u8F93\u51FA\uFF0C\u7ED3\u6784\u5316\u8FD4\u56DE\u6559\u5E08\u5EFA\u8BAE"
+        desc: 解析 LLM 输出，结构化返回教师建议
         outputs:
           teacher_summary:
             children: null
@@ -321,7 +295,7 @@ workflow:
             children: null
             type: string
         selected: false
-        title: "\u7EC4\u88C5\u7ED3\u679C"
+        title: 组装结果
         type: code
         variables:
         - value_selector:

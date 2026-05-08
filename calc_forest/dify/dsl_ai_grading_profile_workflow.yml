@@ -1,6 +1,6 @@
 app:
   description: AI批改+学生画像双模式workflow。grading模式对批改结果进行语义分析和补充评价；profiling模式根据历史数据生成学习画像。
-  icon: "\U0001F4DD"
+  icon: 📝
   icon_background: '#F7E8E4'
   mode: workflow
   name: 我的计算森林_AI批改画像助手
@@ -167,31 +167,31 @@ workflow:
         title: Start
         type: start
         variables:
-        - label: "模式\uFF08grading \u6216 profiling\uFF09"
+        - label: 模式（grading 或 profiling）
           max_length: null
           options: []
           required: true
           type: text-input
           variable: mode
-        - label: "批改结果JSON"
+        - label: 批改结果JSON
           max_length: null
           options: []
           required: false
           type: text-input
           variable: grading_results
-        - label: "学生信息JSON"
+        - label: 学生信息JSON
           max_length: null
           options: []
           required: false
           type: text-input
           variable: student_info
-        - label: "错因统计JSON"
+        - label: 错因统计JSON
           max_length: null
           options: []
           required: false
           type: text-input
           variable: error_stats
-        - label: "正确率趋势JSON"
+        - label: 正确率趋势JSON
           max_length: null
           options: []
           required: false
@@ -223,9 +223,9 @@ workflow:
             - mode
           id: 'true'
           logical_operator: and
-        desc: "根据mode字段路由：grading走批改路径，其余走画像路径"
+        desc: 根据mode字段路由：grading走批改路径，其余走画像路径
         selected: false
-        title: "模式路由"
+        title: 模式路由
         type: if-else
       height: 126
       id: mode_router
@@ -241,10 +241,10 @@ workflow:
       type: custom
       width: 260
     - data:
-        code: "import json\n\ndef main(grading_results: str) -> dict:\n    try:\n  \
-          \      data = json.loads(grading_results)\n    except:\n        data = []\n\
-          \    items = []\n    if isinstance(data, list):\n        items = data\n \
-          \   elif isinstance(data, dict):\n        items = data.get('results', [])\n\
+        code: "import json\n\ndef main(grading_results: str) -> dict:\n    try:\n\
+          \        data = json.loads(grading_results)\n    except:\n        data =\
+          \ []\n    items = []\n    if isinstance(data, list):\n        items = data\n\
+          \    elif isinstance(data, dict):\n        items = data.get('results', [])\n\
           \    errors = []\n    for item in items:\n        if not isinstance(item,\
           \ dict):\n            continue\n        is_wrong = not item.get('correct',\
           \ not item.get('is_correct', True))\n        if is_wrong:\n            code\
@@ -255,7 +255,7 @@ workflow:
           \     'retrieval_query': f\"批改评语 错因{error_codes} 评语模板\",\n        'error_codes':\
           \ error_codes,\n        'total_errors': str(len(errors)),\n    }\n"
         code_language: python3
-        desc: "解析批改结果，构建知识库检索查询"
+        desc: 解析批改结果，构建知识库检索查询
         outputs:
           retrieval_query:
             children: null
@@ -267,7 +267,7 @@ workflow:
             children: null
             type: string
         selected: false
-        title: "构建批改查询"
+        title: 构建批改查询
         type: code
         variables:
         - value_selector:
@@ -289,17 +289,17 @@ workflow:
       width: 320
     - data:
         code: "import json\n\ndef main(error_stats: str, accuracy_trend: str) -> dict:\n\
-          \    try:\n        stats = json.loads(error_stats)\n    except:\n        stats\
-          \ = {}\n    try:\n        trend = json.loads(accuracy_trend)\n    except:\n\
-          \        trend = []\n    if isinstance(stats, dict):\n        top_errors\
-          \ = sorted(stats.items(), key=lambda x: x[1], reverse=True)[:3]\n    else:\n\
-          \        top_errors = []\n    error_str = ','.join([str(e[0]) for e in top_errors])\
-          \ if top_errors else 'E99'\n    latest_acc = trend[-1] if isinstance(trend,\
-          \ list) and trend else 0\n    return {\n        'retrieval_query': f\"学生画像\
-          \ {error_str} 学习风格 成长叙事\",\n        'top_errors': error_str,\n        'latest_accuracy':\
-          \ str(latest_acc),\n    }\n"
+          \    try:\n        stats = json.loads(error_stats)\n    except:\n      \
+          \  stats = {}\n    try:\n        trend = json.loads(accuracy_trend)\n  \
+          \  except:\n        trend = []\n    if isinstance(stats, dict):\n      \
+          \  top_errors = sorted(stats.items(), key=lambda x: x[1], reverse=True)[:3]\n\
+          \    else:\n        top_errors = []\n    error_str = ','.join([str(e[0])\
+          \ for e in top_errors]) if top_errors else 'E99'\n    latest_acc = trend[-1]\
+          \ if isinstance(trend, list) and trend else 0\n    return {\n        'retrieval_query':\
+          \ f\"学生画像 {error_str} 学习风格 成长叙事\",\n        'top_errors': error_str,\n \
+          \       'latest_accuracy': str(latest_acc),\n    }\n"
         code_language: python3
-        desc: "解析错因统计和正确率趋势，构建画像检索查询"
+        desc: 解析错因统计和正确率趋势，构建画像检索查询
         outputs:
           retrieval_query:
             children: null
@@ -311,7 +311,7 @@ workflow:
             children: null
             type: string
         selected: false
-        title: "构建画像查询"
+        title: 构建画像查询
         type: code
         variables:
         - value_selector:
@@ -336,7 +336,7 @@ workflow:
       type: custom
       width: 320
     - data:
-        desc: "检索批改相关知识（错因分析、评语模板）"
+        desc: 检索批改相关知识（错因分析、评语模板）
         query:
         - build_grading_query
         - retrieval_query
@@ -345,8 +345,13 @@ workflow:
         retrieval_mode: single
         top_k: 3
         score_threshold: 0.5
+        single_retrieval_config:
+          model:
+            provider: deepseek
+            name: deepseek-chat
+            mode: chat
         selected: false
-        title: "知识检索-批改"
+        title: 知识检索-批改
         type: knowledge-retrieval
       height: 90
       id: kg_grading
@@ -362,7 +367,7 @@ workflow:
       type: custom
       width: 280
     - data:
-        desc: "检索画像相关知识（学生画像、成长体系）"
+        desc: 检索画像相关知识（学生画像、成长体系）
         query:
         - build_profile_query
         - retrieval_query
@@ -371,8 +376,13 @@ workflow:
         retrieval_mode: single
         top_k: 3
         score_threshold: 0.5
+        single_retrieval_config:
+          model:
+            provider: deepseek
+            name: deepseek-chat
+            mode: chat
         selected: false
-        title: "知识检索-画像"
+        title: 知识检索-画像
         type: knowledge-retrieval
       height: 90
       id: kg_profile
@@ -391,7 +401,7 @@ workflow:
         context:
           enabled: false
           variable_selector: []
-        desc: "LLM分析批改结果，生成温暖具体的评语"
+        desc: LLM分析批改结果，生成温暖具体的评语
         model:
           completion_params:
             temperature: 0.3
@@ -401,10 +411,17 @@ workflow:
         prompt_template:
         - id: grading-system-prompt
           role: system
-          text: "你是一位小学数学批改助手。\n根据规则引擎的批改结果，对学生的答案进行语义分析和补充评价。\n注意：规则引擎已经判断了计算正确性，你的任务是补充分析可能的原因和建议。\n\
-            结合知识库中的错因分析和评语模板，生成温暖具体的批改评语。\n输出中文JSON格式。"
+          text: '你是一位小学数学批改助手。
+
+            根据规则引擎的批改结果，对学生的答案进行语义分析和补充评价。
+
+            注意：规则引擎已经判断了计算正确性，你的任务是补充分析可能的原因和建议。
+
+            结合知识库中的错因分析和评语模板，生成温暖具体的批改评语。
+
+            输出中文JSON格式。'
         selected: false
-        title: "LLM批改分析"
+        title: LLM批改分析
         type: llm
         variables: []
         vision:
@@ -426,7 +443,7 @@ workflow:
         context:
           enabled: false
           variable_selector: []
-        desc: "LLM生成学习画像分析"
+        desc: LLM生成学习画像分析
         model:
           completion_params:
             temperature: 0.3
@@ -436,10 +453,15 @@ workflow:
         prompt_template:
         - id: profiling-system-prompt
           role: system
-          text: "你是一位学习分析助手，根据学生的历史做题数据生成学习画像。\n客观分析，不贴标签，关注可改进行动。\n结合知识库中的学生画像和成长体系内容，生成建设性的画像分析。\n\
-            输出中文JSON格式。"
+          text: '你是一位学习分析助手，根据学生的历史做题数据生成学习画像。
+
+            客观分析，不贴标签，关注可改进行动。
+
+            结合知识库中的学生画像和成长体系内容，生成建设性的画像分析。
+
+            输出中文JSON格式。'
         selected: false
-        title: "LLM画像分析"
+        title: LLM画像分析
         type: llm
         variables: []
         vision:
@@ -459,14 +481,14 @@ workflow:
       width: 280
     - data:
         code: "import json\n\ndef main(llm_output: str, error_codes: str, total_errors:\
-          \ str) -> dict:\n    try:\n        result = json.loads(llm_output)\n    \
-          \    grading_analysis = result\n    except:\n        grading_analysis = {'summary':\
-          \ llm_output, 'review_status': 'pending_teacher_review'}\n    return {\n\
-          \        'grading_analysis': json.dumps(grading_analysis, ensure_ascii=False),\n\
+          \ str) -> dict:\n    try:\n        result = json.loads(llm_output)\n   \
+          \     grading_analysis = result\n    except:\n        grading_analysis =\
+          \ {'summary': llm_output, 'review_status': 'pending_teacher_review'}\n \
+          \   return {\n        'grading_analysis': json.dumps(grading_analysis, ensure_ascii=False),\n\
           \        'error_codes': error_codes,\n        'total_errors': total_errors,\n\
           \    }\n"
         code_language: python3
-        desc: "解析LLM批改输出，组装最终结果"
+        desc: 解析LLM批改输出，组装最终结果
         outputs:
           grading_analysis:
             children: null
@@ -478,7 +500,7 @@ workflow:
             children: null
             type: string
         selected: false
-        title: "组装批改结果"
+        title: 组装批改结果
         type: code
         variables:
         - value_selector:
@@ -508,13 +530,13 @@ workflow:
       width: 320
     - data:
         code: "import json\n\ndef main(llm_output: str, top_errors: str, latest_accuracy:\
-          \ str) -> dict:\n    try:\n        result = json.loads(llm_output)\n    \
-          \    profile = result\n    except:\n        profile = {'summary': llm_output,\
+          \ str) -> dict:\n    try:\n        result = json.loads(llm_output)\n   \
+          \     profile = result\n    except:\n        profile = {'summary': llm_output,\
           \ 'review_status': 'pending_teacher_review'}\n    return {\n        'profile':\
           \ json.dumps(profile, ensure_ascii=False),\n        'top_errors': top_errors,\n\
           \        'latest_accuracy': latest_accuracy,\n    }\n"
         code_language: python3
-        desc: "解析LLM画像输出，组装最终结果"
+        desc: 解析LLM画像输出，组装最终结果
         outputs:
           profile:
             children: null
@@ -526,7 +548,7 @@ workflow:
             children: null
             type: string
         selected: false
-        title: "组装画像结果"
+        title: 组装画像结果
         type: code
         variables:
         - value_selector:
