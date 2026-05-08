@@ -13,6 +13,7 @@
 | `competition/` | 《创AI》 submission drafts, scripts, and evidence checklist |
 | `source_materials/` | Read-only upstream material from teachers and competition guides |
 | `product/` | Legacy product notes kept only for historical reference |
+| `../给mom看的/` | Teacher-facing user docs: user manual, feature guide, educational philosophy — written for primary-school math teachers |
 
 ## Reading Order
 

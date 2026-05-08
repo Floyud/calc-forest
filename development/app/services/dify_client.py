@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 # Dify 配置
 # ---------------------------------------------------------------------------
-DIFY_BASE_URL = os.getenv("DIFY_BASE_URL", "http://127.0.0.1/v1")
+DIFY_BASE_URL = os.getenv("DIFY_BASE_URL", "https://api.dify.ai/v1")
 DIFY_API_KEY = os.getenv("DIFY_API_KEY", "")
 DIFY_ENABLED = os.getenv("DIFY_ENABLED", "false").lower() in ("true", "1", "yes")
 

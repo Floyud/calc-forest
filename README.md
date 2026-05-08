@@ -11,6 +11,7 @@ Start here:
 3. Read `docs/project_management/task_board.md` for current work.
 4. Use `development/` for code, tests, and demo data.
 5. Use `calc_forest/` for future product implementation and standalone git-managed work.
+6. 教师用户请读 `给mom看的/` 中的使用手册和功能介绍。
 
 ## Current Build Direction
 
@@ -37,6 +38,7 @@ The broader product vision already incorporates the 2026-05-02 teacher revision:
 | `docs/` | Document-side workspace: specs, engineering, research, operations, competition material, source material, and legacy notes |
 | `development/` | Development-side workspace: FastAPI app, tests, and synthetic demo data |
 | `calc_forest/` | Product-side workspace for the future 我的计算森林 application and standalone git management |
+| `给mom看的/` | Teacher-facing user docs: user manual, feature guide, educational philosophy |
 
 For the full document breakdown, see `docs/README.md`.
 

@@ -94,7 +94,7 @@ workflow:
         - query
         dataset_ids:
         - PLACEHOLDER_DATASET_ID
-        retrieval_mode: hybrid_search
+        retrieval_mode: multiple
         top_k: 5
         score_threshold: 0.5
         reranking_enable: true

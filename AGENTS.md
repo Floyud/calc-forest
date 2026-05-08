@@ -4,13 +4,14 @@
 
 "我的计算森林" — primary-school math calculation diagnosis Agent for the 《创AI》 competition.
 
-Three workspaces with distinct ownership:
+Four workspaces with distinct ownership:
 
 | Directory | Purpose | Tech |
 |---|---|---|
 | `development/` | FastAPI backend MVP, tests, synthetic demo data | Python (pyt0 env) |
 | `docs/` | Specs, engineering docs, competition materials, source materials | Markdown |
 | `calc_forest/` | Product-side work: Dify workflows, Next.js frontend | YAML / TypeScript |
+| `给mom看的/` | Teacher-facing user docs (使用手册, 功能介绍, 教育理念) | Markdown |
 
 ## Commands
 
@@ -159,6 +160,38 @@ Plus 6 FTS5 virtual tables for knowledge base search.
 - `docs/project_management/decision_log.md` — major decisions
 - `docs/specs/04_error_taxonomy.md` — error code definitions (PM-facing source of truth)
 
+## Dify Cloud Integration
+
+**3 Dify Apps (已创建、已发布):**
+
+| App | Type | API Key | MCP Endpoint | 用途 |
+|---|---|---|---|---|
+| 学生引导助手 | chatflow | `app-6Kq0zwnO8MIZcQZoMbDoPc0c` | `gcSNHMpHZHZptd1r/mcp` | 四步引导法回答学生问题 |
+| 教师诊断助手 | workflow | `app-Sf6Hx45Iv9Zjm3ORUUlFmIrj` | `ozZ7MohdojML3x6e/mcp` | 班级错误分析 + 教学建议 |
+| AI批改画像助手 | workflow | `app-kxypiB5ho1osryrXPpEgSq6j` | `ztmSIlpz3tva6Pl1/mcp` | AI批改 + 学生画像双模式 |
+
+**知识库:** `我的计算森林知识库`
+- Dataset ID: `e65030a0-3076-4cd1-b646-d834ecafa55e`
+- KB API Key: `dataset-JAnfqaoKgN4nI6ccnFUj9sF2`
+- Embedding: `OpenAI/text-embedding-3-large`
+- 10 个中文命名的 Markdown 文档，7 个领域分类
+- 文件源: `knowledge_base/` 目录（本地 = source of truth）
+- 同步脚本: `knowledge_base/sync_to_dify.py`
+
+**DSL 文件:** `calc_forest/dify/`
+- `dsl_student_guidance_chatflow.yml` — 学生引导
+- `dsl_teacher_diagnosis_workflow.yml` — 教师诊断
+- `dsl_ai_grading_profile_workflow.yml` — AI批改画像
+
+**Dify 输入变量映射:**
+- 学生引导 (chatflow): 无自定义输入，`query` = 学生问题
+- 教师诊断 (workflow): `diagnosis`(必填), `student_info`(必填), `session_history`(选填)
+- AI批改 (workflow): `mode`(必填: grading/profiling), `grading_results`, `student_info`, `error_stats`, `accuracy_trend`
+
+**已知问题 (需在 Dify UI 修复):**
+- 3 个应用的「知识检索」节点 retrieval_mode 从 `hybrid_search` 改为 `multiple`（或 `single`）
+- 修复步骤: 应用 → 编排 → 点击知识检索节点 → 检索设置 → 改检索模式 → 重新发布
+
 ## Known Gaps
 
 - Mixed-operation parenthesis diagnosis and two-digit multiplication partial-product alignment cases not yet covered (BI-011, BI-012).
@@ -166,6 +199,5 @@ Plus 6 FTS5 virtual tables for knowledge base search.
 - Growth milestone update logic not implemented (BI-015).
 - 4-step guided feedback (standard mode) not yet in code (BI-016).
 - Grade 1-2 mental arithmetic diagnosis rules not yet implemented (BI-017).
-- LLM integration not yet wired (DeepSeek API pending).
-- Dify V3 workflow not yet configured.
+- Dify 知识检索 retrieval_mode 需手动修复（DSL 已修正，Dify Cloud 需手动更新）。
 - Frontend pages use mock data; only `/diagnose` calls real backend API.
