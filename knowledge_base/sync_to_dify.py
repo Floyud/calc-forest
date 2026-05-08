@@ -214,9 +214,14 @@ class DifyKBClient:
                 headers=self.headers,
             )
             resp.raise_for_status()
-            data = resp.json()
-            status = data.get("data", {}).get("indexing_status", "unknown")
+            raw = resp.json()
+            items = raw if isinstance(raw, list) else raw.get("data", [])
+            first = items[0] if items else {}
+            status = first.get("indexing_status", "unknown")
             if status in ("completed", "error"):
+                if status == "error":
+                    err = first.get("error", "")
+                    print(f"   ❌ 索引错误: {err[:200]}")
                 return status
             time.sleep(3)
         return "timeout"
