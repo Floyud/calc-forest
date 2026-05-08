@@ -248,13 +248,29 @@ workflow:
               try:
                   results = json.loads(grading_results)
               except:
-                  results = {}
+                  results = []
+              # 兼容两种格式：
+              # 1) FastAPI 后端输出: [{problem, student_answer, correct, error_code}, ...]
+              # 2) 原始 DSL 格式: {results: [{is_correct, diagnosis: {primary_error: {code}}}]}
+              items = []
+              if isinstance(results, list):
+                  items = results
+              elif isinstance(results, dict):
+                  items = results.get('results', [])
               errors = []
-              for item in results.get('results', []):
-                  if not item.get('is_correct', True):
-                      code = item.get('diagnosis', {}).get('primary_error', {}).get('code', 'E99')
+              for item in items:
+                  is_wrong = (
+                      not item.get('correct', True)
+                      or not item.get('is_correct', True)
+                  )
+                  if is_wrong:
+                      code = (
+                          item.get('error_code')
+                          or item.get('diagnosis', {}).get('primary_error', {}).get('code', 'E99')
+                          or 'E99'
+                      )
                       errors.append(code)
-              error_codes = ','.join(set(errors)) if errors else 'E99'
+              error_codes = ','.join(sorted(set(errors))) if errors else 'E99'
               return {
                   'retrieval_query': f"批改评语 错因{error_codes} 评语模板",
                   'error_codes': error_codes,
