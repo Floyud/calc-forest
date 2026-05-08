@@ -1,9 +1,9 @@
 app:
-  description: 学生引导助手 Chatflow — 知识库检索 + 四步引导法，面向小学生的计算错因引导对话。
+  description: 学生引导 chatflow — 用四步引导法帮助小学生理解计算错误，温和地引导学生思考。
   icon: "\U0001F331"
-  icon_background: '#DDECCF'
+  icon_background: '#E4FBF5'
   mode: advanced-chat
-  name: 我的小计算森林_学生引导助手
+  name: "我的计算森林_学生引导助手"
   use_icon_as_answer_icon: false
 dependencies: []
 kind: app
@@ -14,7 +14,7 @@ workflow:
   features:
     file_upload:
       enabled: false
-    opening_statement: "你好！我是你的计算森林学习助手 \U0001F331\n做错题没关系，我们一起看看是哪一步需要再想想~\n请告诉我你做的是哪道题，你的答案是什么？"
+    opening_statement: "你好呀！我是你的计算森林小助手 \U0001F331\n\n如果你在计算中遇到了困难，或者对自己的答案不太确定，随时告诉我，我们一起想办法！"
     retriever_resource:
       enabled: true
     sensitive_word_avoidance:
@@ -22,9 +22,9 @@ workflow:
     speech_to_text:
       enabled: false
     suggested_questions:
-    - "2/3 × 3/4 我算成了 6/12，对吗？"
-    - "3÷1/2 我算出来是1.5，但答案说是6"
-    - "我总是搞混运算顺序怎么办？"
+    - "我做错了这道题，能帮帮我吗？"
+    - "我算出来的答案好像不太对"
+    - "这道题我不太确定怎么算"
     suggested_questions_after_answer:
       enabled: true
     text_to_speech:
@@ -37,9 +37,9 @@ workflow:
         sourceType: start
         targetType: knowledge-retrieval
       id: start-to-knowledge
-      source: 'start_node'
+      source: start_node
       sourceHandle: source
-      target: 'knowledge_retrieval'
+      target: knowledge_retrieval
       targetHandle: target
       type: custom
       zIndex: 0
@@ -49,9 +49,9 @@ workflow:
         sourceType: knowledge-retrieval
         targetType: llm
       id: knowledge-to-llm
-      source: 'knowledge_retrieval'
+      source: knowledge_retrieval
       sourceHandle: source
-      target: 'llm_guidance'
+      target: llm_guidance
       targetHandle: target
       type: custom
       zIndex: 0
@@ -61,9 +61,9 @@ workflow:
         sourceType: llm
         targetType: answer
       id: llm-to-answer
-      source: 'llm_guidance'
+      source: llm_guidance
       sourceHandle: source
-      target: 'answer_node'
+      target: answer_node
       targetHandle: target
       type: custom
       zIndex: 0
@@ -71,45 +71,58 @@ workflow:
     - data:
         desc: ''
         selected: false
-        title: 开始
+        title: Start
         type: start
         variables: []
       height: 90
-      id: 'start_node'
+      id: start_node
       position:
-        x: 80
-        y: 260
+        x: 30
+        y: 250
       positionAbsolute:
-        x: 80
-        y: 260
+        x: 30
+        y: 250
       selected: false
       sourcePosition: right
       targetPosition: left
       type: custom
-      width: 280
+      width: 240
     - data:
-        desc: '检索知识库中对应错因的教学策略和引导方法。'
+        desc: "从知识库检索错因教学策略和引导方法"
+        dataset_ids:
+        - e65030a0-3076-4cd1-b646-d834ecafa55e
         query_variable_selector:
         - sys
         - query
-        dataset_ids:
-        - PLACEHOLDER_DATASET_ID
         retrieval_mode: multiple
-        top_k: 5
-        score_threshold: 0.5
-        reranking_enable: true
+        multiple_retrieval_config:
+          top_k: 5
+          score_threshold: 0.5
+          reranking_enable: true
+          reranking_mode: weighted_score
+          weights:
+            keyword_setting:
+              keyword_weight: 0.3
+            semantic_setting:
+              semantic_weight: 0.7
+          reranking_model:
+            provider: tongyi
+            model: qwen3-rerank
         selected: false
-        title: 知识检索
+        single_retrieval_config:
+          model:
+            provider: deepseek
+            model: deepseek-chat
+        title: "\u77E5\u8BC6\u68C0\u7D22"
         type: knowledge-retrieval
-        single_retrieval: true
-      height: 120
-      id: 'knowledge_retrieval'
+      height: 90
+      id: knowledge_retrieval
       position:
-        x: 430
-        y: 240
+        x: 320
+        y: 250
       positionAbsolute:
-        x: 430
-        y: 240
+        x: 320
+        y: 250
       selected: false
       sourcePosition: right
       targetPosition: left
@@ -121,99 +134,75 @@ workflow:
           variable_selector:
           - knowledge_retrieval
           - result
-        desc: '使用 DeepSeek 模型按四步引导法生成温暖的学生反馈。'
+        desc: "用四步引导法给学生温暖的反馈"
         model:
-          provider: deepseek
-          name: deepseek-chat
-          mode: chat
           completion_params:
             temperature: 0.7
             max_tokens: 2048
             top_p: 1.0
+          mode: chat
+          name: deepseek-chat
+          provider: deepseek
         prompt_template:
         - id: system-prompt
           role: system
-          text: >-
-            你是"我的计算森林"的学生引导助手。你的目标是帮助小学生理解计算错误的原因，而不是直接告诉答案。
-
-
-            核心规则：
-
-            1. 先肯定学生已经做出的正确部分
-
-            2. 用问题引导学生思考，不直接给答案
-
-            3. 每次只纠正一个关键错误
-
-            4. 语言温暖、简短，适合六年级小学生理解
-
-            5. 如果检索到知识库中对应错因的教学策略，使用该策略引导
-
-            6. 结尾给出一道同类练习题让学生尝试
-
-
-            引导四步法：
-
-            第一步：接纳与安抚 - 先肯定学生的努力
-
-            第二步：算理引导 - 指出关键步骤，用问题引导学生思考
-
-            第三步：总结方法 - 帮学生用自己的话总结要点
-
-            第四步：巩固练习 - 给一道同类简单题让学生尝试
-
-
-            参考知识库内容来选择合适的引导策略。
+          text: "你是\"我的计算森林\"的学生引导助手。你的目标是帮助小学生理解计算错误的原因，而不是直接告诉答案。\n\
+            \n核心规则：\n\
+            1. 先肯定学生已经做出的正确部分\n\
+            2. 用问题引导学生思考，不直接给答案\n\
+            3. 每次只纠正一个关键错误\n\
+            4. 语言温暖、简短，适合六年级小学生理解\n\
+            5. 如果检索到知识库中对应错因的教学策略，使用该策略引导\n\
+            6. 结尾给出一道同类练习题让学生尝试\n\n\
+            引导四步法：\n\
+            第一步：接纳与安抚 - 先肯定学生的努力\n\
+            第二步：算理引导 - 指出关键步骤，用问题引导学生思考\n\
+            第三步：总结方法 - 帮学生用自己的话总结要点\n\
+            第四步：巩固练习 - 给一道同类简单题让学生尝试\n\n\
+            参考知识库内容来选择合适的引导策略。"
         - id: user-prompt
           role: user
-          text: >-
-            学生输入：{{#sys.query#}}
-
-
-            知识库参考内容：
-
-            {{#knowledge_retrieval.result#}}
-
-
-            请按照四步引导法给学生一段温暖、具体、可操作的引导反馈。不要直接给出最终答案。
+          text: "学生输入：{{#sys.query#}}\n\
+            \n知识库参考内容：\n{{#knowledge_retrieval.result#}}\n\
+            \n请按照四步引导法给学生一段温暖、具体、可操作的引导反馈。不要直接给出最终答案。"
         selected: false
-        title: LLM 引导
+        title: "\u5F15\u5BFC\u751F\u6210"
         type: llm
         vision:
           enabled: false
-      height: 150
-      id: 'llm_guidance'
+      height: 90
+      id: llm_guidance
       position:
-        x: 780
-        y: 230
+        x: 660
+        y: 250
       positionAbsolute:
-        x: 780
-        y: 230
-      selected: false
-      sourcePosition: right
-      targetPosition: left
-      type: custom
-      width: 300
-    - data:
-        answer: '{{#llm_guidance.text#}}'
-        desc: ''
-        selected: false
-        title: 回复
-        type: answer
-      height: 110
-      id: 'answer_node'
-      position:
-        x: 1130
-        y: 260
-      positionAbsolute:
-        x: 1130
-        y: 260
+        x: 660
+        y: 250
       selected: false
       sourcePosition: right
       targetPosition: left
       type: custom
       width: 280
+    - data:
+        desc: ''
+        answer: '{{#llm_guidance.text#}}'
+        selected: false
+        title: "\u56DE\u590D"
+        type: answer
+      height: 90
+      id: answer_node
+      position:
+        x: 1010
+        y: 250
+      positionAbsolute:
+        x: 1010
+        y: 250
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 240
     viewport:
       x: 0
       y: 0
-      zoom: 0.45
+      zoom: 0.9

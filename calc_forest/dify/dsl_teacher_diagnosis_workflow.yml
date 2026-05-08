@@ -1,9 +1,9 @@
 app:
-  description: 教师诊断助手工作流 — 基于规则引擎诊断结果，通过知识库检索和 LLM 生成教师可审核的诊断摘要。
-  icon: 📊
-  icon_background: '#E4E8F7'
+  description: 教师诊断助手 workflow - 班级错误分析 + 教学建议，基于知识库检索 + LLM 分析
+  icon: "\U0001F4CA"
+  icon_background: '#FFF3E0'
   mode: workflow
-  name: 我的计算森林_教师诊断助手
+  name: "\u6211\u7684\u8BA1\u7B97\u68EE\u6797_\u6559\u5E08\u8BCA\u65AD\u52A9\u624B"
   use_icon_as_answer_icon: false
 dependencies: []
 kind: app
@@ -34,9 +34,9 @@ workflow:
         sourceType: start
         targetType: code
       id: start-to-build-query
-      source: 'start_node'
+      source: start_node
       sourceHandle: source
-      target: 'build_query'
+      target: build_query
       targetHandle: target
       type: custom
       zIndex: 0
@@ -46,9 +46,9 @@ workflow:
         sourceType: code
         targetType: knowledge-retrieval
       id: build-query-to-knowledge
-      source: 'build_query'
+      source: build_query
       sourceHandle: source
-      target: 'knowledge_retrieval'
+      target: knowledge_retrieval
       targetHandle: target
       type: custom
       zIndex: 0
@@ -58,9 +58,9 @@ workflow:
         sourceType: knowledge-retrieval
         targetType: llm
       id: knowledge-to-llm
-      source: 'knowledge_retrieval'
+      source: knowledge_retrieval
       sourceHandle: source
-      target: 'llm_summary'
+      target: llm_analysis
       targetHandle: target
       type: custom
       zIndex: 0
@@ -70,9 +70,9 @@ workflow:
         sourceType: llm
         targetType: code
       id: llm-to-assemble
-      source: 'llm_summary'
+      source: llm_analysis
       sourceHandle: source
-      target: 'assemble_output'
+      target: assemble_result
       targetHandle: target
       type: custom
       zIndex: 0
@@ -82,45 +82,45 @@ workflow:
         sourceType: code
         targetType: end
       id: assemble-to-end
-      source: 'assemble_output'
+      source: assemble_result
       sourceHandle: source
-      target: 'end_node'
+      target: end_node
       targetHandle: target
       type: custom
       zIndex: 0
     nodes:
     - data:
-        desc: ''
+        desc: "\u63A5\u6536\u8BCA\u65AD\u7ED3\u679C\u548C\u5B66\u751F\u4FE1\u606F"
         selected: false
-        title: 开始
+        title: Start
         type: start
         variables:
-        - label: 诊断结果
+        - label: "\u8BCA\u65AD\u7ED3\u679C"
           max_length: null
           options: []
           required: true
           type: text-input
           variable: diagnosis
-        - label: 学生信息
+        - label: "\u5B66\u751F\u4FE1\u606F"
           max_length: null
           options: []
           required: true
           type: text-input
           variable: student_info
-        - label: 会话历史
+        - label: "\u4F1A\u8BDD\u5386\u53F2"
           max_length: null
           options: []
           required: false
           type: text-input
           variable: session_history
       height: 150
-      id: 'start_node'
+      id: start_node
       position:
-        x: 80
-        y: 260
+        x: 30
+        y: 250
       positionAbsolute:
-        x: 80
-        y: 260
+        x: 30
+        y: 250
       selected: false
       sourcePosition: right
       targetPosition: left
@@ -129,22 +129,30 @@ workflow:
     - data:
         code: |
           import json
+          import re
 
-          def main(diagnosis: str) -> dict:
+          def main(diagnosis: str, student_info: str) -> dict:
+              # 尝试 JSON 解析，失败则当作纯文本
+              code = ''
               try:
                   diag = json.loads(diagnosis)
-              except:
-                  diag = {}
-              code = diag.get('primary_error', {}).get('code', 'E99')
-              query = f"错因{code} 教学策略 引导方法"
+                  if isinstance(diag, dict):
+                      code = diag.get('primary_error', {}).get('code', '')
+              except Exception:
+                  code = ''
+
+              # 从纯文本中提取错因代码
+              if not code:
+                  codes = re.findall(r'E\d{2}', diagnosis)
+                  code = codes[0] if codes else 'E99'
+
               return {
-                  'retrieval_query': query,
+                  'retrieval_query': f'\u9519\u56E0{code} \u6559\u5B66\u7B56\u7565 \u73ED\u7EA7\u9519\u8BEF\u5206\u6790 \u5F15\u5BFC\u65B9\u6CD5',
                   'error_code': code,
-                  'error_description': diag.get('primary_error', {}).get('description', ''),
-                  'confidence': str(diag.get('primary_error', {}).get('confidence', 0)),
+                  'student_summary': student_info[:200],
               }
         code_language: python3
-        desc: '从诊断 JSON 中提取错因代码，构建知识库检索查询。'
+        desc: "\u4ECE\u8BCA\u65AD\u7ED3\u679C\u4E2D\u63D0\u53D6\u9519\u56E0\u4EE3\u7801\uFF0C\u6784\u5EFA\u77E5\u8BC6\u5E93\u68C0\u7D22\u67E5\u8BE2"
         outputs:
           retrieval_query:
             children: null
@@ -152,27 +160,28 @@ workflow:
           error_code:
             children: null
             type: string
-          error_description:
-            children: null
-            type: string
-          confidence:
+          student_summary:
             children: null
             type: string
         selected: false
-        title: 构建检索查询
+        title: "\u6784\u5EFA\u68C0\u7D22\u67E5\u8BE2"
         type: code
         variables:
         - value_selector:
           - start_node
           - diagnosis
           variable: diagnosis
-      height: 210
-      id: 'build_query'
+        - value_selector:
+          - start_node
+          - student_info
+          variable: student_info
+      height: 150
+      id: build_query
       position:
-        x: 430
+        x: 350
         y: 230
       positionAbsolute:
-        x: 430
+        x: 350
         y: 230
       selected: false
       sourcePosition: right
@@ -180,25 +189,40 @@ workflow:
       type: custom
       width: 320
     - data:
-        desc: '根据错因代码从知识库检索教学策略和引导方法。'
+        desc: "\u68C0\u7D22\u9519\u56E0\u6559\u5B66\u7B56\u7565\u77E5\u8BC6\u5E93"
+        dataset_ids:
+        - e65030a0-3076-4cd1-b646-d834ecafa55e
         query_variable_selector:
         - build_query
         - retrieval_query
-        dataset_ids:
-        - PLACEHOLDER_DATASET_ID
         retrieval_mode: multiple
-        top_k: 5
-        score_threshold: 0.5
+        multiple_retrieval_config:
+          top_k: 5
+          score_threshold: 0.5
+          reranking_enable: true
+          reranking_mode: weighted_score
+          weights:
+            keyword_setting:
+              keyword_weight: 0.3
+            semantic_setting:
+              semantic_weight: 0.7
+          reranking_model:
+            provider: tongyi
+            model: qwen3-rerank
         selected: false
-        title: 知识库检索
+        single_retrieval_config:
+          model:
+            provider: deepseek
+            model: deepseek-chat
+        title: "\u77E5\u8BC6\u68C0\u7D22"
         type: knowledge-retrieval
-      height: 120
-      id: 'knowledge_retrieval'
+      height: 90
+      id: knowledge_retrieval
       position:
-        x: 780
+        x: 720
         y: 250
       positionAbsolute:
-        x: 780
+        x: 720
         y: 250
       selected: false
       sourcePosition: right
@@ -207,131 +231,115 @@ workflow:
       width: 280
     - data:
         context:
-          enabled: false
-          variable_selector: []
-        desc: '基于诊断数据和知识库参考，生成教师可读的诊断摘要。'
+          enabled: true
+          variable_selector:
+          - knowledge_retrieval
+          - result
+        desc: "\u57FA\u4E8E\u77E5\u8BC6\u5E93\u5185\u5BB9\u5206\u6790\u9519\u8BEF\u6A21\u5F0F\u5E76\u7ED9\u51FA\u6559\u5B66\u5EFA\u8BAE"
         model:
           completion_params:
-            temperature: 0.5
-            top_p: 1.0
+            temperature: 0.7
             max_tokens: 2048
+            top_p: 1.0
           mode: chat
           name: deepseek-chat
           provider: deepseek
         prompt_template:
         - id: system-prompt
           role: system
-          text: >
-            你是一位教学分析助手，帮助教师快速了解学生错误模式。
-
-
-            核心规则：
-
-            1. 用客观语言描述证据，区分本次错误和长期能力判断
-
-            2. 不要过度推断，基于提供的诊断数据说话
-
-            3. 给出下一步教学建议，引用知识库中的教学策略
-
-            4. 输出严格 JSON 格式
-
-
-            输出格式：
-
-            {
-              "teacher_summary": "教师可读的诊断摘要（2-3句）",
-              "observed_evidence": ["观察到的证据1", "证据2"],
-              "recommended_intervention": "推荐的教学干预措施",
-              "risk_note": "风险提示（如有）",
-              "suggested_practice_type": "建议的练习类型"
-            }
+          text: "\u4F60\u662F\u4E00\u4F4D\u6559\u5B66\u5206\u6790\u52A9\u624B\uFF0C\u5E2E\u52A9\u6559\u5E08\u5FEB\u901F\u4E86\u89E3\u5B66\u751F\u9519\u8BEF\u6A21\u5F0F\u3002\n\
+            \u7528\u5BA2\u89C2\u8BED\u8A00\u63CF\u8FF0\u8BC1\u636E\uFF0C\u533A\u5206\u672C\u6B21\u9519\u8BEF\u548C\u957F\u671F\u80FD\u529B\u5224\u65AD\uFF0C\u4E0D\u8981\u8FC7\u5EA6\u63A8\u65AD\u3002\n\
+            \u7ED3\u5408\u77E5\u8BC6\u5E93\u4E2D\u7684\u6559\u5B66\u7B56\u7565\u7ED9\u51FA\u5177\u4F53\u5EFA\u8BAE\u3002\n\
+            \u8F93\u51FA\u4E2D\u6587\uFF0C\u7ED3\u6784\u6E05\u6670\u3002\n\n\
+            \u8BF7\u6309\u4EE5\u4E0B\u7ED3\u6784\u8F93\u51FA\uFF1A\n\
+            \u3010\u9519\u8BEF\u5206\u6790\u3011\u5BA2\u89C2\u63CF\u8FF0\u9519\u8BEF\u7C7B\u578B\u3001\u53EF\u80FD\u539F\u56E0\u3001\u4E0E\u5B66\u751F\u60C5\u51B5\u7684\u5173\u8054\n\
+            \u3010\u6559\u5E08\u5EFA\u8BAE\u3011\u5177\u4F53\u53EF\u64CD\u4F5C\u7684\u6559\u5B66\u5E72\u9884\u5EFA\u8BAE\uFF0C\u5305\u62EC\u5F15\u5BFC\u65B9\u6CD5\u548C\u7EC3\u4E60\u5EFA\u8BAE"
         - id: user-prompt
           role: user
-          text: >
-            诊断数据：{{#start_node.diagnosis#}}
-
-
-            学生信息：{{#start_node.student_info#}}
-
-
-            会话历史：{{#start_node.session_history#}}
-
-
-            错因代码：{{#build_query.error_code#}}
-
-
-            知识库参考：{{#knowledge_retrieval.result#}}
-
-
-            请根据以上信息生成教师诊断摘要。
+          text: "\u8BCA\u65AD\u7ED3\u679C\uFF1A{{#start_node.diagnosis#}}\n\n\
+            \u5B66\u751F\u4FE1\u606F\uFF1A{{#start_node.student_info#}}\n\n\
+            \u77E5\u8BC6\u5E93\u53C2\u8003\u5185\u5BB9\uFF1A\n\
+            {{#knowledge_retrieval.result#}}\n\n\
+            \u8BF7\u5206\u6790\u8BE5\u5B66\u751F\u7684\u9519\u8BEF\u6A21\u5F0F\uFF0C\u7ED3\u5408\u77E5\u8BC6\u5E93\u4E2D\u7684\u6559\u5B66\u7B56\u7565\u7ED9\u51FA\u5177\u4F53\u5EFA\u8BAE\u3002"
         selected: false
-        title: LLM 摘要生成
+        title: LLM\u5206\u6790
         type: llm
         vision:
           enabled: false
-      height: 150
-      id: 'llm_summary'
+      height: 90
+      id: llm_analysis
       position:
-        x: 1130
-        y: 240
+        x: 1060
+        y: 250
       positionAbsolute:
-        x: 1130
-        y: 240
+        x: 1060
+        y: 250
       selected: false
       sourcePosition: right
       targetPosition: left
       type: custom
-      width: 300
+      width: 280
     - data:
         code: |
-          import json
+          import re
 
           def main(llm_text: str, error_code: str) -> dict:
-              text = llm_text.strip()
-              if text.startswith('```'):
-                  text = text.split('\n', 1)[-1].rsplit('```', 1)[0].strip()
-              try:
-                  result = json.loads(text)
-              except:
-                  result = {
-                      'teacher_summary': text,
-                      'observed_evidence': [],
-                      'recommended_intervention': '请教师人工审核',
-                      'risk_note': 'AI分析结果解析失败',
-                      'suggested_practice_type': 'standard'
-                  }
-              result['error_code'] = error_code
-              result['review_status'] = 'pending_teacher_review'
-              return {'result_json': json.dumps(result, ensure_ascii=False), 'result': result}
+              teacher_summary = llm_text.strip() if llm_text else ''
+              error_analysis = ''
+              recommendation = ''
+
+              # 解析【错误分析】部分
+              m_err = re.search(r'\u3010\u9519\u8BEF\u5206\u6790\u3011(.*?)(?=\u3010\u6559\u5E08\u5EFA\u8BAE\u3011|$)', teacher_summary, re.DOTALL)
+              if m_err:
+                  error_analysis = m_err.group(1).strip()
+
+              # 解析【教师建议】部分
+              m_rec = re.search(r'\u3010\u6559\u5E08\u5EFA\u8BAE\u3011(.*)', teacher_summary, re.DOTALL)
+              if m_rec:
+                  recommendation = m_rec.group(1).strip()
+
+              # 如果解析失败，整体作为 teacher_summary
+              if not error_analysis and not recommendation:
+                  error_analysis = teacher_summary
+                  recommendation = f'\u5EFA\u8BAE\u9488\u5BF9\u9519\u56E0{error_code}\u8FDB\u884C\u4E13\u9879\u7EC3\u4E60'
+
+              return {
+                  'teacher_summary': teacher_summary,
+                  'error_analysis': error_analysis,
+                  'recommendation': recommendation,
+              }
         code_language: python3
-        desc: '解析 LLM 输出并组装最终响应，附加教师审核标记。'
+        desc: "\u89E3\u6790 LLM \u8F93\u51FA\uFF0C\u7ED3\u6784\u5316\u8FD4\u56DE\u6559\u5E08\u5EFA\u8BAE"
         outputs:
-          result_json:
+          teacher_summary:
             children: null
             type: string
-          result:
+          error_analysis:
             children: null
-            type: object
+            type: string
+          recommendation:
+            children: null
+            type: string
         selected: false
-        title: 组装输出
+        title: "\u7EC4\u88C5\u7ED3\u679C"
         type: code
         variables:
         - value_selector:
-          - llm_summary
+          - llm_analysis
           - text
           variable: llm_text
         - value_selector:
           - build_query
           - error_code
           variable: error_code
-      height: 170
-      id: 'assemble_output'
+      height: 150
+      id: assemble_result
       position:
-        x: 1480
-        y: 240
+        x: 1400
+        y: 230
       positionAbsolute:
-        x: 1480
-        y: 240
+        x: 1400
+        y: 230
       selected: false
       sourcePosition: right
       targetPosition: left
@@ -341,21 +349,31 @@ workflow:
         desc: ''
         outputs:
         - value_selector:
-          - assemble_output
-          - result_json
+          - assemble_result
+          - teacher_summary
           value_type: string
-          variable: result_json
+          variable: teacher_summary
+        - value_selector:
+          - assemble_result
+          - error_analysis
+          value_type: string
+          variable: error_analysis
+        - value_selector:
+          - assemble_result
+          - recommendation
+          value_type: string
+          variable: recommendation
         selected: false
-        title: 结束
+        title: End
         type: end
-      height: 110
-      id: 'end_node'
+      height: 140
+      id: end_node
       position:
-        x: 1830
-        y: 270
+        x: 1780
+        y: 250
       positionAbsolute:
-        x: 1830
-        y: 270
+        x: 1780
+        y: 250
       selected: false
       sourcePosition: right
       targetPosition: left
@@ -364,4 +382,4 @@ workflow:
     viewport:
       x: 0
       y: 0
-      zoom: 0.4
+      zoom: 0.45
