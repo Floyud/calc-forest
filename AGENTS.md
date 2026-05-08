@@ -215,10 +215,11 @@ Plus 6 FTS5 virtual tables for knowledge base search.
 
 **本地模型服务:** `scripts/local_model_server.py`
 - tmux session `models`, `--host 0.0.0.0 --port 8090`
-- Embedding: `all-mpnet-base-v2` (768d) → 待切换 `BAAI/bge-m3` (1024d)
+- Embedding: `BAAI/bge-m3` (1024d) ✅
 - Reranker: `jinaai/jina-reranker-v3`
 - GPU: CUDA (RTX 5070 Ti 12GB)
 - Docker 访问地址: `http://172.20.0.1:8090`
+- 支持 `encoding_format=base64` 和 `/v1/models` 端点
 
 **双线路由架构 (dify_client.py):**
 - `Local Dify → Cloud Dify → DeepSeek 直连` 三级回退
