@@ -1,0 +1,264 @@
+app:
+  description: Dify-first night build for 我的计算森林 teacher workflow.
+  icon: 🌳
+  icon_background: '#DDECCF'
+  mode: workflow
+  name: 我的计算森林_夜间版
+  use_icon_as_answer_icon: false
+dependencies: []
+kind: app
+version: 0.3.1
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload:
+      enabled: false
+    opening_statement: ''
+    retriever_resource:
+      enabled: false
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+  graph:
+    edges:
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: http-request
+      id: start-to-session-http
+      source: 'start_node'
+      sourceHandle: source
+      target: 'session_http'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: http-request
+        targetType: tool
+      id: session-http-to-parse
+      source: 'session_http'
+      sourceHandle: source
+      target: 'parse_session'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: tool
+        targetType: end
+      id: parse-to-end
+      source: 'parse_session'
+      sourceHandle: source
+      target: 'end_node'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        desc: ''
+        selected: false
+        title: Start
+        type: start
+        variables:
+        - label: student_id
+          max_length: null
+          options: []
+          required: true
+          type: text-input
+          variable: student_id
+        - label: grade
+          max_length: null
+          options: []
+          required: true
+          type: text-input
+          variable: grade
+        - label: problem_text
+          max_length: null
+          options: []
+          required: true
+          type: text-input
+          variable: problem_text
+        - label: correct_answer_text
+          max_length: null
+          options: []
+          required: true
+          type: text-input
+          variable: correct_answer_text
+        - label: student_answer_text
+          max_length: null
+          options: []
+          required: true
+          type: text-input
+          variable: student_answer_text
+        - label: student_steps_text
+          max_length: null
+          options: []
+          required: false
+          type: text-input
+          variable: student_steps_text
+        - label: guidance_mode
+          max_length: null
+          options: []
+          required: false
+          type: text-input
+          variable: guidance_mode
+        - label: tree_species_id
+          max_length: null
+          options: []
+          required: false
+          type: text-input
+          variable: tree_species_id
+      height: 230
+      id: 'start_node'
+      position:
+        x: 30
+        y: 180
+      positionAbsolute:
+        x: 30
+        y: 180
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 280
+    - data:
+        desc: 'Call the combined Dify session-draft endpoint on the host FastAPI service.'
+        title: Session Draft HTTP
+        type: http-request
+        method: POST
+        url: 'http://172.17.0.1:8000/api/dify/session-draft'
+        authorization:
+          type: no-auth
+        headers: 'Content-Type: application/json'
+        params: ''
+        body:
+          type: json
+          data:
+          - key: ''
+            type: text
+            value: '{"student_id": {{#start_node.student_id#}}, "grade": {{#start_node.grade#}}, "problem_text": {{#start_node.problem_text#}}, "correct_answer_text": {{#start_node.correct_answer_text#}}, "student_answer_text": {{#start_node.student_answer_text#}}, "student_steps_text": {{#start_node.student_steps_text#}}, "guidance_mode": {{#start_node.guidance_mode#}}, "tree_species_id": {{#start_node.tree_species_id#}}, "source": "manual"}'
+        timeout:
+          connect: 10
+          read: 30
+          write: 30
+        retry_config:
+          enabled: false
+          max_retries: 1
+          retry_interval: 1000
+          exponential_backoff:
+            enabled: false
+            multiplier: 2
+            max_interval: 10000
+      height: 110
+      id: 'session_http'
+      position:
+        x: 360
+        y: 230
+      positionAbsolute:
+        x: 360
+        y: 230
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 280
+    - data:
+        code: "import json\n\ndef main(response_json: str) -> dict:\n    session = json.loads(response_json)\n    return {\n        'session_data': session,\n        'teacher_summary': session.get('teacher_summary', ''),\n        'diagnosis_code': session.get('diagnosis', {}).get('primary_error', {}).get('code', ''),\n        'student_message': session.get('student_feedback', {}).get('message', ''),\n        'encouragement_message': session.get('encouragement_message', '')\n    }\n"
+        code_language: python3
+        desc: 'Parse the JSON response into typed workflow outputs.'
+        outputs:
+          session_data:
+            children: null
+            type: object
+          teacher_summary:
+            children: null
+            type: string
+          diagnosis_code:
+            children: null
+            type: string
+          student_message:
+            children: null
+            type: string
+          encouragement_message:
+            children: null
+            type: string
+        selected: false
+        title: Parse Session JSON
+        type: code
+        variables:
+        - value_selector:
+          - session_http
+          - body
+          variable: response_json
+      height: 150
+      id: 'parse_session'
+      position:
+        x: 690
+        y: 210
+      positionAbsolute:
+        x: 690
+        y: 210
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 320
+    - data:
+        desc: ''
+        outputs:
+        - value_selector:
+          - 'parse_session'
+          - session_data
+          value_type: object
+          variable: session_data
+        - value_selector:
+          - 'parse_session'
+          - teacher_summary
+          value_type: string
+          variable: teacher_summary
+        - value_selector:
+          - 'parse_session'
+          - diagnosis_code
+          value_type: string
+          variable: diagnosis_code
+        - value_selector:
+          - 'parse_session'
+          - student_message
+          value_type: string
+          variable: student_message
+        - value_selector:
+          - 'parse_session'
+          - encouragement_message
+          value_type: string
+          variable: encouragement_message
+        selected: false
+        title: End
+        type: end
+      height: 140
+      id: 'end_node'
+      position:
+        x: 1020
+        y: 220
+      positionAbsolute:
+        x: 1020
+        y: 220
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 280
+    viewport:
+      x: 0
+      y: 0
+      zoom: 0.7

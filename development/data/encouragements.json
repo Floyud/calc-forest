@@ -1,0 +1,40 @@
+[
+  {
+    "trigger": "practice_completed",
+    "message": "今天的小树又喝到水啦，长高了一点点。"
+  },
+  {
+    "trigger": "cumulative_days",
+    "cumulative_days": 3,
+    "message": "累计练习 3 天，小树苗已经破土啦！"
+  },
+  {
+    "trigger": "cumulative_days",
+    "cumulative_days": 7,
+    "message": "累计练习 7 天，小树长出了第一片叶子。"
+  },
+  {
+    "trigger": "cumulative_days",
+    "cumulative_days": 30,
+    "message": "累计练习 30 天，小树已经很茁壮了，你的坚持真了不起。"
+  },
+  {
+    "trigger": "self_corrected",
+    "message": "太棒了，你自己发现了问题所在，这就是思考的力量。"
+  },
+  {
+    "trigger": "start_grade",
+    "start_grade": 1,
+    "message": "你有六年时间，可以慢慢种出一片大森林。"
+  },
+  {
+    "trigger": "start_grade",
+    "start_grade": 3,
+    "message": "从三年级开始也很好，现在开始正合适。"
+  },
+  {
+    "trigger": "start_grade",
+    "start_grade": 6,
+    "message": "即使从六年级开始，也能种下属于自己的成长礼物。"
+  }
+]

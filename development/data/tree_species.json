@@ -1,0 +1,74 @@
+[
+  {
+    "id": "apple",
+    "name": "苹果树",
+    "category": "fruit",
+    "emoji": "🍎",
+    "education_value": "结果较快，帮助孩子建立成就感",
+    "knowledge_highlight": "苹果树属于蔷薇科，是常见果树，春天开花、秋天结果。",
+    "available_cycles": ["semester"]
+  },
+  {
+    "id": "orange",
+    "name": "橘子树",
+    "category": "fruit",
+    "emoji": "🍊",
+    "education_value": "结果较快，帮助孩子感受坚持后的收获",
+    "knowledge_highlight": "橘子树四季常绿，果实颜色明亮，容易建立愉快的成长联想。",
+    "available_cycles": ["semester"]
+  },
+  {
+    "id": "cherry",
+    "name": "樱花树",
+    "category": "ornamental",
+    "emoji": "🌸",
+    "education_value": "培养审美和对季节变化的感受力",
+    "knowledge_highlight": "樱花花期较短，提醒孩子珍惜每一次可见的成长。",
+    "available_cycles": ["semester"]
+  },
+  {
+    "id": "maple",
+    "name": "枫树",
+    "category": "ornamental",
+    "emoji": "🍁",
+    "education_value": "帮助孩子观察颜色变化，建立自然兴趣",
+    "knowledge_highlight": "枫叶在秋天会变色，很适合和季节学习、观察记录结合。",
+    "available_cycles": ["semester"]
+  },
+  {
+    "id": "pine",
+    "name": "松树",
+    "category": "evergreen",
+    "emoji": "🌲",
+    "education_value": "象征坚韧，坚持练习也能慢慢长高",
+    "knowledge_highlight": "松树四季常青，常被用来表达坚强和耐力。",
+    "available_cycles": ["semester"]
+  },
+  {
+    "id": "oak",
+    "name": "橡树",
+    "category": "tall",
+    "emoji": "🌳",
+    "education_value": "帮助孩子理解长期成长和远大目标",
+    "knowledge_highlight": "橡树生长较慢但很稳固，适合表达长期坚持的价值。",
+    "available_cycles": ["semester"]
+  },
+  {
+    "id": "wintersweet",
+    "name": "腊梅",
+    "category": "holiday_winter",
+    "emoji": "❄️",
+    "education_value": "寒假限定树种，强调温和复习和冬日坚持",
+    "knowledge_highlight": "腊梅在寒冷季节开放，常用来表达坚强和安静的力量。",
+    "available_cycles": ["winter_holiday"]
+  },
+  {
+    "id": "sunflower",
+    "name": "向日葵",
+    "category": "holiday_summer",
+    "emoji": "🌻",
+    "education_value": "暑假限定树种，鼓励向阳生长、轻松坚持",
+    "knowledge_highlight": "向日葵总是朝向阳光，适合表达积极和希望。",
+    "available_cycles": ["summer_holiday"]
+  }
+]

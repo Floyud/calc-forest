@@ -1,0 +1,896 @@
+app:
+  description: Formal runnable V2 workflow for 我的计算森林 with granular HTTP and branching nodes.
+  icon: 🌳
+  icon_background: '#DDECCF'
+  mode: workflow
+  name: 我的计算森林_正式版_V2
+  use_icon_as_answer_icon: false
+dependencies: []
+kind: app
+version: 0.3.1
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload:
+      enabled: false
+    opening_statement: ''
+    retriever_resource:
+      enabled: false
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+  graph:
+    edges:
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: code
+      id: start-to-build-diagnose
+      source: 'start_node'
+      sourceHandle: source
+      target: 'build_diagnose_request'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: http-request
+      id: build-diagnose-to-http
+      source: 'build_diagnose_request'
+      sourceHandle: source
+      target: 'diagnose_http'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: http-request
+        targetType: code
+      id: diagnose-http-to-parse
+      source: 'diagnose_http'
+      sourceHandle: source
+      target: 'parse_diagnosis'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: if-else
+      id: parse-to-route
+      source: 'parse_diagnosis'
+      sourceHandle: source
+      target: 'route_confidence'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: code
+      id: route-true-to-build-practice
+      source: 'route_confidence'
+      sourceHandle: 'true'
+      target: 'build_practice_request'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: code
+      id: route-false-to-assemble-low
+      source: 'route_confidence'
+      sourceHandle: 'false'
+      target: 'assemble_low_confidence'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: http-request
+      id: build-practice-to-http
+      source: 'build_practice_request'
+      sourceHandle: source
+      target: 'practice_http'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: http-request
+        targetType: http-request
+      id: practice-to-tree
+      source: 'practice_http'
+      sourceHandle: source
+      target: 'tree_http'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: http-request
+        targetType: http-request
+      id: tree-to-encouragements
+      source: 'tree_http'
+      sourceHandle: source
+      target: 'encouragements_http'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: http-request
+        targetType: code
+      id: encouragements-to-assemble-high
+      source: 'encouragements_http'
+      sourceHandle: source
+      target: 'assemble_high_confidence'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: end
+      id: assemble-high-to-end
+      source: 'assemble_high_confidence'
+      sourceHandle: source
+      target: 'end_high'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: end
+      id: assemble-low-to-end
+      source: 'assemble_low_confidence'
+      sourceHandle: source
+      target: 'end_low'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        desc: ''
+        selected: false
+        title: Start
+        type: start
+        variables:
+        - label: student_id
+          max_length: null
+          options: []
+          required: true
+          type: text-input
+          variable: student_id
+        - label: grade
+          max_length: null
+          options: []
+          required: true
+          type: text-input
+          variable: grade
+        - label: problem_text
+          max_length: null
+          options: []
+          required: true
+          type: text-input
+          variable: problem_text
+        - label: correct_answer_text
+          max_length: null
+          options: []
+          required: true
+          type: text-input
+          variable: correct_answer_text
+        - label: student_answer_text
+          max_length: null
+          options: []
+          required: true
+          type: text-input
+          variable: student_answer_text
+        - label: student_steps_text
+          max_length: null
+          options: []
+          required: false
+          type: text-input
+          variable: student_steps_text
+        - label: guidance_mode
+          max_length: null
+          options: []
+          required: false
+          type: text-input
+          variable: guidance_mode
+        - label: tree_species_id
+          max_length: null
+          options: []
+          required: false
+          type: text-input
+          variable: tree_species_id
+      height: 230
+      id: 'start_node'
+      position:
+        x: 30
+        y: 260
+      positionAbsolute:
+        x: 30
+        y: 260
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 280
+    - data:
+        code: |
+          import json
+
+          def main(
+              student_id: str,
+              grade: str,
+              problem_text: str,
+              correct_answer_text: str,
+              student_answer_text: str,
+              student_steps_text: str | None = '',
+              guidance_mode: str = 'standard',
+              tree_species_id: str = '',
+          ) -> dict:
+              student_steps_text = student_steps_text or ''
+              payload = {
+                  'student_id': student_id,
+                  'grade': int(grade),
+                  'problem': problem_text,
+                  'correct_answer': str(correct_answer_text),
+                  'student_answer': str(student_answer_text),
+                  'student_steps': [line.strip() for line in student_steps_text.splitlines() if line.strip()],
+                  'source': 'manual',
+              }
+              return {'request_json': json.dumps(payload, ensure_ascii=False)}
+        code_language: python3
+        desc: 'Normalize diagnose request payload before the HTTP node.'
+        outputs:
+          request_json:
+            children: null
+            type: string
+        selected: false
+        title: Build Diagnose Request
+        type: code
+        variables:
+        - value_selector:
+          - start_node
+          - student_id
+          variable: student_id
+        - value_selector:
+          - start_node
+          - grade
+          variable: grade
+        - value_selector:
+          - start_node
+          - problem_text
+          variable: problem_text
+        - value_selector:
+          - start_node
+          - correct_answer_text
+          variable: correct_answer_text
+        - value_selector:
+          - start_node
+          - student_answer_text
+          variable: student_answer_text
+        - value_selector:
+          - start_node
+          - student_steps_text
+          variable: student_steps_text
+      height: 150
+      id: 'build_diagnose_request'
+      position:
+        x: 350
+        y: 240
+      positionAbsolute:
+        x: 350
+        y: 240
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 320
+    - data:
+        desc: 'Call the diagnosis endpoint.'
+        title: Diagnose HTTP
+        type: http-request
+        method: POST
+        url: 'http://172.17.0.1:8000/api/diagnose'
+        authorization:
+          type: no-auth
+        headers: 'Content-Type: application/json'
+        params: ''
+        body:
+          type: json
+          data:
+          - key: ''
+            type: text
+            value: '{{#build_diagnose_request.request_json#}}'
+        timeout:
+          connect: 10
+          read: 30
+          write: 30
+        retry_config:
+          enabled: false
+          max_retries: 1
+          retry_interval: 1000
+          exponential_backoff:
+            enabled: false
+            multiplier: 2
+            max_interval: 10000
+      height: 110
+      id: 'diagnose_http'
+      position:
+        x: 720
+        y: 260
+      positionAbsolute:
+        x: 720
+        y: 260
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 280
+    - data:
+        code: |
+          import json
+
+          def main(response_json: str) -> dict:
+              diagnosis = json.loads(response_json)
+              confidence = float(diagnosis.get('primary_error', {}).get('confidence', 0.0))
+              route = 'high_confidence' if confidence >= 0.65 else 'low_confidence'
+              return {
+                  'diagnosis': diagnosis,
+                  'primary_error_code': diagnosis.get('primary_error', {}).get('code', 'E99'),
+                  'confidence': confidence,
+                  'route': route,
+                  'teacher_summary': diagnosis.get('teacher_summary', ''),
+                  'student_feedback_hint': diagnosis.get('primary_error', {}).get('student_feedback', ''),
+              }
+        code_language: python3
+        desc: 'Parse diagnosis response and compute routing fields.'
+        outputs:
+          diagnosis:
+            children: null
+            type: object
+          primary_error_code:
+            children: null
+            type: string
+          confidence:
+            children: null
+            type: number
+          route:
+            children: null
+            type: string
+          teacher_summary:
+            children: null
+            type: string
+          student_feedback_hint:
+            children: null
+            type: string
+        selected: false
+        title: Parse Diagnosis
+        type: code
+        variables:
+        - value_selector:
+          - diagnose_http
+          - body
+          variable: response_json
+      height: 180
+      id: 'parse_diagnosis'
+      position:
+        x: 1080
+        y: 225
+      positionAbsolute:
+        x: 1080
+        y: 225
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 320
+    - data:
+        cases:
+        - case_id: 'true'
+          conditions:
+          - comparison_operator: contains
+            id: 96b08dfe-3ca4-4e0d-b0ec-1d0f7f2f0001
+            value: high_confidence
+            varType: string
+            variable_selector:
+            - parse_diagnosis
+            - route
+          id: 'true'
+          logical_operator: and
+        desc: ''
+        selected: false
+        title: Confidence Route
+        type: if-else
+      height: 126
+      id: 'route_confidence'
+      position:
+        x: 1450
+        y: 250
+      positionAbsolute:
+        x: 1450
+        y: 250
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 260
+    - data:
+        code: |
+          import json
+
+          def main(primary_error_code: str, grade: str, guidance_mode: str = 'standard') -> dict:
+              payload = {
+                  'error_code': primary_error_code,
+                  'grade': int(grade),
+                  'guidance_mode': guidance_mode or 'standard',
+              }
+              return {'request_json': json.dumps(payload, ensure_ascii=False)}
+        code_language: python3
+        desc: 'Build request payload for practice recommendation.'
+        outputs:
+          request_json:
+            children: null
+            type: string
+        selected: false
+        title: Build Practice Request
+        type: code
+        variables:
+        - value_selector:
+          - parse_diagnosis
+          - primary_error_code
+          variable: primary_error_code
+        - value_selector:
+          - start_node
+          - grade
+          variable: grade
+        - value_selector:
+          - start_node
+          - guidance_mode
+          variable: guidance_mode
+      height: 150
+      id: 'build_practice_request'
+      position:
+        x: 1780
+        y: 180
+      positionAbsolute:
+        x: 1780
+        y: 180
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 320
+    - data:
+        desc: 'Call the practice recommendation endpoint.'
+        title: Practice HTTP
+        type: http-request
+        method: POST
+        url: 'http://172.17.0.1:8000/api/practice/recommend'
+        authorization:
+          type: no-auth
+        headers: 'Content-Type: application/json'
+        params: ''
+        body:
+          type: json
+          data:
+          - key: ''
+            type: text
+            value: '{{#build_practice_request.request_json#}}'
+        timeout:
+          connect: 10
+          read: 30
+          write: 30
+        retry_config:
+          enabled: false
+          max_retries: 1
+          retry_interval: 1000
+          exponential_backoff:
+            enabled: false
+            multiplier: 2
+            max_interval: 10000
+      height: 110
+      id: 'practice_http'
+      position:
+        x: 2150
+        y: 200
+      positionAbsolute:
+        x: 2150
+        y: 200
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 280
+    - data:
+        desc: 'Fetch optional tone-layer tree species config.'
+        title: Optional Tone Species HTTP
+        type: http-request
+        method: GET
+        url: 'http://172.17.0.1:8000/api/tree-species'
+        authorization:
+          type: no-auth
+        headers: ''
+        params: ''
+        body:
+          type: none
+          data: []
+        timeout:
+          connect: 10
+          read: 30
+          write: 30
+        retry_config:
+          enabled: false
+          max_retries: 1
+          retry_interval: 1000
+          exponential_backoff:
+            enabled: false
+            multiplier: 2
+            max_interval: 10000
+      height: 110
+      id: 'tree_http'
+      position:
+        x: 2480
+        y: 200
+      positionAbsolute:
+        x: 2480
+        y: 200
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 260
+    - data:
+        desc: 'Fetch optional tone-layer encouragement config.'
+        title: Optional Encouragement Tone HTTP
+        type: http-request
+        method: GET
+        url: 'http://172.17.0.1:8000/api/encouragements'
+        authorization:
+          type: no-auth
+        headers: ''
+        params: ''
+        body:
+          type: none
+          data: []
+        timeout:
+          connect: 10
+          read: 30
+          write: 30
+        retry_config:
+          enabled: false
+          max_retries: 1
+          retry_interval: 1000
+          exponential_backoff:
+            enabled: false
+            multiplier: 2
+            max_interval: 10000
+      height: 110
+      id: 'encouragements_http'
+      position:
+        x: 2790
+        y: 200
+      positionAbsolute:
+        x: 2790
+        y: 200
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 260
+    - data:
+        code: |
+          import json
+
+          QUESTION_BANK = {
+              'E01': ['这一步对应的是哪句口诀或哪组基础算式？', '你能先把这一小步单独算一遍吗？'],
+              'E02': ['哪一位相加超过了 9？', '满十以后，你有没有把进的 1 写到前一位？'],
+              'E03': ['哪一位不够减，需要先借 1？', '借位以后，前一位有没有少 1？'],
+              'E04': ['个位、十位、百位有没有对齐？', '每一列现在分别表示什么数位？'],
+              'E05': ['这道题第一步应该先算哪里？', '你能先把最先算的部分圈出来吗？'],
+              'E07': ['你抄下来的数字和原题里的数字一样吗？', '符号有没有看错或写错？'],
+              'E08': ['你是不是只算到了一部分？', '还少哪一步没有写出来或合起来？'],
+              'E11': ['算完以后，这个答案看起来合理吗？', '你能用估算或逆运算再检查一次吗？'],
+          }
+
+          def _pick_tree(trees, tree_species_id):
+              if not tree_species_id:
+                  return None
+              for item in trees:
+                  if item.get('id') == tree_species_id:
+                      return item
+              return None
+
+          def _pick_encouragement(rules):
+              for rule in rules:
+                  if rule.get('trigger') == 'practice_completed':
+                      return rule.get('message')
+              return ''
+
+          def main(diagnosis_json: dict, practice_json: str, tree_list_json: str, encouragements_json: str, tree_species_id: str = '') -> dict:
+              practice = json.loads(practice_json)
+              trees = json.loads(tree_list_json)
+              encouragements = json.loads(encouragements_json)
+              code = diagnosis_json.get('primary_error', {}).get('code', 'E99')
+              hint = diagnosis_json.get('primary_error', {}).get('student_feedback', '')
+              questions = QUESTION_BANK.get(code, ['你能把中间步骤再写出来吗？', '你觉得是从哪一步开始不确定的？'])
+              encouragement_message = _pick_encouragement(encouragements)
+              tree = _pick_tree(trees, tree_species_id)
+              items = practice.get('items', [])
+              student_message = '没关系，我们一步一步来。' + hint
+              teacher_summary = diagnosis_json.get('teacher_summary', '')
+              if items:
+                  teacher_summary += f" 建议先使用 {practice.get('estimated_minutes', 5)} 分钟以内的 {len(items)} 道短练习。"
+              session_data = {
+                  'diagnosis': diagnosis_json,
+                  'practice': practice,
+                  'teacher_summary': teacher_summary,
+                  'student_feedback': {
+                      'message': student_message,
+                      'guiding_questions': questions[:2],
+                      'key_takeaway': hint,
+                      'next_step': f'先把关键一步想清楚，再完成这 {len(items)} 道短练习。',
+                  },
+                  'tree_species': tree,
+                  'encouragement_message': encouragement_message,
+                  'review_status': 'pending_teacher_review',
+              }
+              return {
+                  'session_data': session_data,
+                  'teacher_summary': teacher_summary,
+                  'diagnosis_code': code,
+                  'student_message': student_message,
+                  'encouragement_message': encouragement_message,
+              }
+        code_language: python3
+        desc: 'Assemble the final high-confidence teacher-facing payload.'
+        outputs:
+          session_data:
+            children: null
+            type: object
+          teacher_summary:
+            children: null
+            type: string
+          diagnosis_code:
+            children: null
+            type: string
+          student_message:
+            children: null
+            type: string
+          encouragement_message:
+            children: null
+            type: string
+        selected: false
+        title: Assemble High Confidence
+        type: code
+        variables:
+        - value_selector:
+          - parse_diagnosis
+          - diagnosis
+          variable: diagnosis_json
+        - value_selector:
+          - practice_http
+          - body
+          variable: practice_json
+        - value_selector:
+          - tree_http
+          - body
+          variable: tree_list_json
+        - value_selector:
+          - encouragements_http
+          - body
+          variable: encouragements_json
+        - value_selector:
+          - start_node
+          - tree_species_id
+          variable: tree_species_id
+      height: 220
+      id: 'assemble_high_confidence'
+      position:
+        x: 3110
+        y: 150
+      positionAbsolute:
+        x: 3110
+        y: 150
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 360
+    - data:
+        code: |
+          QUESTION_BANK = {
+              'E01': ['这一步对应的是哪句口诀或哪组基础算式？', '你能先把这一小步单独算一遍吗？'],
+              'E02': ['哪一位相加超过了 9？', '满十以后，你有没有把进的 1 写到前一位？'],
+              'E03': ['哪一位不够减，需要先借 1？', '借位以后，前一位有没有少 1？'],
+              'E04': ['个位、十位、百位有没有对齐？', '每一列现在分别表示什么数位？'],
+              'E05': ['这道题第一步应该先算哪里？', '你能先把最先算的部分圈出来吗？'],
+              'E07': ['你抄下来的数字和原题里的数字一样吗？', '符号有没有看错或写错？'],
+              'E08': ['你是不是只算到了一部分？', '还少哪一步没有写出来或合起来？'],
+              'E11': ['算完以后，这个答案看起来合理吗？', '你能用估算或逆运算再检查一次吗？'],
+          }
+
+          def main(diagnosis_json: dict) -> dict:
+              code = diagnosis_json.get('primary_error', {}).get('code', 'E99')
+              hint = diagnosis_json.get('primary_error', {}).get('student_feedback', '')
+              questions = QUESTION_BANK.get(code, ['你能把中间步骤再写出来吗？', '你觉得是从哪一步开始不确定的？'])
+              teacher_summary = diagnosis_json.get('teacher_summary', '') + ' 当前证据还不够稳定，建议先追问或补步骤，再决定练习。'
+              session_data = {
+                  'diagnosis': diagnosis_json,
+                  'practice': None,
+                  'teacher_summary': teacher_summary,
+                  'student_feedback': {
+                      'message': '我们先不急着往下做，先把关键一步想清楚。' + hint,
+                      'guiding_questions': questions[:2],
+                      'key_takeaway': hint,
+                      'next_step': '请先补写关键步骤或回答追问。',
+                  },
+                  'tree_species': None,
+                  'encouragement_message': '',
+                  'review_status': 'pending_teacher_review',
+                  'clarify_required': True,
+              }
+              return {
+                  'session_data': session_data,
+                  'teacher_summary': teacher_summary,
+                  'diagnosis_code': code,
+                  'student_message': session_data['student_feedback']['message'],
+                  'encouragement_message': '',
+              }
+        code_language: python3
+        desc: 'Build a conservative clarify-first response when confidence is low.'
+        outputs:
+          session_data:
+            children: null
+            type: object
+          teacher_summary:
+            children: null
+            type: string
+          diagnosis_code:
+            children: null
+            type: string
+          student_message:
+            children: null
+            type: string
+          encouragement_message:
+            children: null
+            type: string
+        selected: false
+        title: Assemble Low Confidence
+        type: code
+        variables:
+        - value_selector:
+          - parse_diagnosis
+          - diagnosis
+          variable: diagnosis_json
+      height: 220
+      id: 'assemble_low_confidence'
+      position:
+        x: 1780
+        y: 470
+      positionAbsolute:
+        x: 1780
+        y: 470
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 360
+    - data:
+        desc: ''
+        outputs:
+        - value_selector:
+          - assemble_high_confidence
+          - session_data
+          value_type: object
+          variable: session_data
+        - value_selector:
+          - assemble_high_confidence
+          - teacher_summary
+          value_type: string
+          variable: teacher_summary
+        - value_selector:
+          - assemble_high_confidence
+          - diagnosis_code
+          value_type: string
+          variable: diagnosis_code
+        - value_selector:
+          - assemble_high_confidence
+          - student_message
+          value_type: string
+          variable: student_message
+        - value_selector:
+          - assemble_high_confidence
+          - encouragement_message
+          value_type: string
+          variable: encouragement_message
+        selected: false
+        title: End High
+        type: end
+      height: 140
+      id: 'end_high'
+      position:
+        x: 3500
+        y: 190
+      positionAbsolute:
+        x: 3500
+        y: 190
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 280
+    - data:
+        desc: ''
+        outputs:
+        - value_selector:
+          - assemble_low_confidence
+          - session_data
+          value_type: object
+          variable: session_data
+        - value_selector:
+          - assemble_low_confidence
+          - teacher_summary
+          value_type: string
+          variable: teacher_summary
+        - value_selector:
+          - assemble_low_confidence
+          - diagnosis_code
+          value_type: string
+          variable: diagnosis_code
+        - value_selector:
+          - assemble_low_confidence
+          - student_message
+          value_type: string
+          variable: student_message
+        - value_selector:
+          - assemble_low_confidence
+          - encouragement_message
+          value_type: string
+          variable: encouragement_message
+        selected: false
+        title: End Low
+        type: end
+      height: 140
+      id: 'end_low'
+      position:
+        x: 2200
+        y: 510
+      positionAbsolute:
+        x: 2200
+        y: 510
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 280
+    viewport:
+      x: 0
+      y: 0
+      zoom: 0.32

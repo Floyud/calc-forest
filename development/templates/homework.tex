@@ -1,0 +1,100 @@
+\documentclass[12pt,a4paper]{ctexart}
+
+\usepackage[margin=20mm]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usepackage{fontspec}
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+
+\definecolor{forestgreen}{RGB}{56,118,74}
+\definecolor{bark}{RGB}{93,64,55}
+\definecolor{parchment}{RGB}{250,253,247}
+\definecolor{warmgold}{RGB}{212,168,67}
+\definecolor{diffAbg}{RGB}{228,240,223}
+\definecolor{diffBbg}{RGB}{253,240,213}
+\definecolor{diffCbg}{RGB}{252,232,227}
+\definecolor{diffAfg}{RGB}{46,120,46}
+\definecolor{diffBfg}{RGB}{180,130,20}
+\definecolor{diffCfg}{RGB}{180,60,60}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[C]{\small\color{gray} 我的计算森林 $\cdot$ 数学练习}
+\fancyfoot[C]{\small\color{gray} 第 \thepage\ 页 / 共 \pageref{LastPage} 页}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\headrule}{\hbox to\headwidth{\color{warmgold}\leaders\hrule height 0.8pt\hfill}}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0pt}
+
+\newcommand{\diffbadge}[1]{%
+  \if#1A\colorbox{diffAbg}{\color{diffAfg}\scriptsize\bfseries 基础}\fi
+  \if#1B\colorbox{diffBbg}{\color{diffBfg}\scriptsize\bfseries 中档}\fi
+  \if#1C\colorbox{diffCbg}{\color{diffCfg}\scriptsize\bfseries 高档}\fi
+}
+
+\newcommand{\answerline}{\underline{\hfill\hspace{6cm}\hfill}}
+
+\begin{document}
+
+\begin{center}
+  {\LARGE\bfseries\color{bark} 我的计算森林 $\cdot$ 数学练习}
+  \par\vspace{4pt}
+  {\small\color{gray} << class_name >> $\cdot$ << title >> $\cdot$ << date >>}
+  \par\vspace{2pt}
+  \rule{0.6\textwidth}{0.8pt}
+\end{center}
+
+\vspace{6pt}
+
+\begin{tikzpicture}
+  \node[rounded corners=4pt, draw=bark!30, fill=parchment,
+        inner sep=8pt, text width=\dimexpr\textwidth-24pt\relax] {
+    \begin{minipage}{\dimexpr\textwidth-28pt\relax}
+      \color{bark}
+      \quad 姓名：<% if student_name %><< student_name >><% else %>\underline{\hspace{3cm}}<% endif %>
+      \hfill
+      班级：<< class_name >>
+      \hfill
+      难度：<< difficulty >>
+      \hfill
+      用时：\underline{\hspace{2cm}}
+    \end{minipage}
+  };
+\end{tikzpicture}
+
+\vspace{10pt}
+
+<% for p in problems %>
+\noindent
+\begin{minipage}[t]{\textwidth}
+  \vspace{6pt}
+  \begin{tikzpicture}[baseline=(num.base)]
+    \node[circle, fill=warmgold, text=white, font=\small\bfseries,
+          minimum size=20pt, inner sep=0pt] (num) {<< loop.index >>};
+  \end{tikzpicture}\quad
+  {\large << p.problem >>}%
+  \hfill
+  \diffbadge{<< p.difficulty >>}
+  \par\vspace{6pt}
+  \quad\answerline
+  \par\vspace{2pt}
+\end{minipage}
+
+\vspace{4pt}
+<% if not loop.last %>
+\textcolor{bark!15}{\rule{\textwidth}{0.3pt}}
+<% endif %>
+<% endfor %>
+
+\vfill
+
+\begin{center}
+  \rule{0.4\textwidth}{0.4pt}
+  \par\vspace{4pt}
+  {\small\color{gray} 每一棵小树都需要耐心浇灌 $\cdot$ 我的计算森林}
+\end{center}
+
+\end{document}

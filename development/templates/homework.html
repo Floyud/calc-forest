@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<style>
+  @page {
+    size: A4;
+    margin: 18mm 15mm 20mm 15mm;
+    @bottom-center {
+      content: "第 " counter(page) " 页";
+      font-size: 9pt;
+      color: #8c7e6e;
+    }
+  }
+  body {
+    font-family: "Noto Sans SC", "LXGW WenKai", "Microsoft YaHei", sans-serif;
+    font-size: 11pt;
+    color: #3e2723;
+    line-height: 1.6;
+  }
+  .header {
+    text-align: center;
+    border-bottom: 2px solid #c9a87a;
+    padding-bottom: 10px;
+    margin-bottom: 16px;
+  }
+  .header h1 {
+    font-size: 18pt;
+    margin: 0 0 4px 0;
+    color: #3e2723;
+  }
+  .header .meta {
+    font-size: 9pt;
+    color: #8c7e6e;
+  }
+  .student-info {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 14px;
+    font-size: 10pt;
+    border: 1px solid #e0ccaf;
+    border-radius: 6px;
+    padding: 8px 12px;
+    background: #faf5ef;
+  }
+  .student-info span {
+    color: #5c4228;
+  }
+  .student-info .blank {
+    display: inline-block;
+    width: 80px;
+    border-bottom: 1px solid #8c7e6e;
+  }
+  .problem-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px 24px;
+  }
+  .problem-item {
+    border: 1px solid #e0ccaf;
+    border-radius: 8px;
+    padding: 10px 12px;
+    page-break-inside: avoid;
+    background: #fffef8;
+  }
+  .problem-item .number {
+    display: inline-block;
+    width: 22px;
+    height: 22px;
+    line-height: 22px;
+    text-align: center;
+    border-radius: 50%;
+    background: #d4a843;
+    color: white;
+    font-size: 9pt;
+    font-weight: bold;
+    margin-right: 6px;
+  }
+  .problem-item .expression {
+    font-size: 14pt;
+    font-weight: 500;
+    color: #3e2723;
+    letter-spacing: 1px;
+  }
+  .problem-item .answer-area {
+    margin-top: 8px;
+    border-bottom: 1px dashed #c9a87a;
+    height: 28px;
+  }
+  .problem-item .difficulty-tag {
+    display: inline-block;
+    font-size: 7pt;
+    padding: 1px 5px;
+    border-radius: 3px;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+  .difficulty-A { background: #e4f0df; color: #46803c; }
+  .difficulty-B { background: #fdf0d5; color: #b8860b; }
+  .difficulty-C { background: #fce8e3; color: #c75c3a; }
+  .footer-note {
+    margin-top: 20px;
+    padding-top: 10px;
+    border-top: 1px solid #e0ccaf;
+    font-size: 8pt;
+    color: #8c7e6e;
+    text-align: center;
+  }
+  .tree-watermark {
+    position: fixed;
+    bottom: 20mm;
+    right: 15mm;
+    opacity: 0.06;
+    font-size: 80pt;
+    color: #46803c;
+  }
+</style>
+</head>
+<body>
+
+<div class="tree-watermark">&#127794;</div>
+
+<div class="header">
+  <h1>我的计算森林 · 数学练习</h1>
+  <div class="meta">
+    {{ class_name }} · {{ title }} · {{ date }}
+    {% if difficulty != 'mixed' %} · {{ difficulty_label }}{% endif %}
+  </div>
+</div>
+
+<div class="student-info">
+  <span>姓名：<span class="blank"></span></span>
+  <span>班级：{{ class_name }}</span>
+  <span>日期：<span class="blank"></span></span>
+  <span>用时：<span class="blank"></span></span>
+</div>
+
+<div class="problem-grid">
+  {% for p in problems %}
+  <div class="problem-item">
+    <span class="number">{{ loop.index }}</span>
+    <span class="expression">{{ p.problem }} = </span>
+    <span class="difficulty-tag difficulty-{{ p.difficulty }}">{{ p.difficulty }}</span>
+    <div class="answer-area"></div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="footer-note">
+  每一棵小树都需要耐心浇灌 · 我的计算森林
+</div>
+
+</body>
+</html>

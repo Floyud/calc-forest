@@ -1,0 +1,56 @@
+{
+  "sources": [
+    {
+      "source_name": "计算小树苗设计资料.docx",
+      "source_relpath": "docs/source_materials/teacher_feedback/计算小树苗设计资料.docx",
+      "per_source_markdown": "docs/research/teacher_feedback_curated/by_source/计算小树苗设计资料.md",
+      "image_count": 0,
+      "ocr_review_statuses": []
+    },
+    {
+      "source_name": "第4次修改（5月2号）.docx",
+      "source_relpath": "docs/source_materials/teacher_feedback/第4次修改（5月2号）.docx",
+      "per_source_markdown": "docs/research/teacher_feedback_curated/by_source/第4次修改-5月2号.md",
+      "image_count": 0,
+      "ocr_review_statuses": []
+    },
+    {
+      "source_name": "计算练习出题原则和具体措施.docx",
+      "source_relpath": "docs/source_materials/teacher_feedback/计算练习出题原则和具体措施.docx",
+      "per_source_markdown": "docs/research/teacher_feedback_curated/by_source/计算练习出题原则和具体措施.md",
+      "image_count": 0,
+      "ocr_review_statuses": []
+    },
+    {
+      "source_name": "2025春学期教学进度计划.docx",
+      "source_relpath": "docs/source_materials/teacher_feedback/2025春学期教学进度计划.docx",
+      "per_source_markdown": "docs/research/teacher_feedback_curated/by_source/2025春学期教学进度计划.md",
+      "image_count": 0,
+      "ocr_review_statuses": []
+    },
+    {
+      "source_name": "人教版六年级上册数学整理资料.docx",
+      "source_relpath": "docs/source_materials/teacher_feedback/人教版六年级上册数学整理资料.docx",
+      "per_source_markdown": "docs/research/teacher_feedback_curated/by_source/人教版六年级上册数学整理资料.md",
+      "image_count": 15,
+      "ocr_review_statuses": [
+        "ocr_extracted_needs_review",
+        "ocr_extracted_needs_review",
+        "ocr_extracted_needs_review",
+        "ocr_extracted_needs_review",
+        "ocr_extracted_needs_review",
+        "ocr_extracted_needs_review",
+        "ocr_extracted_needs_review",
+        "ocr_extracted_needs_review",
+        "ocr_extracted_needs_review",
+        "ocr_extracted_needs_review",
+        "ocr_extracted_needs_review",
+        "ocr_extracted_needs_review",
+        "ocr_extracted_needs_review",
+        "ocr_extracted_needs_review",
+        "ocr_extracted_needs_review"
+      ]
+    }
+  ],
+  "master_digest": "docs/research/teacher_feedback_curated/teacher_feedback_master_digest.md"
+}
