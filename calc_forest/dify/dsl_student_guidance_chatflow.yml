@@ -1,0 +1,219 @@
+app:
+  description: 学生引导助手 Chatflow — 知识库检索 + 四步引导法，面向小学生的计算错因引导对话。
+  icon: "\U0001F331"
+  icon_background: '#DDECCF'
+  mode: advanced-chat
+  name: 我的小计算森林_学生引导助手
+  use_icon_as_answer_icon: false
+dependencies: []
+kind: app
+version: 0.3.1
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload:
+      enabled: false
+    opening_statement: "你好！我是你的计算森林学习助手 \U0001F331\n做错题没关系，我们一起看看是哪一步需要再想想~\n请告诉我你做的是哪道题，你的答案是什么？"
+    retriever_resource:
+      enabled: true
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions:
+    - "2/3 × 3/4 我算成了 6/12，对吗？"
+    - "3÷1/2 我算出来是1.5，但答案说是6"
+    - "我总是搞混运算顺序怎么办？"
+    suggested_questions_after_answer:
+      enabled: true
+    text_to_speech:
+      enabled: false
+  graph:
+    edges:
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: knowledge-retrieval
+      id: start-to-knowledge
+      source: 'start_node'
+      sourceHandle: source
+      target: 'knowledge_retrieval'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: knowledge-retrieval
+        targetType: llm
+      id: knowledge-to-llm
+      source: 'knowledge_retrieval'
+      sourceHandle: source
+      target: 'llm_guidance'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: answer
+      id: llm-to-answer
+      source: 'llm_guidance'
+      sourceHandle: source
+      target: 'answer_node'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        desc: ''
+        selected: false
+        title: 开始
+        type: start
+        variables: []
+      height: 90
+      id: 'start_node'
+      position:
+        x: 80
+        y: 260
+      positionAbsolute:
+        x: 80
+        y: 260
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 280
+    - data:
+        desc: '检索知识库中对应错因的教学策略和引导方法。'
+        query_variable_selector:
+        - sys
+        - query
+        dataset_ids:
+        - PLACEHOLDER_DATASET_ID
+        retrieval_mode: hybrid_search
+        top_k: 5
+        score_threshold: 0.5
+        reranking_enable: true
+        selected: false
+        title: 知识检索
+        type: knowledge-retrieval
+        single_retrieval: true
+      height: 120
+      id: 'knowledge_retrieval'
+      position:
+        x: 430
+        y: 240
+      positionAbsolute:
+        x: 430
+        y: 240
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 280
+    - data:
+        context:
+          enabled: true
+          variable_selector:
+          - knowledge_retrieval
+          - result
+        desc: '使用 DeepSeek 模型按四步引导法生成温暖的学生反馈。'
+        model:
+          provider: deepseek
+          name: deepseek-chat
+          mode: chat
+          completion_params:
+            temperature: 0.7
+            max_tokens: 2048
+            top_p: 1.0
+        prompt_template:
+        - id: system-prompt
+          role: system
+          text: >-
+            你是"我的计算森林"的学生引导助手。你的目标是帮助小学生理解计算错误的原因，而不是直接告诉答案。
+
+
+            核心规则：
+
+            1. 先肯定学生已经做出的正确部分
+
+            2. 用问题引导学生思考，不直接给答案
+
+            3. 每次只纠正一个关键错误
+
+            4. 语言温暖、简短，适合六年级小学生理解
+
+            5. 如果检索到知识库中对应错因的教学策略，使用该策略引导
+
+            6. 结尾给出一道同类练习题让学生尝试
+
+
+            引导四步法：
+
+            第一步：接纳与安抚 - 先肯定学生的努力
+
+            第二步：算理引导 - 指出关键步骤，用问题引导学生思考
+
+            第三步：总结方法 - 帮学生用自己的话总结要点
+
+            第四步：巩固练习 - 给一道同类简单题让学生尝试
+
+
+            参考知识库内容来选择合适的引导策略。
+        - id: user-prompt
+          role: user
+          text: >-
+            学生输入：{{#sys.query#}}
+
+
+            知识库参考内容：
+
+            {{#knowledge_retrieval.result#}}
+
+
+            请按照四步引导法给学生一段温暖、具体、可操作的引导反馈。不要直接给出最终答案。
+        selected: false
+        title: LLM 引导
+        type: llm
+        vision:
+          enabled: false
+      height: 150
+      id: 'llm_guidance'
+      position:
+        x: 780
+        y: 230
+      positionAbsolute:
+        x: 780
+        y: 230
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 300
+    - data:
+        answer: '{{#llm_guidance.text#}}'
+        desc: ''
+        selected: false
+        title: 回复
+        type: answer
+      height: 110
+      id: 'answer_node'
+      position:
+        x: 1130
+        y: 260
+      positionAbsolute:
+        x: 1130
+        y: 260
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 280
+    viewport:
+      x: 0
+      y: 0
+      zoom: 0.45

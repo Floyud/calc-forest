@@ -1,0 +1,367 @@
+app:
+  description: 教师诊断助手工作流 — 基于规则引擎诊断结果，通过知识库检索和 LLM 生成教师可审核的诊断摘要。
+  icon: 📊
+  icon_background: '#E4E8F7'
+  mode: workflow
+  name: 我的计算森林_教师诊断助手
+  use_icon_as_answer_icon: false
+dependencies: []
+kind: app
+version: 0.3.1
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload:
+      enabled: false
+    opening_statement: ''
+    retriever_resource:
+      enabled: false
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+  graph:
+    edges:
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: code
+      id: start-to-build-query
+      source: 'start_node'
+      sourceHandle: source
+      target: 'build_query'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: knowledge-retrieval
+      id: build-query-to-knowledge
+      source: 'build_query'
+      sourceHandle: source
+      target: 'knowledge_retrieval'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: knowledge-retrieval
+        targetType: llm
+      id: knowledge-to-llm
+      source: 'knowledge_retrieval'
+      sourceHandle: source
+      target: 'llm_summary'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: code
+      id: llm-to-assemble
+      source: 'llm_summary'
+      sourceHandle: source
+      target: 'assemble_output'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: end
+      id: assemble-to-end
+      source: 'assemble_output'
+      sourceHandle: source
+      target: 'end_node'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        desc: ''
+        selected: false
+        title: 开始
+        type: start
+        variables:
+        - label: 诊断结果
+          max_length: null
+          options: []
+          required: true
+          type: text-input
+          variable: diagnosis
+        - label: 学生信息
+          max_length: null
+          options: []
+          required: true
+          type: text-input
+          variable: student_info
+        - label: 会话历史
+          max_length: null
+          options: []
+          required: false
+          type: text-input
+          variable: session_history
+      height: 150
+      id: 'start_node'
+      position:
+        x: 80
+        y: 260
+      positionAbsolute:
+        x: 80
+        y: 260
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 280
+    - data:
+        code: |
+          import json
+
+          def main(diagnosis: str) -> dict:
+              try:
+                  diag = json.loads(diagnosis)
+              except:
+                  diag = {}
+              code = diag.get('primary_error', {}).get('code', 'E99')
+              query = f"错因{code} 教学策略 引导方法"
+              return {
+                  'retrieval_query': query,
+                  'error_code': code,
+                  'error_description': diag.get('primary_error', {}).get('description', ''),
+                  'confidence': str(diag.get('primary_error', {}).get('confidence', 0)),
+              }
+        code_language: python3
+        desc: '从诊断 JSON 中提取错因代码，构建知识库检索查询。'
+        outputs:
+          retrieval_query:
+            children: null
+            type: string
+          error_code:
+            children: null
+            type: string
+          error_description:
+            children: null
+            type: string
+          confidence:
+            children: null
+            type: string
+        selected: false
+        title: 构建检索查询
+        type: code
+        variables:
+        - value_selector:
+          - start_node
+          - diagnosis
+          variable: diagnosis
+      height: 210
+      id: 'build_query'
+      position:
+        x: 430
+        y: 230
+      positionAbsolute:
+        x: 430
+        y: 230
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 320
+    - data:
+        desc: '根据错因代码从知识库检索教学策略和引导方法。'
+        query_variable_selector:
+        - build_query
+        - retrieval_query
+        dataset_ids:
+        - PLACEHOLDER_DATASET_ID
+        retrieval_mode: hybrid_search
+        top_k: 5
+        score_threshold: 0.5
+        selected: false
+        title: 知识库检索
+        type: knowledge-retrieval
+      height: 120
+      id: 'knowledge_retrieval'
+      position:
+        x: 780
+        y: 250
+      positionAbsolute:
+        x: 780
+        y: 250
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 280
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        desc: '基于诊断数据和知识库参考，生成教师可读的诊断摘要。'
+        model:
+          completion_params:
+            temperature: 0.5
+            top_p: 1.0
+            max_tokens: 2048
+          mode: chat
+          name: deepseek-chat
+          provider: deepseek
+        prompt_template:
+        - id: system-prompt
+          role: system
+          text: >
+            你是一位教学分析助手，帮助教师快速了解学生错误模式。
+
+
+            核心规则：
+
+            1. 用客观语言描述证据，区分本次错误和长期能力判断
+
+            2. 不要过度推断，基于提供的诊断数据说话
+
+            3. 给出下一步教学建议，引用知识库中的教学策略
+
+            4. 输出严格 JSON 格式
+
+
+            输出格式：
+
+            {
+              "teacher_summary": "教师可读的诊断摘要（2-3句）",
+              "observed_evidence": ["观察到的证据1", "证据2"],
+              "recommended_intervention": "推荐的教学干预措施",
+              "risk_note": "风险提示（如有）",
+              "suggested_practice_type": "建议的练习类型"
+            }
+        - id: user-prompt
+          role: user
+          text: >
+            诊断数据：{{#start_node.diagnosis#}}
+
+
+            学生信息：{{#start_node.student_info#}}
+
+
+            会话历史：{{#start_node.session_history#}}
+
+
+            错因代码：{{#build_query.error_code#}}
+
+
+            知识库参考：{{#knowledge_retrieval.result#}}
+
+
+            请根据以上信息生成教师诊断摘要。
+        selected: false
+        title: LLM 摘要生成
+        type: llm
+        vision:
+          enabled: false
+      height: 150
+      id: 'llm_summary'
+      position:
+        x: 1130
+        y: 240
+      positionAbsolute:
+        x: 1130
+        y: 240
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 300
+    - data:
+        code: |
+          import json
+
+          def main(llm_text: str, error_code: str) -> dict:
+              text = llm_text.strip()
+              if text.startswith('```'):
+                  text = text.split('\n', 1)[-1].rsplit('```', 1)[0].strip()
+              try:
+                  result = json.loads(text)
+              except:
+                  result = {
+                      'teacher_summary': text,
+                      'observed_evidence': [],
+                      'recommended_intervention': '请教师人工审核',
+                      'risk_note': 'AI分析结果解析失败',
+                      'suggested_practice_type': 'standard'
+                  }
+              result['error_code'] = error_code
+              result['review_status'] = 'pending_teacher_review'
+              return {'result_json': json.dumps(result, ensure_ascii=False), 'result': result}
+        code_language: python3
+        desc: '解析 LLM 输出并组装最终响应，附加教师审核标记。'
+        outputs:
+          result_json:
+            children: null
+            type: string
+          result:
+            children: null
+            type: object
+        selected: false
+        title: 组装输出
+        type: code
+        variables:
+        - value_selector:
+          - llm_summary
+          - text
+          variable: llm_text
+        - value_selector:
+          - build_query
+          - error_code
+          variable: error_code
+      height: 170
+      id: 'assemble_output'
+      position:
+        x: 1480
+        y: 240
+      positionAbsolute:
+        x: 1480
+        y: 240
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 320
+    - data:
+        desc: ''
+        outputs:
+        - value_selector:
+          - assemble_output
+          - result_json
+          value_type: string
+          variable: result_json
+        selected: false
+        title: 结束
+        type: end
+      height: 110
+      id: 'end_node'
+      position:
+        x: 1830
+        y: 270
+      positionAbsolute:
+        x: 1830
+        y: 270
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 280
+    viewport:
+      x: 0
+      y: 0
+      zoom: 0.4

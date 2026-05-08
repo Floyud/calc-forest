@@ -1,0 +1,750 @@
+app:
+  description: AI批改与学生画像生成工作流。根据模式参数路由到批改评语路径或学习画像路径，结合知识库检索与大模型生成结构化输出。
+  icon: 📝
+  icon_background: '#F7E8E4'
+  mode: workflow
+  name: 我的计算森林_AI批改画像助手
+  use_icon_as_answer_icon: false
+dependencies: []
+kind: app
+version: 0.3.1
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload:
+      enabled: false
+    opening_statement: ''
+    retriever_resource:
+      enabled: false
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+  graph:
+    edges:
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: if-else
+      id: start-to-router
+      source: 'start_node'
+      sourceHandle: source
+      target: 'mode_router'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: code
+      id: router-true-to-build-grading
+      source: 'mode_router'
+      sourceHandle: 'true'
+      target: 'build_grading_query'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: code
+      id: router-false-to-build-profile
+      source: 'mode_router'
+      sourceHandle: 'false'
+      target: 'build_profile_query'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: knowledge-retrieval
+      id: build-grading-to-kr-grading
+      source: 'build_grading_query'
+      sourceHandle: source
+      target: 'knowledge_retrieval_grading'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: knowledge-retrieval
+        targetType: llm
+      id: kr-grading-to-llm-grading
+      source: 'knowledge_retrieval_grading'
+      sourceHandle: source
+      target: 'llm_grading'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: code
+      id: llm-grading-to-assemble
+      source: 'llm_grading'
+      sourceHandle: source
+      target: 'assemble_grading'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: end
+      id: assemble-grading-to-end
+      source: 'assemble_grading'
+      sourceHandle: source
+      target: 'end_grading'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: knowledge-retrieval
+      id: build-profile-to-kr-profile
+      source: 'build_profile_query'
+      sourceHandle: source
+      target: 'knowledge_retrieval_profile'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: knowledge-retrieval
+        targetType: llm
+      id: kr-profile-to-llm-profile
+      source: 'knowledge_retrieval_profile'
+      sourceHandle: source
+      target: 'llm_profile'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: code
+      id: llm-profile-to-assemble
+      source: 'llm_profile'
+      sourceHandle: source
+      target: 'assemble_profile'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: end
+      id: assemble-profile-to-end
+      source: 'assemble_profile'
+      sourceHandle: source
+      target: 'end_profile'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        desc: ''
+        selected: false
+        title: Start
+        type: start
+        variables:
+        - label: 模式（grading 或 profiling）
+          max_length: null
+          options: []
+          required: true
+          type: text-input
+          variable: mode
+        - label: 批改结果JSON
+          max_length: null
+          options: []
+          required: false
+          type: text-input
+          variable: grading_results
+        - label: 学生信息JSON
+          max_length: null
+          options: []
+          required: false
+          type: text-input
+          variable: student_info
+        - label: 错因统计JSON
+          max_length: null
+          options: []
+          required: false
+          type: text-input
+          variable: error_stats
+        - label: 正确率趋势JSON
+          max_length: null
+          options: []
+          required: false
+          type: text-input
+          variable: accuracy_trend
+      height: 230
+      id: 'start_node'
+      position:
+        x: 80
+        y: 260
+      positionAbsolute:
+        x: 80
+        y: 260
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 280
+    - data:
+        cases:
+        - case_id: 'true'
+          conditions:
+          - comparison_operator: contains
+            id: a1b2c3d4-5e6f-7a8b-9c0d-e1f2a3b4c5d6
+            value: grading
+            varType: string
+            variable_selector:
+            - start_node
+            - mode
+          id: 'true'
+          logical_operator: and
+        desc: ''
+        selected: false
+        title: 模式路由
+        type: if-else
+      height: 126
+      id: 'mode_router'
+      position:
+        x: 430
+        y: 260
+      positionAbsolute:
+        x: 430
+        y: 260
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 260
+    - data:
+        code: |
+          import json
+
+          def main(grading_results: str) -> dict:
+              try:
+                  results = json.loads(grading_results)
+              except:
+                  results = {}
+              errors = []
+              for item in results.get('results', []):
+                  if not item.get('is_correct', True):
+                      code = item.get('diagnosis', {}).get('primary_error', {}).get('code', 'E99')
+                      errors.append(code)
+              error_codes = ','.join(set(errors)) if errors else 'E99'
+              return {
+                  'retrieval_query': f"批改评语 错因{error_codes} 评语模板",
+                  'error_codes': error_codes,
+                  'total_errors': str(len(errors)),
+              }
+        code_language: python3
+        desc: '从批改结果中提取错因代码，构建知识库检索查询。'
+        outputs:
+          retrieval_query:
+            children: null
+            type: string
+          error_codes:
+            children: null
+            type: string
+          total_errors:
+            children: null
+            type: string
+        selected: false
+        title: 构建批改查询
+        type: code
+        variables:
+        - value_selector:
+          - start_node
+          - grading_results
+          variable: grading_results
+      height: 150
+      id: 'build_grading_query'
+      position:
+        x: 780
+        y: 180
+      positionAbsolute:
+        x: 780
+        y: 180
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 320
+    - data:
+        code: |
+          import json
+
+          def main(error_stats: str, accuracy_trend: str) -> dict:
+              try:
+                  stats = json.loads(error_stats)
+              except:
+                  stats = {}
+              try:
+                  trend = json.loads(accuracy_trend)
+              except:
+                  trend = {}
+              top_errors = sorted(stats.items(), key=lambda x: x[1], reverse=True)[:3] if isinstance(stats, dict) else []
+              error_str = ','.join([e[0] for e in top_errors]) if top_errors else 'E99'
+              latest_accuracy = trend[-1] if isinstance(trend, list) and trend else 0
+              return {
+                  'retrieval_query': f"学生画像 {error_str} 学习风格 成长叙事",
+                  'top_errors': error_str,
+                  'latest_accuracy': str(latest_accuracy),
+              }
+        code_language: python3
+        desc: '从错因统计和正确率趋势中提取关键信息，构建画像检索查询。'
+        outputs:
+          retrieval_query:
+            children: null
+            type: string
+          top_errors:
+            children: null
+            type: string
+          latest_accuracy:
+            children: null
+            type: string
+        selected: false
+        title: 构建画像查询
+        type: code
+        variables:
+        - value_selector:
+          - start_node
+          - error_stats
+          variable: error_stats
+        - value_selector:
+          - start_node
+          - accuracy_trend
+          variable: accuracy_trend
+      height: 150
+      id: 'build_profile_query'
+      position:
+        x: 780
+        y: 450
+      positionAbsolute:
+        x: 780
+        y: 450
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 320
+    - data:
+        dataset_ids:
+        - PLACEHOLDER_DATASET_ID
+        desc: '根据批改错因检索评语模板和错因知识。'
+        query_variable_selector:
+        - build_grading_query
+        - retrieval_query
+        retrieval_mode: single
+        score_threshold:
+          enable: false
+        selected: false
+        single_recognition:
+          enabled: false
+        title: 知识检索-批改
+        top_k: 5
+        type: knowledge-retrieval
+      height: 90
+      id: 'knowledge_retrieval_grading'
+      position:
+        x: 1130
+        y: 180
+      positionAbsolute:
+        x: 1130
+        y: 180
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 280
+    - data:
+        dataset_ids:
+        - PLACEHOLDER_DATASET_ID
+        desc: '根据高频错因检索学生画像模板和成长叙事参考。'
+        query_variable_selector:
+        - build_profile_query
+        - retrieval_query
+        retrieval_mode: single
+        score_threshold:
+          enable: false
+        selected: false
+        single_recognition:
+          enabled: false
+        title: 知识检索-画像
+        top_k: 5
+        type: knowledge-retrieval
+      height: 90
+      id: 'knowledge_retrieval_profile'
+      position:
+        x: 1130
+        y: 450
+      positionAbsolute:
+        x: 1130
+        y: 450
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 280
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        desc: '大模型分析学生错误模式并生成批改评语。'
+        memory:
+          role_prefix:
+            assistant: ''
+            user: ''
+          window:
+            enabled: false
+            size: 10
+        model:
+          completion_params:
+            max_tokens: 2048
+            temperature: 0.5
+          mode: chat
+          name: deepseek-chat
+          provider: deepseek
+        prompt_template:
+        - id: sys-grading-001
+          role: system
+          text: |
+            你是一位小学数学批改助手。根据规则引擎的批改结果，分析学生的错误模式并给出评语。
+
+            核心规则：
+            1. 归纳本份作业中反复出现的错误模式
+            2. 判断是概念性错误还是计算习惯问题
+            3. 给出针对性建议
+            4. 使用知识库中的评语模板
+            5. 先肯定再建议，温暖但明确
+
+            输出严格 JSON：
+            {
+              "pattern_summary": "错误模式归纳",
+              "error_type": "conceptual|habitual|mixed",
+              "suggestion": "针对性建议",
+              "priority": "high|medium|low",
+              "comments": [{"problem": "题目", "comment": "评语"}],
+              "class_analysis": "班级整体分析（如有多个学生数据）"
+            }
+        - id: user-grading-001
+          role: user
+          text: |
+            批改结果：{{#start_node.grading_results#}}
+            学生信息：{{#start_node.student_info#}}
+            错因代码：{{#build_grading_query.error_codes#}}
+            错误数量：{{#build_grading_query.total_errors#}}
+            知识库参考：{{#knowledge_retrieval_grading.result#}}
+
+            请分析学生的错误模式并生成评语。
+        selected: false
+        title: LLM批改分析
+        type: llm
+        vision:
+          enabled: false
+      height: 98
+      id: 'llm_grading'
+      position:
+        x: 1480
+        y: 180
+      positionAbsolute:
+        x: 1480
+        y: 180
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 280
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        desc: '大模型根据历史做题数据生成学生学习画像。'
+        memory:
+          role_prefix:
+            assistant: ''
+            user: ''
+          window:
+            enabled: false
+            size: 10
+        model:
+          completion_params:
+            max_tokens: 2048
+            temperature: 0.7
+          mode: chat
+          name: deepseek-chat
+          provider: deepseek
+        prompt_template:
+        - id: sys-profile-001
+          role: system
+          text: |
+            你是一位学习分析助手，根据学生的历史做题数据生成学习画像。
+
+            核心规则：
+            1. 客观分析，不贴负面标签
+            2. 使用正面标签词库（如"稳步进步中""勇于尝试""逻辑清晰"）
+            3. 关注可改进行动
+            4. 生成成长叙事（正确率变化 + 关键改变 + 下一步目标）
+            5. 禁止使用：笨、粗心、差生、倒数、马虎
+
+            输出严格 JSON：
+            {
+              "strengths": ["优势1", "优势2"],
+              "weaknesses": ["需关注1"],
+              "focus_areas": ["重点1"],
+              "suggested_actions": ["建议1", "建议2"],
+              "personality_tags": ["标签1", "标签2"],
+              "growth_narrative": "成长叙事（2-3句，含具体数字变化）",
+              "recommended_level": "A|B|C",
+              "recommended_guidance_mode": "standard|exploration|challenge"
+            }
+        - id: user-profile-001
+          role: user
+          text: |
+            学生信息：{{#start_node.student_info#}}
+            错因统计：{{#start_node.error_stats#}}
+            正确率趋势：{{#start_node.accuracy_trend#}}
+            高频错因：{{#build_profile_query.top_errors#}}
+            最新正确率：{{#build_profile_query.latest_accuracy#}}
+            知识库参考：{{#knowledge_retrieval_profile.result#}}
+
+            请生成学生学习画像分析。
+        selected: false
+        title: LLM画像生成
+        type: llm
+        vision:
+          enabled: false
+      height: 98
+      id: 'llm_profile'
+      position:
+        x: 1480
+        y: 450
+      positionAbsolute:
+        x: 1480
+        y: 450
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 280
+    - data:
+        code: |
+          import json
+
+          def main(llm_output: str, error_codes: str, total_errors: str) -> dict:
+              try:
+                  result = json.loads(llm_output)
+              except:
+                  result = {
+                      "pattern_summary": "无法解析批改结果",
+                      "error_type": "mixed",
+                      "suggestion": "请检查输入数据格式",
+                      "priority": "medium",
+                      "comments": [],
+                      "class_analysis": ""
+                  }
+              return {
+                  'grading_analysis': result,
+                  'error_codes': error_codes,
+                  'total_errors': total_errors,
+              }
+        code_language: python3
+        desc: '解析大模型批改输出，组装结构化批改结果。'
+        outputs:
+          grading_analysis:
+            children: null
+            type: object
+          error_codes:
+            children: null
+            type: string
+          total_errors:
+            children: null
+            type: string
+        selected: false
+        title: 组装批改结果
+        type: code
+        variables:
+        - value_selector:
+          - llm_grading
+          - text
+          variable: llm_output
+        - value_selector:
+          - build_grading_query
+          - error_codes
+          variable: error_codes
+        - value_selector:
+          - build_grading_query
+          - total_errors
+          variable: total_errors
+      height: 180
+      id: 'assemble_grading'
+      position:
+        x: 1830
+        y: 180
+      positionAbsolute:
+        x: 1830
+        y: 180
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 320
+    - data:
+        code: |
+          import json
+
+          def main(llm_output: str, top_errors: str, latest_accuracy: str) -> dict:
+              try:
+                  result = json.loads(llm_output)
+              except:
+                  result = {
+                      "strengths": [],
+                      "weaknesses": [],
+                      "focus_areas": [],
+                      "suggested_actions": [],
+                      "personality_tags": [],
+                      "growth_narrative": "数据不足，暂无法生成画像",
+                      "recommended_level": "B",
+                      "recommended_guidance_mode": "standard"
+                  }
+              return {
+                  'profile': result,
+                  'top_errors': top_errors,
+                  'latest_accuracy': latest_accuracy,
+              }
+        code_language: python3
+        desc: '解析大模型画像输出，组装结构化学生画像。'
+        outputs:
+          profile:
+            children: null
+            type: object
+          top_errors:
+            children: null
+            type: string
+          latest_accuracy:
+            children: null
+            type: string
+        selected: false
+        title: 组装画像结果
+        type: code
+        variables:
+        - value_selector:
+          - llm_profile
+          - text
+          variable: llm_output
+        - value_selector:
+          - build_profile_query
+          - top_errors
+          variable: top_errors
+        - value_selector:
+          - build_profile_query
+          - latest_accuracy
+          variable: latest_accuracy
+      height: 180
+      id: 'assemble_profile'
+      position:
+        x: 1830
+        y: 450
+      positionAbsolute:
+        x: 1830
+        y: 450
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 320
+    - data:
+        desc: ''
+        outputs:
+        - value_selector:
+          - assemble_grading
+          - grading_analysis
+          value_type: object
+          variable: grading_analysis
+        - value_selector:
+          - assemble_grading
+          - error_codes
+          value_type: string
+          variable: error_codes
+        - value_selector:
+          - assemble_grading
+          - total_errors
+          value_type: string
+          variable: total_errors
+        selected: false
+        title: 结束-批改
+        type: end
+      height: 140
+      id: 'end_grading'
+      position:
+        x: 2180
+        y: 180
+      positionAbsolute:
+        x: 2180
+        y: 180
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 280
+    - data:
+        desc: ''
+        outputs:
+        - value_selector:
+          - assemble_profile
+          - profile
+          value_type: object
+          variable: profile
+        - value_selector:
+          - assemble_profile
+          - top_errors
+          value_type: string
+          variable: top_errors
+        - value_selector:
+          - assemble_profile
+          - latest_accuracy
+          value_type: string
+          variable: latest_accuracy
+        selected: false
+        title: 结束-画像
+        type: end
+      height: 140
+      id: 'end_profile'
+      position:
+        x: 2180
+        y: 450
+      positionAbsolute:
+        x: 2180
+        y: 450
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 280
+    viewport:
+      x: 0
+      y: 0
+      zoom: 0.35
