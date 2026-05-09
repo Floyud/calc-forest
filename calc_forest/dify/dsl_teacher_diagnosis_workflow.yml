@@ -217,7 +217,7 @@ workflow:
             top_p: 1.0
           mode: chat
           name: deepseek-chat
-          provider: deepseek
+          provider: langgenius/deepseek/deepseek
         prompt_template:
         - id: system-prompt
           role: system

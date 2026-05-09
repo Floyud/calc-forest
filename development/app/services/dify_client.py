@@ -403,14 +403,17 @@ async def generate_teacher_summary(
     *,
     diagnosis: str | dict,
     session_history: str | dict,
+    student_info: str | dict | None = None,
     student_id: str = "system",
 ) -> dict[str, Any]:
     diag_str = json.dumps(diagnosis, ensure_ascii=False) if isinstance(diagnosis, dict) else diagnosis
     hist_str = json.dumps(session_history, ensure_ascii=False) if isinstance(session_history, dict) else session_history
+    info_str = json.dumps(student_info, ensure_ascii=False) if isinstance(student_info, dict) else (student_info or "{}")
     return await call_dify_or_llm(
         "teacher_summary",
         {
             "diagnosis": diag_str,
+            "student_info": info_str,
             "session_history": hist_str,
         },
         user_id=student_id,
@@ -421,15 +424,22 @@ async def ai_grade_answers(
     *,
     grading_results: str | dict,
     student_info: str | dict,
+    error_stats: str | dict | None = None,
+    accuracy_trend: str | dict | None = None,
     student_id: str = "system",
 ) -> dict[str, Any]:
     grade_str = json.dumps(grading_results, ensure_ascii=False) if isinstance(grading_results, dict) else grading_results
     info_str = json.dumps(student_info, ensure_ascii=False) if isinstance(student_info, dict) else student_info
+    estats_str = json.dumps(error_stats, ensure_ascii=False) if isinstance(error_stats, dict) else (error_stats or "{}")
+    trend_str = json.dumps(accuracy_trend, ensure_ascii=False) if isinstance(accuracy_trend, dict) else (accuracy_trend or "[]")
     return await call_dify_or_llm(
         "ai_grading",
         {
+            "mode": "grading",
             "grading_results": grade_str,
             "student_info": info_str,
+            "error_stats": estats_str,
+            "accuracy_trend": trend_str,
         },
         user_id=student_id,
     )
@@ -442,12 +452,17 @@ async def ai_analyze_profile(
     accuracy_trend: str | dict,
     student_id: str = "system",
 ) -> dict[str, Any]:
+    data_str = json.dumps(student_data, ensure_ascii=False) if isinstance(student_data, dict) else student_data
+    estats_str = json.dumps(error_stats, ensure_ascii=False) if isinstance(error_stats, dict) else error_stats
+    trend_str = json.dumps(accuracy_trend, ensure_ascii=False) if isinstance(accuracy_trend, dict) else accuracy_trend
     return await call_dify_or_llm(
         "ai_profile",
         {
-            "student_data": json.dumps(student_data, ensure_ascii=False) if isinstance(student_data, dict) else student_data,
-            "error_stats": json.dumps(error_stats, ensure_ascii=False) if isinstance(error_stats, dict) else error_stats,
-            "accuracy_trend": json.dumps(accuracy_trend, ensure_ascii=False) if isinstance(accuracy_trend, dict) else accuracy_trend,
+            "mode": "profiling",
+            "student_info": data_str,
+            "grading_results": "{}",
+            "error_stats": estats_str,
+            "accuracy_trend": trend_str,
         },
         user_id=student_id,
     )

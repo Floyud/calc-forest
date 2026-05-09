@@ -337,14 +337,9 @@ workflow:
       width: 320
     - data:
         desc: 检索批改相关知识（错因分析、评语模板）
-        query:
-        - build_grading_query
-        - retrieval_query
         dataset_ids:
         - e65030a0-3076-4cd1-b646-d834ecafa55e
         retrieval_mode: single
-        top_k: 3
-        score_threshold: 0.5
         single_retrieval_config:
           model:
             provider: deepseek
@@ -353,6 +348,9 @@ workflow:
         selected: false
         title: 知识检索-批改
         type: knowledge-retrieval
+        query_variable_selector:
+        - build_grading_query
+        - retrieval_query
       height: 90
       id: kg_grading
       position:
@@ -368,14 +366,9 @@ workflow:
       width: 280
     - data:
         desc: 检索画像相关知识（学生画像、成长体系）
-        query:
-        - build_profile_query
-        - retrieval_query
         dataset_ids:
         - e65030a0-3076-4cd1-b646-d834ecafa55e
         retrieval_mode: single
-        top_k: 3
-        score_threshold: 0.5
         single_retrieval_config:
           model:
             provider: deepseek
@@ -384,6 +377,9 @@ workflow:
         selected: false
         title: 知识检索-画像
         type: knowledge-retrieval
+        query_variable_selector:
+        - build_profile_query
+        - retrieval_query
       height: 90
       id: kg_profile
       position:
@@ -407,7 +403,7 @@ workflow:
             temperature: 0.3
           mode: chat
           name: deepseek-chat
-          provider: deepseek
+          provider: langgenius/deepseek/deepseek
         prompt_template:
         - id: grading-system-prompt
           role: system
@@ -423,7 +419,6 @@ workflow:
         selected: false
         title: LLM批改分析
         type: llm
-        variables: []
         vision:
           enabled: false
       height: 98
@@ -449,7 +444,7 @@ workflow:
             temperature: 0.3
           mode: chat
           name: deepseek-chat
-          provider: deepseek
+          provider: langgenius/deepseek/deepseek
         prompt_template:
         - id: profiling-system-prompt
           role: system
@@ -463,7 +458,6 @@ workflow:
         selected: false
         title: LLM画像分析
         type: llm
-        variables: []
         vision:
           enabled: false
       height: 98

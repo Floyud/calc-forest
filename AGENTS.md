@@ -190,10 +190,11 @@ Plus 6 FTS5 virtual tables for knowledge base search.
 - 教师诊断 (workflow): `diagnosis`(必填), `student_info`(必填), `session_history`(选填)
 - AI批改 (workflow): `mode`(必填: grading/profiling), `grading_results`, `student_info`, `error_stats`, `accuracy_trend`
 
-**已知问题 (需在 Dify UI 修复):**
-- 3 个应用的「知识检索」节点 retrieval_mode 从 `hybrid_search` 改为 `multiple`（或 `single`）
-- 修复步骤: 应用 → 编排 → 点击知识检索节点 → 检索设置 → 改检索模式 → 重新发布
-- **或者**：删除旧 app → 从修正后的 DSL 文件重新导入 → 绑定知识库 → 发布
+**已知问题 (已在 DSL 中修复):**
+- ~~3 个应用的「知识检索」节点 retrieval_mode~~ → 已全部改为 `single`
+- ~~provider 字段需要 `langgenius/deepseek/deepseek` 完整格式~~ → 已修复
+- ~~knowledge-retrieval 使用 `query` 字段~~ → 已改为 `query_variable_selector`
+- DSL 文件是 source of truth，Cloud Dify 需从 DSL 重新导入
 
 ## Local Dify Deployment
 
@@ -231,7 +232,7 @@ Plus 6 FTS5 virtual tables for knowledge base search.
 |---|---|---|---|
 | 学生引导助手 | advanced-chat | `app-WhZiyxSsRzCySLHIc5aeB35E` | `80c2a91f-781d-4321-bc8a-36b9bfff060d` |
 | 教师诊断助手 | workflow | `app-RA3FRdUFJUgyykmf3wZ99kbX` | `45757ec4-4517-4c75-9e42-a48b1540da52` |
-| AI批改画像助手 | workflow | `app-6b7wi0lMSYOjqRQj5yFzd3Fn` | `e33ebe48-7f8f-4f6a-8cb3-2fa2f8d67c7b` |
+| AI批改画像助手 | workflow | `app-hVqrf2hyY4Qx1dcYx21XRxpW` | `6464ffec-c67a-4af5-ae3d-a318a798143d` |
 
 **本地知识库:** `我的计算森林知识库`
 - Dataset ID: `8a588b72-2c02-4d34-b9ef-4f53dee606b0`
@@ -253,7 +254,9 @@ Plus 6 FTS5 virtual tables for knowledge base search.
 - Growth milestone update logic not implemented (BI-015).
 - 4-step guided feedback (standard mode) not yet in code (BI-016).
 - Grade 1-2 mental arithmetic diagnosis rules not yet implemented (BI-017).
-- Dify 知识检索 retrieval_mode 需手动修复（DSL 已修正，Dify Cloud 需手动更新）。
+- Dify 知识检索 retrieval_mode 已修复（全部改为 `single`，`query` → `query_variable_selector`）。
 - Cloud Dify 所有 3 个 API 返回 401（需删除旧 app → 从 DSL 重新导入）。
 - Local Dify Embedding 供应商连接验证失败（OpenAI 插件与本地服务不兼容）。
-- Frontend pages use mock data; only `/diagnose` calls real backend API.
+- Frontend pages use mock data; only `/diagnose` calls real backend API。
+- `problem_generation` 无独立 Dify workflow，始终走 DeepSeek 回退。
+- `.mcp.json` 配置了 Playwright MCP（需重载 session 生效，设置 `TMPDIR=/tmp` 解决 WSL Unix socket 问题）。
