@@ -1,0 +1,385 @@
+\documentclass[12pt,a4paper]{ctexart}
+
+\usepackage[margin=18mm]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\usepackage{fontspec}
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+\usepackage{enumitem}
+\usepackage{tabularx}
+
+\usetikzlibrary{shapes.geometric,calc,positioning,decorations.pathmorphing}
+\pgfplotsset{compat=1.18}
+
+% === Color Scheme (same as homework.tex) ===
+\definecolor{forestgreen}{RGB}{56,118,74}
+\definecolor{bark}{RGB}{93,64,55}
+\definecolor{parchment}{RGB}{250,253,247}
+\definecolor{warmgold}{RGB}{212,168,67}
+\definecolor{lightleaf}{RGB}{200,230,180}
+\definecolor{softred}{RGB}{220,80,70}
+\definecolor{softyellow}{RGB}{240,200,80}
+\definecolor{deepgreen}{RGB}{30,100,40}
+\definecolor{skyblue}{RGB}{135,190,220}
+\definecolor{lightbark}{RGB}{180,150,130}
+
+% === Page style ===
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[C]{\small\color{gray} 我的计算森林 $\cdot$ 成长报告}
+\fancyfoot[C]{\small\color{gray} 第 \thepage\ 页 / 共 \pageref{LastPage} 页}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\headrule}{\hbox to\headwidth{\color{warmgold}\leaders\hrule height 0.8pt\hfill}}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{4pt}
+
+% === Custom commands ===
+\newcommand{\treectr}[1]{%
+  \begin{tikzpicture}[baseline=-3pt, scale=0.35]
+    \fill[forestgreen] (0,0.4) -- (0.25,0.7) -- (0.1,0.7) -- (0.35,1.0) -- (-0.35,1.0) -- (-0.1,0.7) -- (-0.25,0.7) -- cycle;
+    \fill[bark] (-0.04,0) rectangle (0.04,0.4);
+  \end{tikzpicture}%
+}
+\newcommand{\sectiontitle}[2]{%
+  \noindent
+  \begin{tikzpicture}[baseline=(title.base)]
+    \node[rounded corners=3pt, fill=forestgreen!12, inner sep=6pt, text width=\dimexpr\textwidth-16pt\relax] (title) {
+      {\large\bfseries\color{forestgreen} #1\quad {\small\color{bark} #2}}
+    };
+  \end{tikzpicture}%
+  \vspace{4pt}%
+}
+\newcommand{\progressBar}[3]{%
+  % #1=width, #2=fraction (0..1), #3=color
+  \begin{tikzpicture}[baseline=-2pt]
+    \fill[gray!15, rounded corners=2pt] (0,0) rectangle (#1,0.28);
+    \fill[#3, rounded corners=2pt] (0,0) rectangle ({#1*#2},0.28);
+    \node[font=\tiny\bfseries, white] at ({#1*#2/2},0.14) {\pgfmathparse{#2*100}\pgfmathprintnumber[fixed, precision=0]{\pgfmathresult}\%};
+  \end{tikzpicture}%
+}
+
+\begin{document}
+
+%% =====================================================
+%%  HEADER: Title block with decorative border
+%% =====================================================
+\begin{center}
+\begin{tikzpicture}
+  % Decorative border frame
+  \draw[bark!40, line width=1.2pt, rounded corners=8pt]
+    (-0.5\textwidth-4pt, -2.6cm) rectangle (0.5\textwidth+4pt, 2.2cm);
+  % Corner leaf decorations
+  \fill[forestgreen!60] (-0.5\textwidth-2pt, 2.2cm-2pt) circle (4pt);
+  \fill[forestgreen!40] (-0.5\textwidth+6pt, 2.2cm-2pt) circle (3pt);
+  \fill[warmgold!70] (0.5\textwidth+2pt, 2.2cm-2pt) circle (4pt);
+  \fill[warmgold!50] (0.5\textwidth-6pt, 2.2cm-2pt) circle (3pt);
+  \fill[forestgreen!60] (-0.5\textwidth-2pt, -2.6cm+2pt) circle (4pt);
+  \fill[warmgold!70] (0.5\textwidth+2pt, -2.6cm+2pt) circle (4pt);
+  % Title text
+  \node[font=\LARGE\bfseries, text=bark] at (0, 1.3cm) {我的计算森林 $\cdot$ 成长报告};
+  % Subtitle line
+  \draw[warmgold, line width=0.6pt] (-3cm, 0.6cm) -- (3cm, 0.6cm);
+  % Student info
+  \node[font=\normalsize, text=bark] at (-3.5cm, -0.1cm) {学生：<< student_name >>};
+  \node[font=\normalsize, text=bark] at (3.5cm, -0.1cm) {班级：<< class_name >>};
+  \node[font=\small, text=gray] at (0, -0.1cm) {<< report_type_label >>};
+  % Date range
+  \node[font=\small, text=gray] at (0, -0.8cm) {报告期间：<< period_start >> \(\sim\) << period_end >>};
+  % Report type badge
+  \node[rounded corners=3pt, fill=forestgreen!15, inner sep=4pt, font=\small\bfseries, text=forestgreen]
+    at (0, -1.6cm) {<< report_type_label >>};
+\end{tikzpicture}
+\end{center}
+
+\vspace{8pt}
+
+%% =====================================================
+%%  SECTION 1: 本期概览
+%% =====================================================
+\sectiontitle{一、本期概览}{<< period_start >> -- << period_end >>}
+
+\vspace{4pt}
+
+\noindent
+\begin{minipage}[t]{0.48\textwidth}
+  \begin{tikzpicture}
+    \node[rounded corners=4pt, draw=bark!20, fill=parchment, inner sep=8pt,
+          text width=\dimexpr0.48\textwidth-24pt\relax] {
+      \begin{minipage}{\dimexpr0.48\textwidth-28pt\relax}
+        \color{bark}
+        {\small 练习总量}\\[2pt]
+        {\LARGE\bfseries << total_problems >>} {\small 题}\\[6pt]
+        {\small 答对题数}\\[2pt]
+        {\LARGE\bfseries\color{forestgreen} << correct_count >>} {\small 题}\\[6pt]
+        {\small 正确率}\\[2pt]
+        {\LARGE\bfseries\color{warmgold} << accuracy_rate >>}\%\\[6pt]
+        \progressBar{4.5cm}{<< accuracy_frac >>}{warmgold}
+      \end{minipage}
+    };
+  \end{tikzpicture}
+\end{minipage}%
+\hfill
+\begin{minipage}[t]{0.48\textwidth}
+  \begin{tikzpicture}
+    \node[rounded corners=4pt, draw=forestgreen!30, fill=parchment, inner sep=8pt,
+          text width=\dimexpr0.48\textwidth-24pt\relax] {
+      \begin{minipage}{\dimexpr0.48\textwidth-28pt\relax}
+        \color{bark}
+        {\small 成长阶段}\\[4pt]
+        {\large\bfseries\color{forestgreen} \treectr{} << growth_stage >>}\\[8pt]
+        {\small 练习天数}\\[2pt]
+        {\large\bfseries << days_completed >>} {\small 天}\\[8pt]
+        {\small 情绪状态}\\[2pt]
+        << emotional_icon >> {\small\color{bark} << emotional_label >>}
+      \end{minipage}
+    };
+  \end{tikzpicture}
+\end{minipage}
+
+\vspace{12pt}
+
+%% =====================================================
+%%  SECTION 2: 错因分析雷达
+%% =====================================================
+\sectiontitle{二、错因分析}{Error Diagnosis}
+
+\vspace{4pt}
+
+\noindent
+\begin{minipage}[t]{0.55\textwidth}
+  <% if error_distribution %>
+  \begin{tikzpicture}
+    \begin{axis}[
+      ybar,
+      bar width=12pt,
+      width=0.55\textwidth,
+      height=5.5cm,
+      ymin=0,
+      ymax=<< chart_ymax >>,
+      ylabel={\small 错误次数},
+      symbolic x coords=[<< error_x_coords >>],
+      xtick=data,
+      x tick label style={font=\tiny, rotate=30, anchor=east},
+      y tick label style={font=\tiny},
+      ylabel style={font=\small},
+      nodes near coords,
+      nodes near coords style={font=\tiny, color=bark},
+      every node near coord/.append style={above=1pt},
+      axis lines=left,
+      enlarge x limits=0.12,
+      area style,
+    ]
+    \addplot[fill=softred!70, draw=softred] coordinates {
+      << error_bar_data >>
+    };
+    \end{axis}
+  \end{tikzpicture}
+  <% else %>
+  \begin{center}
+    {\color{forestgreen}\large 本期暂无错因记录，继续保持！}
+  \end{center}
+  <% endif %>
+\end{minipage}%
+\hfill
+\begin{minipage}[t]{0.42\textwidth}
+  <% if top_errors %>
+  {\small\bfseries\color{bark} 主要错因 TOP 3}\\[4pt]
+  <% for err in top_errors %>
+  \begin{tikzpicture}[baseline=-2pt]
+    \node[rounded corners=2pt, fill=softred!12, inner sep=4pt,
+          text width=\dimexpr0.42\textwidth-16pt\relax] {
+      {\small\bfseries\color{softred} << err.code >> \color{bark}<< err.label >>}\\
+      {\tiny\color{gray} << err.description >>}
+    };
+  \end{tikzpicture}\\[3pt]
+  <% endfor %>
+  <% else %>
+  {\color{forestgreen}\small 太棒了，没有错误记录！}
+  <% endif %>
+
+  \vspace{6pt}
+  <% if prev_comparison %>
+  {\small\bfseries\color{bark} 与上期对比}\\[3pt]
+  <% for cmp in prev_comparison %>
+  {\small << cmp.label >>：<< cmp.indicator >>}\\[2pt]
+  <% endfor %>
+  <% endif %>
+\end{minipage}
+
+\vspace{10pt}
+
+%% =====================================================
+%%  SECTION 3: 正确率趋势
+%% =====================================================
+\sectiontitle{三、正确率趋势}{Accuracy Trend}
+
+\vspace{4pt}
+
+\begin{center}
+<% if accuracy_trend %>
+\begin{tikzpicture}
+  \begin{axis}[
+    width=0.85\textwidth,
+    height=5cm,
+    xlabel={\small 周次},
+    ylabel={\small 正确率 (\%)},
+    ymin=0, ymax=100,
+    xtick={<< trend_xticks >>},
+    xticklabels={<< trend_xlabels >>},
+    x tick label style={font=\tiny},
+    y tick label style={font=\tiny},
+    xlabel style={font=\small},
+    ylabel style={font=\small},
+    grid=major,
+    grid style={gray!20},
+    axis lines=left,
+    % Color zones
+    extra y ticks={60,80},
+    extra y tick style={
+      grid=major,
+      grid style={dashed, gray!40},
+      tick label style={font=\tiny, color=gray},
+    },
+    % Red zone fill
+    fill between/on layer={pre main},
+    area style,
+  ]
+  % Green zone background (>80%)
+  \fill[forestgreen!8] (axis cs:\pgfkeysvalueof{/pgfplots/xmin},80)
+    rectangle (axis cs:\pgfkeysvalueof{/pgfplots/xmax},100);
+  % Yellow zone background (60-80%)
+  \fill[softyellow!15] (axis cs:\pgfkeysvalueof{/pgfplots/xmin},60)
+    rectangle (axis cs:\pgfkeysvalueof{/pgfplots/xmax},80);
+  % Red zone background (<60%)
+  \fill[softred!8] (axis cs:\pgfkeysvalueof{/pgfplots/xmin},0)
+    rectangle (axis cs:\pgfkeysvalueof{/pgfplots/xmax},60);
+  % Zone labels
+  \node[font=\tiny, text=forestgreen!60] at (axis cs:{<< trend_label_x >>},90) {优秀};
+  \node[font=\tiny, text=softyellow!80!black] at (axis cs:{<< trend_label_x >>},70) {良好};
+  \node[font=\tiny, text=softred!60] at (axis cs:{<< trend_label_x >>},30) {需加油};
+  % Data line
+  \addplot[thick, color=forestgreen, mark=*, mark size=2pt, mark options={fill=warmgold}]
+    coordinates {
+      << trend_coordinates >>
+    };
+  % Current point highlight
+  << trend_highlight >>
+  \end{axis}
+\end{tikzpicture}
+<% else %>
+  {\color{gray}\small 暂无趋势数据}
+<% endif %>
+\end{center}
+
+\vspace{8pt}
+
+%% =====================================================
+%%  SECTION 4: 能力维度
+%% =====================================================
+\sectiontitle{四、能力维度}{Ability Dimensions}
+
+\vspace{4pt}
+
+<% for dim in ability_dimensions %>
+\noindent
+\begin{tikzpicture}[baseline=-2pt]
+  \node[rounded corners=2pt, fill=white, inner sep=3pt,
+        text width=\dimexpr\textwidth-12pt\relax] {
+    \begin{minipage}{\dimexpr\textwidth-18pt\relax}
+      \treectr{} {\small\bfseries\color{bark} << dim.name >>}
+      \hfill
+      {\small\color{gray} << dim.score >> / << dim.max_score >>}
+      \\[2pt]
+      \progressBar{<< dim.bar_width >>}{<< dim.frac >>}{<< dim.color >>}
+    \end{minipage}
+  };
+\end{tikzpicture}\\[2pt]
+<% endfor %>
+
+\vspace{10pt}
+
+%% =====================================================
+%%  SECTION 5: 成长轨迹
+%% =====================================================
+\sectiontitle{五、成长轨迹}{Growth Timeline}
+
+\vspace{6pt}
+
+<% if milestones %>
+\begin{tikzpicture}
+  % Vertical timeline line
+  \draw[bark!30, line width=1.5pt] (0,0) -- (0, << timeline_height >>);
+  <% for ms in milestones %>
+  \fill[forestgreen] (0, << ms.y_pos >>) circle (4pt);
+  \node[anchor=west, text width=\dimexpr\textwidth-30pt\relax, font=\small] at (0.5cm, << ms.y_pos >>) {
+    {\tiny\color{gray} << ms.date >>}\quad
+    {\color{bark} << ms.description >>}
+  };
+  <% endfor %>
+\end{tikzpicture}
+<% else %>
+\begin{center}
+  {\color{gray}\small 小树苗刚刚种下，期待你的成长故事！}
+\end{center}
+<% endif %>
+
+\vspace{10pt}
+
+%% =====================================================
+%%  SECTION 6: 下阶段建议
+%% =====================================================
+\sectiontitle{六、下阶段建议}{Recommendations}
+
+\vspace{4pt}
+
+<% if recommendations %>
+\begin{enumerate}[leftmargin=1.5em, itemsep=4pt, label={}]
+<% for rec in recommendations %>
+  \item \begin{tikzpicture}[baseline=-2pt]
+    \node[rounded corners=3pt, fill=<< rec.bg_color >>, inner sep=6pt,
+          text width=\dimexpr\textwidth-32pt\relax] {
+      {\small\bfseries\color{<< rec.fg_color >>} \ifnum<< rec.priority >>=1 $\bigstar$ \fi
+        << rec.area >>}
+      \\[1pt]
+      {\small\color{bark} << rec.description >>}
+    };
+  \end{tikzpicture}
+<% endfor %>
+\end{enumerate}
+<% else %>
+\begin{center}
+  {\color{forestgreen}\small 继续保持，你做得很好！}
+\end{center}
+<% endif %>
+
+\vspace{6pt}
+
+\noindent
+\begin{tikzpicture}
+  \node[rounded corners=6pt, fill=forestgreen!8, draw=forestgreen!20, inner sep=10pt,
+        text width=\dimexpr\textwidth-24pt\relax] {
+    \begin{center}
+      {\color{forestgreen}\itshape << encouragement >>}
+    \end{center}
+  };
+\end{tikzpicture}
+
+\vfill
+
+%% =====================================================
+%%  FOOTER
+%% =====================================================
+\begin{center}
+  \rule{0.5\textwidth}{0.4pt}
+  \par\vspace{4pt}
+  {\small\color{forestgreen} 每一棵小树都需要耐心浇灌}
+  \par\vspace{2pt}
+  {\tiny\color{gray} 报告生成日期：<< generated_date >> \quad
+   审核状态：\colorbox{warmgold!20}{\color{bark}\tiny 待教师审核}}
+\end{center}
+
+\end{document}

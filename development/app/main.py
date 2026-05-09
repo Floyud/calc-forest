@@ -61,6 +61,10 @@ from app.services.practice import recommend_practice
 from app.services.session_draft import build_session_draft
 from app.services.student_service import get_student as svc_get_student
 from app.services.student_service import get_student_profile
+from app.services.pdf_service import (
+    generate_student_report_pdf,
+    list_student_reports,
+)
 
 
 @asynccontextmanager
@@ -892,3 +896,36 @@ async def dify_status():
     from app.services.dify_client import get_dify_status
 
     return get_dify_status()
+
+
+# === Student Reports ===
+
+@app.post("/api/reports/{student_id}/generate")
+async def generate_report_endpoint(
+    student_id: str,
+    report_type: str = "weekly",
+    period_start: str | None = None,
+    period_end: str | None = None,
+):
+    from fastapi.responses import FileResponse
+    import os
+
+    try:
+        pdf_path = await generate_student_report_pdf(
+            student_id=student_id,
+            report_type=report_type,
+            period_start=period_start,
+            period_end=period_end,
+        )
+        filename = os.path.basename(pdf_path)
+        return FileResponse(pdf_path, media_type="application/pdf", filename=filename)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except RuntimeError as e:
+        raise HTTPException(status_code=500, detail=f"PDF 生成失败: {e}")
+
+
+@app.get("/api/reports/{student_id}")
+async def list_reports_endpoint(student_id: str):
+    reports = await list_student_reports(student_id)
+    return {"student_id": student_id, "reports": reports}

@@ -1,5 +1,5 @@
 app:
-  description: 教师诊断助手 workflow - 班级错误分析 + 教学建议，基于知识库检索 + LLM 分析
+  description: 教师诊断助手 workflow - 错因严重度路由 + 三分支并行分析 + 知识库检索 + LLM深度分析 + 教学策略推荐
   icon: 📊
   icon_background: '#FFF3E0'
   mode: workflow
@@ -7,7 +7,7 @@ app:
   use_icon_as_answer_icon: false
 dependencies: []
 kind: app
-version: 0.3.1
+version: "0.5.0"
 workflow:
   conversation_variables: []
   environment_variables: []
@@ -28,332 +28,1032 @@ workflow:
       enabled: false
   graph:
     edges:
-    - data:
-        isInIteration: false
-        isInLoop: false
-        sourceType: start
-        targetType: code
-      id: start-to-build-query
-      source: start_node
-      sourceHandle: source
-      target: build_query
-      targetHandle: target
-      type: custom
-      zIndex: 0
-    - data:
-        isInIteration: false
-        isInLoop: false
-        sourceType: code
-        targetType: knowledge-retrieval
-      id: build-query-to-knowledge
-      source: build_query
-      sourceHandle: source
-      target: knowledge_retrieval
-      targetHandle: target
-      type: custom
-      zIndex: 0
-    - data:
-        isInIteration: false
-        isInLoop: false
-        sourceType: knowledge-retrieval
-        targetType: llm
-      id: knowledge-to-llm
-      source: knowledge_retrieval
-      sourceHandle: source
-      target: llm_analysis
-      targetHandle: target
-      type: custom
-      zIndex: 0
-    - data:
-        isInIteration: false
-        isInLoop: false
-        sourceType: llm
-        targetType: code
-      id: llm-to-assemble
-      source: llm_analysis
-      sourceHandle: source
-      target: assemble_result
-      targetHandle: target
-      type: custom
-      zIndex: 0
-    - data:
-        isInIteration: false
-        isInLoop: false
-        sourceType: code
-        targetType: end
-      id: assemble-to-end
-      source: assemble_result
-      sourceHandle: source
-      target: end_node
-      targetHandle: target
-      type: custom
-      zIndex: 0
+      # ── Edge 1: Start → 解析诊断数据 ──
+      - data:
+          isInIteration: false
+          isInLoop: false
+          sourceType: start
+          targetType: code
+        id: edge-start-parse
+        source: '1747000001'
+        sourceHandle: source
+        target: '1747000002'
+        targetHandle: target
+        type: custom
+        zIndex: 0
+      # ── Edge 2: 解析诊断数据 → 错因严重度路由 ──
+      - data:
+          isInIteration: false
+          isInLoop: false
+          sourceType: code
+          targetType: if-else
+        id: edge-parse-router
+        source: '1747000002'
+        sourceHandle: source
+        target: '1747000003'
+        targetHandle: target
+        type: custom
+        zIndex: 0
+      # ── Edge 3: Router ── case-critical → 严重错因检索 ──
+      - data:
+          isInIteration: false
+          isInLoop: false
+          sourceType: if-else
+          targetType: knowledge-retrieval
+        id: edge-router-critical-kb
+        source: '1747000003'
+        sourceHandle: case-critical
+        target: '1747000004'
+        targetHandle: target
+        type: custom
+        zIndex: 0
+      # ── Edge 4: 严重错因检索 → 深度错因分析 ──
+      - data:
+          isInIteration: false
+          isInLoop: false
+          sourceType: knowledge-retrieval
+          targetType: llm
+        id: edge-critical-kb-llm
+        source: '1747000004'
+        sourceHandle: source
+        target: '1747000005'
+        targetHandle: target
+        type: custom
+        zIndex: 0
+      # ── Edge 5: Router ── case-moderate → 一般错因检索 ──
+      - data:
+          isInIteration: false
+          isInLoop: false
+          sourceType: if-else
+          targetType: knowledge-retrieval
+        id: edge-router-moderate-kb
+        source: '1747000003'
+        sourceHandle: case-moderate
+        target: '1747000006'
+        targetHandle: target
+        type: custom
+        zIndex: 0
+      # ── Edge 6: 一般错因检索 → 标准错因分析 ──
+      - data:
+          isInIteration: false
+          isInLoop: false
+          sourceType: knowledge-retrieval
+          targetType: llm
+        id: edge-moderate-kb-llm
+        source: '1747000006'
+        sourceHandle: source
+        target: '1747000007'
+        targetHandle: target
+        type: custom
+        zIndex: 0
+      # ── Edge 7: Router ── false → 轻微错因检索 ──
+      - data:
+          isInIteration: false
+          isInLoop: false
+          sourceType: if-else
+          targetType: knowledge-retrieval
+        id: edge-router-minor-kb
+        source: '1747000003'
+        sourceHandle: 'false'
+        target: '1747000008'
+        targetHandle: target
+        type: custom
+        zIndex: 0
+      # ── Edge 8: 轻微错因检索 → 轻微错因建议 ──
+      - data:
+          isInIteration: false
+          isInLoop: false
+          sourceType: knowledge-retrieval
+          targetType: code
+        id: edge-minor-kb-code
+        source: '1747000008'
+        sourceHandle: source
+        target: '1747000009'
+        targetHandle: target
+        type: custom
+        zIndex: 0
+      # ── Edge 9: 深度错因分析 → 合并分析结果 ──
+      - data:
+          isInIteration: false
+          isInLoop: false
+          sourceType: llm
+          targetType: variable-aggregator
+        id: edge-critical-llm-merge
+        source: '1747000005'
+        sourceHandle: source
+        target: '1747000010'
+        targetHandle: target
+        type: custom
+        zIndex: 0
+      # ── Edge 10: 标准错因分析 → 合并分析结果 ──
+      - data:
+          isInIteration: false
+          isInLoop: false
+          sourceType: llm
+          targetType: variable-aggregator
+        id: edge-moderate-llm-merge
+        source: '1747000007'
+        sourceHandle: source
+        target: '1747000010'
+        targetHandle: target
+        type: custom
+        zIndex: 0
+      # ── Edge 11: 轻微错因建议 → 合并分析结果 ──
+      - data:
+          isInIteration: false
+          isInLoop: false
+          sourceType: code
+          targetType: variable-aggregator
+        id: edge-minor-code-merge
+        source: '1747000009'
+        sourceHandle: source
+        target: '1747000010'
+        targetHandle: target
+        type: custom
+        zIndex: 0
+      # ── Edge 12: 合并分析结果 → 构建教学策略查询 ──
+      - data:
+          isInIteration: false
+          isInLoop: false
+          sourceType: variable-aggregator
+          targetType: code
+        id: edge-merge-strategy-query
+        source: '1747000010'
+        sourceHandle: source
+        target: '1747000011'
+        targetHandle: target
+        type: custom
+        zIndex: 0
+      # ── Edge 13: 构建教学策略查询 → 教学策略检索 ──
+      - data:
+          isInIteration: false
+          isInLoop: false
+          sourceType: code
+          targetType: knowledge-retrieval
+        id: edge-strategy-query-kb
+        source: '1747000011'
+        sourceHandle: source
+        target: '1747000012'
+        targetHandle: target
+        type: custom
+        zIndex: 0
+      # ── Edge 14: 教学策略检索 → 教学建议生成 ──
+      - data:
+          isInIteration: false
+          isInLoop: false
+          sourceType: knowledge-retrieval
+          targetType: llm
+        id: edge-strategy-kb-llm
+        source: '1747000012'
+        sourceHandle: source
+        target: '1747000013'
+        targetHandle: target
+        type: custom
+        zIndex: 0
+      # ── Edge 15: 教学建议生成 → 格式化报告 ──
+      - data:
+          isInIteration: false
+          isInLoop: false
+          sourceType: llm
+          targetType: template-transform
+        id: edge-strategy-llm-template
+        source: '1747000013'
+        sourceHandle: source
+        target: '1747000014'
+        targetHandle: target
+        type: custom
+        zIndex: 0
+      # ── Edge 16: 格式化报告 → 最终组装 ──
+      - data:
+          isInIteration: false
+          isInLoop: false
+          sourceType: template-transform
+          targetType: code
+        id: edge-template-assemble
+        source: '1747000014'
+        sourceHandle: source
+        target: '1747000015'
+        targetHandle: target
+        type: custom
+        zIndex: 0
+      # ── Edge 17: 最终组装 → End ──
+      - data:
+          isInIteration: false
+          isInLoop: false
+          sourceType: code
+          targetType: end
+        id: edge-assemble-end
+        source: '1747000015'
+        sourceHandle: source
+        target: '1747000016'
+        targetHandle: target
+        type: custom
+        zIndex: 0
     nodes:
-    - data:
-        desc: 接收诊断结果和学生信息
+      # ════════════════════════════════════════════════════════════════
+      # Node 1: Start — 接收诊断输入
+      # ════════════════════════════════════════════════════════════════
+      - data:
+          desc: 接收诊断结果、学生信息和会话历史
+          selected: false
+          title: Start
+          type: start
+          variables:
+            - label: 诊断结果
+              max_length: null
+              options: []
+              required: true
+              type: text-input
+              variable: diagnosis
+            - label: 学生信息
+              max_length: null
+              options: []
+              required: true
+              type: text-input
+              variable: student_info
+            - label: 会话历史
+              max_length: null
+              options: []
+              required: false
+              type: text-input
+              variable: session_history
+        height: 150
+        id: '1747000001'
+        position:
+          x: 80
+          y: 300
+        positionAbsolute:
+          x: 80
+          y: 300
         selected: false
-        title: Start
-        type: start
-        variables:
-        - label: 诊断结果
-          max_length: null
-          options: []
-          required: true
-          type: text-input
-          variable: diagnosis
-        - label: 学生信息
-          max_length: null
-          options: []
-          required: true
-          type: text-input
-          variable: student_info
-        - label: 会话历史
-          max_length: null
-          options: []
-          required: false
-          type: text-input
-          variable: session_history
-      height: 150
-      id: start_node
-      position:
-        x: 30
-        y: 250
-      positionAbsolute:
-        x: 30
-        y: 250
-      selected: false
-      sourcePosition: right
-      targetPosition: left
-      type: custom
-      width: 280
-    - data:
-        code: "import json\nimport re\n\ndef main(diagnosis: str, student_info: str)\
-          \ -> dict:\n    # 尝试 JSON 解析，失败则当作纯文本\n    code = ''\n    try:\n       \
-          \ diag = json.loads(diagnosis)\n        if isinstance(diag, dict):\n   \
-          \         code = diag.get('primary_error', {}).get('code', '')\n    except\
-          \ Exception:\n        code = ''\n\n    # 从纯文本中提取错因代码\n    if not code:\n\
-          \        codes = re.findall(r'E\\d{2}', diagnosis)\n        code = codes[0]\
-          \ if codes else 'E99'\n\n    return {\n        'retrieval_query': f'\\u9519\\\
-          u56E0{code} \\u6559\\u5B66\\u7B56\\u7565 \\u73ED\\u7EA7\\u9519\\u8BEF\\\
-          u5206\\u6790 \\u5F15\\u5BFC\\u65B9\\u6CD5',\n        'error_code': code,\n\
-          \        'student_summary': student_info[:200],\n    }\n"
-        code_language: python3
-        desc: 从诊断结果中提取错因代码，构建知识库检索查询
-        outputs:
-          retrieval_query:
-            children: null
-            type: string
-          error_code:
-            children: null
-            type: string
-          student_summary:
-            children: null
-            type: string
+        sourcePosition: right
+        targetPosition: left
+        type: custom
+        width: 280
+      # ════════════════════════════════════════════════════════════════
+      # Node 2: 解析诊断数据 — 提取错因代码与严重度
+      # ════════════════════════════════════════════════════════════════
+      - data:
+          code: |
+            import json
+            import re
+
+            def main(diagnosis: str, student_info: str) -> dict:
+                code = ''
+                confidence = 0.5
+                problem_summary = ''
+                try:
+                    diag = json.loads(diagnosis)
+                    if isinstance(diag, dict):
+                        code = diag.get('primary_error', {}).get('code', '')
+                        confidence = diag.get('primary_error', {}).get('confidence', 0.5)
+                        problem_summary = diag.get('problem', '') or diag.get('problem_summary', '')
+                except Exception:
+                    pass
+                if not code:
+                    codes = re.findall(r'E\d{2}', diagnosis)
+                    code = codes[0] if codes else 'E99'
+                critical = ['E03', 'E04', 'E08']
+                moderate = ['E01', 'E02', 'E06']
+                if code in critical:
+                    severity_level = 'critical'
+                elif code in moderate:
+                    severity_level = 'moderate'
+                else:
+                    severity_level = 'minor'
+                return {
+                    'error_code': code,
+                    'severity_level': severity_level,
+                    'confidence': str(confidence),
+                    'problem_summary': problem_summary or diagnosis[:200],
+                    'student_summary': student_info[:200],
+                    'retrieval_query': f'错因{code} 教学策略 错误分析方法 引导练习',
+                }
+          code_language: python3
+          desc: 解析JSON诊断数据，提取错因代码、置信度、严重度等级
+          outputs:
+            error_code:
+              children: null
+              type: string
+            severity_level:
+              children: null
+              type: string
+            confidence:
+              children: null
+              type: string
+            problem_summary:
+              children: null
+              type: string
+            student_summary:
+              children: null
+              type: string
+            retrieval_query:
+              children: null
+              type: string
+          selected: false
+          title: 解析诊断数据
+          type: code
+          variables:
+            - value_selector:
+                - '1747000001'
+                - diagnosis
+              variable: diagnosis
+            - value_selector:
+                - '1747000001'
+                - student_info
+              variable: student_info
+        height: 150
+        id: '1747000002'
+        position:
+          x: 400
+          y: 300
+        positionAbsolute:
+          x: 400
+          y: 300
         selected: false
-        title: 构建检索查询
-        type: code
-        variables:
-        - value_selector:
-          - start_node
-          - diagnosis
-          variable: diagnosis
-        - value_selector:
-          - start_node
-          - student_info
-          variable: student_info
-      height: 150
-      id: build_query
-      position:
-        x: 350
-        y: 230
-      positionAbsolute:
-        x: 350
-        y: 230
-      selected: false
-      sourcePosition: right
-      targetPosition: left
-      type: custom
-      width: 320
-    - data:
-        desc: 检索错因教学策略知识库
-        dataset_ids:
-        - e65030a0-3076-4cd1-b646-d834ecafa55e
-        query_variable_selector:
-        - build_query
-        - retrieval_query
-        retrieval_mode: single
+        sourcePosition: right
+        targetPosition: left
+        type: custom
+        width: 320
+      # ════════════════════════════════════════════════════════════════
+      # Node 3: 错因严重度路由 — If-Else 菱形分支
+      # ════════════════════════════════════════════════════════════════
+      - data:
+          cases:
+            - case_id: case-critical
+              conditions:
+                - comparison_operator: contains
+                  value: critical
+                  variable_selector:
+                    - '1747000002'
+                    - severity_level
+              logical_operator: and
+            - case_id: case-moderate
+              conditions:
+                - comparison_operator: contains
+                  value: moderate
+                  variable_selector:
+                    - '1747000002'
+                    - severity_level
+              logical_operator: and
+          desc: 根据错因严重度路由到不同分析分支 — 严重/一般/轻微
+          selected: false
+          title: 错因严重度路由
+          type: if-else
+        height: 126
+        id: '1747000003'
+        position:
+          x: 720
+          y: 300
+        positionAbsolute:
+          x: 720
+          y: 300
         selected: false
-        single_retrieval_config:
+        sourcePosition: right
+        targetPosition: left
+        type: custom
+        width: 280
+      # ════════════════════════════════════════════════════════════════
+      # Node 4: 严重错因检索 — Critical Branch (y=100)
+      # ════════════════════════════════════════════════════════════════
+      - data:
+          dataset_ids:
+            - 8a588b72-2c02-4d34-b9ef-4f53dee606b0
+          desc: 检索严重错因（退位/数位对齐/步骤遗漏）的教学知识
+          query_variable_selector:
+            - '1747000002'
+            - retrieval_query
+          retrieval_mode: single
+          selected: false
+          single_retrieval_config:
+            model:
+              mode: chat
+              name: deepseek-chat
+              provider: langgenius/deepseek/deepseek
+          title: 严重错因检索
+          type: knowledge-retrieval
+        height: 90
+        id: '1747000004'
+        position:
+          x: 1100
+          y: 100
+        positionAbsolute:
+          x: 1100
+          y: 100
+        selected: false
+        sourcePosition: right
+        targetPosition: left
+        type: custom
+        width: 280
+      # ════════════════════════════════════════════════════════════════
+      # Node 5: 深度错因分析 — Critical Branch LLM
+      # ════════════════════════════════════════════════════════════════
+      - data:
+          context:
+            enabled: true
+            variable_selector:
+              - '1747000004'
+              - result
+          desc: 针对严重计算错误进行深入分析，生成分步干预策略
           model:
-            provider: deepseek
-            name: deepseek-chat
+            completion_params:
+              temperature: 0.7
+              max_tokens: 2048
+              top_p: 1
             mode: chat
-        title: 知识检索
-        type: knowledge-retrieval
-      height: 90
-      id: knowledge_retrieval
-      position:
-        x: 720
-        y: 250
-      positionAbsolute:
-        x: 720
-        y: 250
-      selected: false
-      sourcePosition: right
-      targetPosition: left
-      type: custom
-      width: 280
-    - data:
-        context:
-          enabled: true
-          variable_selector:
-          - knowledge_retrieval
-          - result
-        desc: 基于知识库内容分析错误模式并给出教学建议
-        model:
-          completion_params:
-            temperature: 0.7
-            max_tokens: 2048
-            top_p: 1.0
-          mode: chat
-          name: deepseek-chat
-          provider: langgenius/deepseek/deepseek
-        prompt_template:
-        - id: system-prompt
-          role: system
-          text: '你是一位教学分析助手，帮助教师快速了解学生错误模式。
+            name: deepseek-chat
+            provider: langgenius/deepseek/deepseek
+          prompt_template:
+            - id: system-prompt-critical
+              role: system
+              text: |-
+                你是一位资深小学数学教学分析师。针对严重计算错误（退位/数位对齐/步骤遗漏），结合知识库内容进行深入分析。
 
-            用客观语言描述证据，区分本次错误和长期能力判断，不要过度推断。
+                要求：
+                1. 用客观语言描述证据，区分本次错误和长期能力判断
+                2. 不要过度推断
+                3. 结合知识库中的教学策略给出具体建议
+                4. 输出中文，结构清晰
 
-            结合知识库中的教学策略给出具体建议。
+                输出格式：
+                【错误分析】客观描述错误类型、深层原因、与学生历史表现的关联
+                【干预策略】具体可操作的教学干预建议，包括分步骤引导方法
+                【同类题推荐】2-3道同类练习题建议
+            - id: user-prompt-critical
+              role: user
+              text: |-
+                诊断结果：{{#1747000001.diagnosis#}}
 
-            输出中文，结构清晰。
+                学生信息：{{#1747000001.student_info#}}
 
+                错因代码：{{#1747000002.error_code#}}
+                问题摘要：{{#1747000002.problem_summary#}}
+                严重程度：严重
 
-            请按以下结构输出：
+                知识库参考内容：
+                {{#1747000004.result#}}
 
-            【错误分析】客观描述错误类型、可能原因、与学生情况的关联
-
-            【教师建议】具体可操作的教学干预建议，包括引导方法和练习建议'
-        - id: user-prompt
-          role: user
-          text: '诊断结果：{{#start_node.diagnosis#}}
-
-
-            学生信息：{{#start_node.student_info#}}
-
-
-            知识库参考内容：
-
-            {{#knowledge_retrieval.result#}}
-
-
-            请分析该学生的错误模式，结合知识库中的教学策略给出具体建议。'
+                请对该学生的严重计算错误进行深入分析。
+          selected: false
+          title: 深度错因分析
+          type: llm
+          vision:
+            enabled: false
+        height: 98
+        id: '1747000005'
+        position:
+          x: 1500
+          y: 100
+        positionAbsolute:
+          x: 1500
+          y: 100
         selected: false
-        title: LLM\u5206\u6790
-        type: llm
-        vision:
-          enabled: false
-      height: 90
-      id: llm_analysis
-      position:
-        x: 1060
-        y: 250
-      positionAbsolute:
-        x: 1060
-        y: 250
-      selected: false
-      sourcePosition: right
-      targetPosition: left
-      type: custom
-      width: 280
-    - data:
-        code: "import re\n\ndef main(llm_text: str, error_code: str) -> dict:\n  \
-          \  teacher_summary = llm_text.strip() if llm_text else ''\n    error_analysis\
-          \ = ''\n    recommendation = ''\n\n    # 解析【错误分析】部分\n    m_err = re.search(r'\\\
-          u3010\\u9519\\u8BEF\\u5206\\u6790\\u3011(.*?)(?=\\u3010\\u6559\\u5E08\\\
-          u5EFA\\u8BAE\\u3011|$)', teacher_summary, re.DOTALL)\n    if m_err:\n  \
-          \      error_analysis = m_err.group(1).strip()\n\n    # 解析【教师建议】部分\n   \
-          \ m_rec = re.search(r'\\u3010\\u6559\\u5E08\\u5EFA\\u8BAE\\u3011(.*)', teacher_summary,\
-          \ re.DOTALL)\n    if m_rec:\n        recommendation = m_rec.group(1).strip()\n\
-          \n    # 如果解析失败，整体作为 teacher_summary\n    if not error_analysis and not recommendation:\n\
-          \        error_analysis = teacher_summary\n        recommendation = f'\\\
-          u5EFA\\u8BAE\\u9488\\u5BF9\\u9519\\u56E0{error_code}\\u8FDB\\u884C\\u4E13\\\
-          u9879\\u7EC3\\u4E60'\n\n    return {\n        'teacher_summary': teacher_summary,\n\
-          \        'error_analysis': error_analysis,\n        'recommendation': recommendation,\n\
-          \    }\n"
-        code_language: python3
-        desc: 解析 LLM 输出，结构化返回教师建议
-        outputs:
-          teacher_summary:
-            children: null
-            type: string
-          error_analysis:
-            children: null
-            type: string
-          recommendation:
-            children: null
-            type: string
+        sourcePosition: right
+        targetPosition: left
+        type: custom
+        width: 280
+      # ════════════════════════════════════════════════════════════════
+      # Node 6: 一般错因检索 — Moderate Branch (y=300)
+      # ════════════════════════════════════════════════════════════════
+      - data:
+          dataset_ids:
+            - 8a588b72-2c02-4d34-b9ef-4f53dee606b0
+          desc: 检索一般错因（基础事实/进位/分数单位）的教学知识
+          query_variable_selector:
+            - '1747000002'
+            - retrieval_query
+          retrieval_mode: single
+          selected: false
+          single_retrieval_config:
+            model:
+              mode: chat
+              name: deepseek-chat
+              provider: langgenius/deepseek/deepseek
+          title: 一般错因检索
+          type: knowledge-retrieval
+        height: 90
+        id: '1747000006'
+        position:
+          x: 1100
+          y: 300
+        positionAbsolute:
+          x: 1100
+          y: 300
         selected: false
-        title: 组装结果
-        type: code
-        variables:
-        - value_selector:
-          - llm_analysis
-          - text
-          variable: llm_text
-        - value_selector:
-          - build_query
-          - error_code
-          variable: error_code
-      height: 150
-      id: assemble_result
-      position:
-        x: 1400
-        y: 230
-      positionAbsolute:
-        x: 1400
-        y: 230
-      selected: false
-      sourcePosition: right
-      targetPosition: left
-      type: custom
-      width: 320
-    - data:
-        desc: ''
-        outputs:
-        - value_selector:
-          - assemble_result
-          - teacher_summary
-          value_type: string
-          variable: teacher_summary
-        - value_selector:
-          - assemble_result
-          - error_analysis
-          value_type: string
-          variable: error_analysis
-        - value_selector:
-          - assemble_result
-          - recommendation
-          value_type: string
-          variable: recommendation
+        sourcePosition: right
+        targetPosition: left
+        type: custom
+        width: 280
+      # ════════════════════════════════════════════════════════════════
+      # Node 7: 标准错因分析 — Moderate Branch LLM
+      # ════════════════════════════════════════════════════════════════
+      - data:
+          context:
+            enabled: true
+            variable_selector:
+              - '1747000006'
+              - result
+          desc: 针对基础计算错误进行标准分析，给出教学建议
+          model:
+            completion_params:
+              temperature: 0.7
+              max_tokens: 2048
+              top_p: 1
+            mode: chat
+            name: deepseek-chat
+            provider: langgenius/deepseek/deepseek
+          prompt_template:
+            - id: system-prompt-moderate
+              role: system
+              text: |-
+                你是一位小学数学教学分析师。针对基础计算错误（基础事实/进位/分数单位），结合知识库内容进行分析。
+
+                要求：
+                1. 用客观语言描述证据，区分本次错误和长期能力判断
+                2. 不要过度推断
+                3. 结合知识库中的教学策略给出具体建议
+                4. 输出中文，结构清晰
+
+                输出格式：
+                【错误分析】客观描述错误类型、可能原因、与学生情况的关联
+                【教学建议】具体可操作的教学建议，包括引导方法和练习建议
+            - id: user-prompt-moderate
+              role: user
+              text: |-
+                诊断结果：{{#1747000001.diagnosis#}}
+
+                学生信息：{{#1747000001.student_info#}}
+
+                错因代码：{{#1747000002.error_code#}}
+                问题摘要：{{#1747000002.problem_summary#}}
+                严重程度：一般
+
+                知识库参考内容：
+                {{#1747000006.result#}}
+
+                请对该学生的计算错误进行分析并给出教学建议。
+          selected: false
+          title: 标准错因分析
+          type: llm
+          vision:
+            enabled: false
+        height: 98
+        id: '1747000007'
+        position:
+          x: 1500
+          y: 300
+        positionAbsolute:
+          x: 1500
+          y: 300
         selected: false
-        title: End
-        type: end
-      height: 140
-      id: end_node
-      position:
-        x: 1780
-        y: 250
-      positionAbsolute:
-        x: 1780
-        y: 250
-      selected: false
-      sourcePosition: right
-      targetPosition: left
-      type: custom
-      width: 280
+        sourcePosition: right
+        targetPosition: left
+        type: custom
+        width: 280
+      # ════════════════════════════════════════════════════════════════
+      # Node 8: 轻微错因检索 — Minor Branch (y=500)
+      # ════════════════════════════════════════════════════════════════
+      - data:
+          dataset_ids:
+            - 8a588b72-2c02-4d34-b9ef-4f53dee606b0
+          desc: 检索轻微错因（运算顺序/抄题/符号混淆等）的教学知识
+          query_variable_selector:
+            - '1747000002'
+            - retrieval_query
+          retrieval_mode: single
+          selected: false
+          single_retrieval_config:
+            model:
+              mode: chat
+              name: deepseek-chat
+              provider: langgenius/deepseek/deepseek
+          title: 轻微错因检索
+          type: knowledge-retrieval
+        height: 90
+        id: '1747000008'
+        position:
+          x: 1100
+          y: 500
+        positionAbsolute:
+          x: 1100
+          y: 500
+        selected: false
+        sourcePosition: right
+        targetPosition: left
+        type: custom
+        width: 280
+      # ════════════════════════════════════════════════════════════════
+      # Node 9: 轻微错因建议 — Minor Branch Code (无LLM)
+      # ════════════════════════════════════════════════════════════════
+      - data:
+          code: |
+            ERROR_INFO = {
+                'E05': ('运算顺序错误', '提醒学生注意运算优先级：先乘除后加减，有括号先算括号。建议用标注法标记运算步骤。'),
+                'E07': ('抄题/转写错误', '建议训练学生抄写后立即比对检查，养成"抄完看一遍"的习惯。'),
+                'E09': ('符号混淆', '使用对比练习，帮助学生区分易混淆的运算符号。'),
+                'E10': ('计算策略错误', '引导学生掌握基本的凑整、拆分等计算策略。'),
+                'E11': ('未验算', '培养验算习惯，建议每次计算后用逆运算或估算法检查。'),
+            }
+
+            def main(error_code: str, problem_summary: str, knowledge_result: str) -> dict:
+                info = ERROR_INFO.get(error_code, ('轻微计算错误', '建议通过针对性练习巩固基础计算能力。'))
+                kb_ref = knowledge_result[:300] if knowledge_result else '无'
+                return {
+                    'result': f'【{info[0]}】{info[1]}\n知识库参考：{kb_ref}\n问题摘要：{problem_summary}',
+                    'analysis_type': 'minor',
+                }
+          code_language: python3
+          desc: 针对轻微错误生成简要建议（不调用LLM，节省计算资源）
+          outputs:
+            result:
+              children: null
+              type: string
+            analysis_type:
+              children: null
+              type: string
+          selected: false
+          title: 轻微错因建议
+          type: code
+          variables:
+            - value_selector:
+                - '1747000002'
+                - error_code
+              variable: error_code
+            - value_selector:
+                - '1747000002'
+                - problem_summary
+              variable: problem_summary
+            - value_selector:
+                - '1747000008'
+                - result
+              variable: knowledge_result
+        height: 150
+        id: '1747000009'
+        position:
+          x: 1500
+          y: 500
+        positionAbsolute:
+          x: 1500
+          y: 500
+        selected: false
+        sourcePosition: right
+        targetPosition: left
+        type: custom
+        width: 320
+      # ════════════════════════════════════════════════════════════════
+      # Node 10: 合并分析结果 — Variable-Aggregator
+      # ════════════════════════════════════════════════════════════════
+      - data:
+          desc: 汇聚三条分析分支的结果（严重/一般/轻微）
+          output_type: string
+          selected: false
+          title: 合并分析结果
+          type: variable-aggregator
+          variables:
+            - - '1747000005'
+              - text
+            - - '1747000007'
+              - text
+            - - '1747000009'
+              - result
+        height: 80
+        id: '1747000010'
+        position:
+          x: 2200
+          y: 300
+        positionAbsolute:
+          x: 2200
+          y: 300
+        selected: false
+        sourcePosition: right
+        targetPosition: left
+        type: custom
+        width: 280
+      # ════════════════════════════════════════════════════════════════
+      # Node 11: 构建教学策略查询 — 基于错因+严重度
+      # ════════════════════════════════════════════════════════════════
+      - data:
+          code: |
+            def main(error_code: str, severity_level: str, student_summary: str) -> dict:
+                SEVERITY_LABELS = {
+                    'critical': '严重',
+                    'moderate': '一般',
+                    'minor': '轻微',
+                }
+                label = SEVERITY_LABELS.get(severity_level, '一般')
+                query = f'错因{error_code} {label}错误 教学策略 班级干预方法 学生引导'
+                if student_summary:
+                    query += f' {student_summary[:50]}'
+                return {
+                    'strategy_query': query,
+                    'severity_label': label,
+                }
+          code_language: python3
+          desc: 基于错因和严重度构建知识库检索查询
+          outputs:
+            strategy_query:
+              children: null
+              type: string
+            severity_label:
+              children: null
+              type: string
+          selected: false
+          title: 构建教学策略查询
+          type: code
+          variables:
+            - value_selector:
+                - '1747000002'
+                - error_code
+              variable: error_code
+            - value_selector:
+                - '1747000002'
+                - severity_level
+              variable: severity_level
+            - value_selector:
+                - '1747000002'
+                - student_summary
+              variable: student_summary
+        height: 150
+        id: '1747000011'
+        position:
+          x: 2500
+          y: 300
+        positionAbsolute:
+          x: 2500
+          y: 300
+        selected: false
+        sourcePosition: right
+        targetPosition: left
+        type: custom
+        width: 320
+      # ════════════════════════════════════════════════════════════════
+      # Node 12: 教学策略检索 — Knowledge Retrieval
+      # ════════════════════════════════════════════════════════════════
+      - data:
+          dataset_ids:
+            - 8a588b72-2c02-4d34-b9ef-4f53dee606b0
+          desc: 检索教学策略知识库，获取干预方法和引导建议
+          query_variable_selector:
+            - '1747000011'
+            - strategy_query
+          retrieval_mode: single
+          selected: false
+          single_retrieval_config:
+            model:
+              mode: chat
+              name: deepseek-chat
+              provider: langgenius/deepseek/deepseek
+          title: 教学策略检索
+          type: knowledge-retrieval
+        height: 90
+        id: '1747000012'
+        position:
+          x: 2800
+          y: 300
+        positionAbsolute:
+          x: 2800
+          y: 300
+        selected: false
+        sourcePosition: right
+        targetPosition: left
+        type: custom
+        width: 280
+      # ════════════════════════════════════════════════════════════════
+      # Node 13: 教学建议生成 — Strategy LLM
+      # ════════════════════════════════════════════════════════════════
+      - data:
+          context:
+            enabled: true
+            variable_selector:
+              - '1747000012'
+              - result
+          desc: 基于错因分析和教学策略生成综合教学建议
+          model:
+            completion_params:
+              temperature: 0.7
+              max_tokens: 2048
+              top_p: 1
+            mode: chat
+            name: deepseek-chat
+            provider: langgenius/deepseek/deepseek
+          prompt_template:
+            - id: system-prompt-strategy
+              role: system
+              text: |-
+                你是一位数学教学顾问。基于错因分析和学生信息，给出具体可操作的教学建议。结合知识库的教学策略。
+
+                输出格式：
+                【教学建议】具体可操作的教学干预建议
+                【练习推荐】针对性的练习建议和题目类型
+                【关注要点】需要持续关注的学生学习要点
+            - id: user-prompt-strategy
+              role: user
+              text: |-
+                错因分析结果：
+                {{#1747000010.output#}}
+
+                学生信息：{{#1747000001.student_info#}}
+                错因代码：{{#1747000002.error_code#}}
+                严重程度：{{#1747000002.severity_level#}}
+
+                教学策略知识库参考：
+                {{#1747000012.result#}}
+
+                请基于以上信息，给出具体可操作的教学建议。
+          selected: false
+          title: 教学建议生成
+          type: llm
+          vision:
+            enabled: false
+        height: 98
+        id: '1747000013'
+        position:
+          x: 3100
+          y: 300
+        positionAbsolute:
+          x: 3100
+          y: 300
+        selected: false
+        sourcePosition: right
+        targetPosition: left
+        type: custom
+        width: 280
+      # ════════════════════════════════════════════════════════════════
+      # Node 14: 格式化报告 — Template-Transform (Jinja2)
+      # ════════════════════════════════════════════════════════════════
+      - data:
+          desc: 将分析结果和教学建议格式化为结构化报告
+          selected: false
+          template: |-
+            # 教师诊断报告
+
+            ## 一、错误分析
+            {{ analysis_result }}
+
+            ## 二、错因代码：{{ error_code }} | 严重程度：{{ severity_label }}
+
+            ## 三、学生信息摘要
+            {{ student_summary }}
+
+            ## 四、教学建议
+            {{ strategy_recommendation }}
+
+            ---
+
+            *本报告由「我的计算森林」AI生成，请教师审核确认后使用。*
+          title: 格式化报告
+          type: template-transform
+          variables:
+            - variable: analysis_result
+              value_selector:
+                - '1747000010'
+                - output
+            - variable: strategy_recommendation
+              value_selector:
+                - '1747000013'
+                - text
+            - variable: error_code
+              value_selector:
+                - '1747000002'
+                - error_code
+            - variable: student_summary
+              value_selector:
+                - '1747000002'
+                - student_summary
+            - variable: severity_label
+              value_selector:
+                - '1747000011'
+                - severity_label
+        height: 100
+        id: '1747000014'
+        position:
+          x: 3400
+          y: 300
+        positionAbsolute:
+          x: 3400
+          y: 300
+        selected: false
+        sourcePosition: right
+        targetPosition: left
+        type: custom
+        width: 280
+      # ════════════════════════════════════════════════════════════════
+      # Node 15: 最终组装 — 解析报告，结构化输出
+      # ════════════════════════════════════════════════════════════════
+      - data:
+          code: |
+            import re
+
+            def main(formatted_report: str, error_code: str, severity_level: str) -> dict:
+                teacher_summary = formatted_report.strip() if formatted_report else ''
+                error_analysis = ''
+                recommendation = ''
+
+                m_err = re.search(r'【错误分析】(.*?)(?=【|$)', teacher_summary, re.DOTALL)
+                if m_err:
+                    error_analysis = m_err.group(1).strip()
+
+                m_rec = re.search(r'【(教学建议|干预策略|教师建议|练习推荐)】(.*?)(?=【|$)', teacher_summary, re.DOTALL)
+                if m_rec:
+                    recommendation = m_rec.group(2).strip()
+
+                if not error_analysis and not recommendation:
+                    error_analysis = teacher_summary
+                    recommendation = f'建议针对错因{error_code}进行专项练习'
+
+                return {
+                    'teacher_summary': teacher_summary,
+                    'error_analysis': error_analysis,
+                    'recommendation': recommendation,
+                    'severity_level': severity_level,
+                }
+          code_language: python3
+          desc: 解析格式化报告，结构化输出教师诊断结果
+          outputs:
+            teacher_summary:
+              children: null
+              type: string
+            error_analysis:
+              children: null
+              type: string
+            recommendation:
+              children: null
+              type: string
+            severity_level:
+              children: null
+              type: string
+          selected: false
+          title: 最终组装
+          type: code
+          variables:
+            - value_selector:
+                - '1747000014'
+                - output
+              variable: formatted_report
+            - value_selector:
+                - '1747000002'
+                - error_code
+              variable: error_code
+            - value_selector:
+                - '1747000002'
+                - severity_level
+              variable: severity_level
+        height: 150
+        id: '1747000015'
+        position:
+          x: 3700
+          y: 300
+        positionAbsolute:
+          x: 3700
+          y: 300
+        selected: false
+        sourcePosition: right
+        targetPosition: left
+        type: custom
+        width: 320
+      # ════════════════════════════════════════════════════════════════
+      # Node 16: End — 输出结构化诊断结果
+      # ════════════════════════════════════════════════════════════════
+      - data:
+          desc: ''
+          outputs:
+            - value_selector:
+                - '1747000015'
+                - teacher_summary
+              value_type: string
+              variable: teacher_summary
+            - value_selector:
+                - '1747000015'
+                - error_analysis
+              value_type: string
+              variable: error_analysis
+            - value_selector:
+                - '1747000015'
+                - recommendation
+              value_type: string
+              variable: recommendation
+            - value_selector:
+                - '1747000015'
+                - severity_level
+              value_type: string
+              variable: severity_level
+          selected: false
+          title: End
+          type: end
+        height: 140
+        id: '1747000016'
+        position:
+          x: 4000
+          y: 300
+        positionAbsolute:
+          x: 4000
+          y: 300
+        selected: false
+        sourcePosition: right
+        targetPosition: left
+        type: custom
+        width: 280
     viewport:
       x: 0
       y: 0
-      zoom: 0.45
+      zoom: 0.3
