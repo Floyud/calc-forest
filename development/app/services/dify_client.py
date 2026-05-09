@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import os
@@ -311,11 +312,11 @@ async def _call_dify_endpoint(
             return data.get("data", {}).get("outputs", {})
         except (httpx.ConnectError, httpx.TimeoutException) as exc:
             elapsed = time.monotonic() - t0
-            raise RuntimeError(f"[{track_label}] Dify 连接失败 ({elapsed:.1fs}): {exc}") from exc
+            raise RuntimeError(f"[{track_label}] Dify 连接失败 ({elapsed:.1f}s): {exc}") from exc
         except httpx.HTTPStatusError as exc:
             elapsed = time.monotonic() - t0
             raise RuntimeError(
-                f"[{track_label}] Dify HTTP {exc.response.status_code} ({elapsed:.1fs}): {exc.response.text[:300]}"
+                f"[{track_label}] Dify HTTP {exc.response.status_code} ({elapsed:.1f}s): {exc.response.text[:300]}"
             ) from exc
 
 
