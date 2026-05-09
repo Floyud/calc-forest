@@ -34,7 +34,8 @@
 \renewcommand{\headrulewidth}{0.4pt}
 \renewcommand{\headrule}{\hbox to\headwidth{\color{warmgold}\leaders\hrule height 0.8pt\hfill}}
 
-\setlength{\parindent}{0pt}
+\setlength{\headheight}{24.02pt}
+\addtolength{\topmargin}{-12.02pt}
 \setlength{\parskip}{4pt}
 
 % === Custom commands ===
@@ -161,7 +162,7 @@
       ymin=0,
       ymax=<< chart_ymax >>,
       ylabel={\small 错误次数},
-      symbolic x coords=[<< error_x_coords >>],
+      symbolic x coords={<< error_x_coords >>},
       xtick=data,
       x tick label style={font=\tiny, rotate=30, anchor=east},
       y tick label style={font=\tiny},
@@ -237,15 +238,12 @@
     grid=major,
     grid style={gray!20},
     axis lines=left,
-    % Color zones
     extra y ticks={60,80},
     extra y tick style={
       grid=major,
       grid style={dashed, gray!40},
       tick label style={font=\tiny, color=gray},
     },
-    % Red zone fill
-    fill between/on layer={pre main},
     area style,
   ]
   % Green zone background (>80%)

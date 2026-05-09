@@ -645,7 +645,7 @@ async def generate_student_report_pdf(
 
         # 11. Milestones (from cycle progress changes)
         cursor = await db.execute(
-            """SELECT created_at, current_stage, days_completed
+            """SELECT last_practice_date, current_stage, days_completed
                FROM student_cycle_progress
                WHERE student_id = ?
                ORDER BY days_completed""",
@@ -661,7 +661,7 @@ async def generate_student_report_pdf(
                 stage_cn = _STAGE_LABELS.get(ms["current_stage"], ms["current_stage"])
                 desc = f"小树苗在第 {ms['days_completed']} 天成长为「{stage_cn}」阶段"
                 milestones.append({
-                    "date": ms.get("created_at", "")[:10] if ms.get("created_at") else "",
+                    "date": (ms.get("last_practice_date") or "")[:10],
                     "description": desc,
                     "y_pos": y_pos,
                 })

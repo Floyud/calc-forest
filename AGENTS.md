@@ -153,6 +153,28 @@ Plus 6 FTS5 virtual tables for knowledge base search.
 6. **No rankings, forced streaks, holiday pressure, or parent pressure.**
 7. **MVP is teacher-side only.** Full student app, parent app, OCR, complete textbook graph are future scope unless explicitly requested.
 
+### Exercise Types (题库范围)
+
+"计算" 不局限于四则运算，涵盖所有需要计算能力的题型：
+
+| 类型 | 说明 | 示例 |
+|---|---|---|
+| 口算 | 心算快速题 | 25×4=, 3.6÷0.9= |
+| 竖式计算 | 列竖式的多位数运算 | 3.14×2.5, 402-178 |
+| 脱式计算 | 递等式/分步计算 | 3.6×2.5+4.8÷1.2 |
+| 简便运算 | 运算律/巧算 | 125×32, 99×37+37 |
+| 列式计算 | 文字题转算式 | "25的4倍与36的差是多少" |
+| 图形计算 | 面积/周长计算 | 圆面积、组合图形面积 |
+| 分数运算 | 分数四则混合 | 2/3+5/6×3/5 |
+
+### Teaching Principles (教学理念)
+
+1. **分层递进**: 习题有层次，根据答题情况逐步提高难度（A基础→B中档→C高档）
+2. **靶向强化**: 根据学生实际学习能力和薄弱点出题，薄弱点强化训练，举一反三
+3. **算理引导**: 不会做或做错时，一步步引导思考，让学生真正理解算理、学会算法
+4. **语音交互**: 长期目标 — 像小老师一样辅导孩子一步步做题（TTS/STT 集成）
+5. **情绪价值**: 引导过程中用严谨的数学语言，同时给予充足情绪支持 — 不断肯定孩子，也明确指出问题所在
+
 ## Key Context Files
 
 - `Agent.md` — session handoff, project rules, and status (update when scope/paths/APIs change)
