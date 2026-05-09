@@ -1,0 +1,1467 @@
+app:
+  name: 我的计算森林_AI批改画像助手
+  icon: null
+  icon_background: null
+  mode: workflow
+  description: AI批改与画像分析助手
+workflow:
+  graph:
+    nodes:
+    - data:
+        desc: 接收5个输入变量
+        selected: false
+        title: Start
+        type: start
+        variables:
+        - label: 模式（grading 或 profiling）
+          max_length: null
+          options: []
+          required: true
+          type: text-input
+          variable: mode
+        - label: 批改结果JSON
+          max_length: null
+          options: []
+          required: false
+          type: text-input
+          variable: grading_results
+        - label: 学生信息JSON
+          max_length: null
+          options: []
+          required: false
+          type: text-input
+          variable: student_info
+        - label: 错因统计JSON
+          max_length: null
+          options: []
+          required: false
+          type: text-input
+          variable: error_stats
+        - label: 正确率趋势JSON
+          max_length: null
+          options: []
+          required: false
+          type: text-input
+          variable: accuracy_trend
+      height: 239
+      id: '1748000001'
+      position:
+        x: 80
+        y: 400
+      positionAbsolute:
+        x: 80
+        y: 400
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    - data:
+        cases:
+        - case_id: 'true'
+          conditions:
+          - comparison_operator: contains
+            id: mode-router-cond-001
+            value: grading
+            varType: string
+            variable_selector:
+            - '1748000001'
+            - mode
+          id: 'true'
+          logical_operator: and
+        desc: mode包含"grading"走批改路径，否则走画像路径
+        selected: false
+        title: 模式路由
+        type: if-else
+      height: 166
+      id: '1748000002'
+      position:
+        x: 380
+        y: 400
+      positionAbsolute:
+        x: 380
+        y: 400
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 241
+    - data:
+        code: "import json\n\ndef main(grading_results: str, student_info: str) ->\
+          \ dict:\n    try:\n        data = json.loads(grading_results)\n    except:\n\
+          \        data = []\n    items = []\n    if isinstance(data, list):\n   \
+          \     items = data\n    elif isinstance(data, dict):\n        items = data.get('results',\
+          \ [])\n    total = len(items)\n    error_count = 0\n    error_codes = []\n\
+          \    for item in items:\n        if not isinstance(item, dict):\n      \
+          \      continue\n        is_wrong = not item.get('correct', not item.get('is_correct',\
+          \ True))\n        if is_wrong:\n            error_count += 1\n         \
+          \   code = (\n                item.get('error_code')\n                or\
+          \ item.get('diagnosis', {}).get('primary_error', {}).get('code', 'E99')\n\
+          \                or 'E99'\n            )\n            error_codes.append(str(code))\n\
+          \    unique_codes = sorted(set(error_codes)) if error_codes else ['E99']\n\
+          \    try:\n        stu = json.loads(student_info)\n        stu_name = stu.get('name',\
+          \ '同学')\n    except:\n        stu_name = '同学'\n    return {\n        'total':\
+          \ str(total),\n        'error_count': str(error_count),\n        'error_codes':\
+          \ ','.join(unique_codes),\n        'items_json': json.dumps(items, ensure_ascii=False),\n\
+          \        'student_name': stu_name,\n    }\n"
+        code_language: python3
+        desc: 解析批改结果JSON，统计错误数量和错因编码
+        outputs:
+          total:
+            children: null
+            type: string
+          error_count:
+            children: null
+            type: string
+          error_codes:
+            children: null
+            type: string
+          items_json:
+            children: null
+            type: string
+          student_name:
+            children: null
+            type: string
+        selected: false
+        title: 解析批改数据
+        type: code
+        variables:
+        - value_selector:
+          - '1748000001'
+          - grading_results
+          variable: grading_results
+        - value_selector:
+          - '1748000001'
+          - student_info
+          variable: student_info
+      height: 94
+      id: '1748000003'
+      position:
+        x: 700
+        y: 150
+      positionAbsolute:
+        x: 700
+        y: 150
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 241
+    - data:
+        code: "import json\n\ndef main(items_json: str) -> dict:\n    try:\n     \
+          \   items = json.loads(items_json)\n    except:\n        items = []\n  \
+          \  wrong_list = []\n    for i, item in enumerate(items):\n        if not\
+          \ isinstance(item, dict):\n            continue\n        is_wrong = not\
+          \ item.get('correct', not item.get('is_correct', True))\n        if is_wrong:\n\
+          \            problem = item.get('problem', f'第{i+1}题')\n            student_ans\
+          \ = item.get('student_answer', '?')\n            correct_ans = item.get('correct_answer',\
+          \ '?')\n            code = (\n                item.get('error_code')\n \
+          \               or item.get('diagnosis', {}).get('primary_error', {}).get('code',\
+          \ 'E99')\n                or 'E99'\n            )\n            wrong_list.append({\n\
+          \                'index': i + 1,\n                'problem': str(problem),\n\
+          \                'student_answer': str(student_ans),\n                'correct_answer':\
+          \ str(correct_ans),\n                'error_code': str(code),\n        \
+          \    })\n    summary_lines = []\n    for w in wrong_list:\n        summary_lines.append(\n\
+          \            f\"第{w['index']}题: {w['problem']} 学生答:{w['student_answer']}\
+          \ 正确:{w['correct_answer']} 错因:{w['error_code']}\"\n        )\n    return\
+          \ {\n        'wrong_count': str(len(wrong_list)),\n        'error_list':\
+          \ json.dumps(wrong_list, ensure_ascii=False),\n        'summary_text': '\\\
+          n'.join(summary_lines) if summary_lines else '全部正确',\n    }\n"
+        code_language: python3
+        desc: 过滤错误答案，结构化错题列表
+        outputs:
+          wrong_count:
+            children: null
+            type: string
+          error_list:
+            children: null
+            type: string
+          summary_text:
+            children: null
+            type: string
+        selected: false
+        title: 提取错题列表
+        type: code
+        variables:
+        - value_selector:
+          - '1748000003'
+          - items_json
+          variable: items_json
+      height: 78
+      id: '1748000004'
+      position:
+        x: 1000
+        y: 80
+      positionAbsolute:
+        x: 1000
+        y: 80
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 241
+    - data:
+        desc: 将错题列表格式化为可读摘要
+        selected: false
+        title: 格式化错题摘要
+        type: template-transform
+        variables:
+        - value_selector:
+          - '1748000004'
+          - summary_text
+          variable: summary_text
+        - value_selector:
+          - '1748000003'
+          - student_name
+          variable: student_name
+        - value_selector:
+          - '1748000003'
+          - error_count
+          variable: error_count
+        - value_selector:
+          - '1748000003'
+          - total
+          variable: total
+        template: '【错题分析报告】
+
+          学生：{{student_name}}
+
+          答题总数：{{total}}  错误数：{{error_count}}
+
+
+          错题明细：
+
+          {{summary_text}}
+
+
+          请根据以上数据进行深入分析。
+
+          '
+      height: 78
+      id: '1748000005'
+      position:
+        x: 1300
+        y: 80
+      positionAbsolute:
+        x: 1300
+        y: 80
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 241
+    - data:
+        desc: 检索批改相关知识（错因分析、评语模板、计算习惯）
+        dataset_ids:
+        - 8a588b72-2c02-4d34-b9ef-4f53dee606b0
+        retrieval_mode: single
+        single_retrieval_config:
+          model:
+            provider: langgenius/deepseek/deepseek
+            name: deepseek-chat
+            mode: chat
+        selected: false
+        title: 批改知识检索
+        type: knowledge-retrieval
+        query_variable_selector:
+        - '1748000003'
+        - error_codes
+      height: 132
+      id: '1748000006'
+      position:
+        x: 1000
+        y: 220
+      positionAbsolute:
+        x: 1000
+        y: 220
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 241
+    - data:
+        context:
+          enabled: true
+          variable_selector:
+          - '1748000006'
+          - result
+        desc: 结合知识库对批改结果进行语义分析
+        model:
+          completion_params:
+            temperature: 0.7
+            max_tokens: 2048
+            top_p: 1
+          mode: chat
+          name: deepseek-chat
+          provider: langgenius/deepseek/deepseek
+        prompt_template:
+        - id: grading-system-prompt-v2
+          role: system
+          text: '你是一位小学数学批改分析助手。根据规则引擎的批改结果，进行语义层面的深入分析。
+
+
+            结合知识库的错因分析和评语模板，完成以下分析要点：
+
+            1. 错误根本原因分析（不是表面错误，而是背后的计算习惯或概念理解问题） 2. 计算习惯问题识别（如是否经常忘记退位、是否跳步等） 3. 知识点薄弱环节定位
+
+
+            输出要求： - 中文JSON格式 - 包含 review_status: "pending_teacher_review" - 包含 analysis,
+            habit_issues, weak_points, suggestion 字段 - 语气温暖鼓励，不贴标签
+
+            '
+        - id: grading-user-prompt-v2
+          role: user
+          text: '请分析以下批改数据：
+
+
+            学生姓名：{{#1748000003.student_name#}}
+
+            错因编码：{{#1748000003.error_codes#}}
+
+            错题数量：{{#1748000003.error_count#}} / 总题数：{{#1748000003.total#}}
+
+
+            错题明细：
+
+            {{#1748000004.summary_text#}}
+
+
+            知识库参考内容：
+
+            {{#context#}}
+
+
+            请结合知识库内容，输出详细的分析JSON。
+
+            '
+        selected: false
+        title: 批改语义分析
+        type: llm
+        vision:
+          enabled: false
+      height: 114
+      id: '1748000007'
+      position:
+        x: 1300
+        y: 220
+      positionAbsolute:
+        x: 1300
+        y: 220
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 241
+    - data:
+        code: "ENCOURAGEMENT_MAP = {\n    'E01': '基础计算还需要多练习哦，每一次练习都在变强！',\n    'E02':\
+          \ '进位有点小失误，但你的计算思路是对的！再仔细一点就完美了。',\n    'E03': '退位计算确实有点难，你已经做得很棒了，继续加油！',\n\
+          \    'E04': '注意对齐数位哦，你离正确答案只差一小步！',\n    'E05': '运算顺序需要再注意一下，你完全能掌握的！',\n\
+          \    'E06': '小数和分数确实容易搞混，慢慢来，你会越来越熟练的。',\n    'E07': '抄题的时候再仔细看看哦，仔细是你的超能力！',\n\
+          \    'E08': '计算步骤不要跳哦，每一步都是你思考的脚印。',\n    'E11': '做完题记得验算，养成好习惯，你会越来越厉害！',\n\
+          \    'E99': '这道题有点特别，别担心，我们一起弄明白！',\n}\n\ndef main(error_codes: str, student_name:\
+          \ str, error_count: str, total: str) -> dict:\n    codes = [c.strip() for\
+          \ c in error_codes.split(',') if c.strip()]\n    messages = []\n    for\
+          \ code in codes:\n        messages.append(ENCOURAGEMENT_MAP.get(code, ENCOURAGEMENT_MAP['E99']))\n\
+          \    try:\n        ec = int(error_count)\n        tt = int(total)\n    \
+          \    if ec == 0:\n            summary = f'{student_name}，全部答对了！太厉害了！继续保持！'\n\
+          \        elif ec <= tt // 3:\n            summary = f'{student_name}，大部分都做对了，再接再厉！'\n\
+          \        elif ec <= tt // 2:\n            summary = f'{student_name}，有一些小失误，但你在进步！'\n\
+          \        else:\n            summary = f'{student_name}，这次有点难，但每次练习都是成长！'\n\
+          \    except:\n        summary = f'{student_name}，继续加油！'\n    return {\n\
+          \        'encouragements': '\\n'.join(messages),\n        'encouragement_summary':\
+          \ summary,\n    }\n"
+        code_language: python3
+        desc: 根据错因编码映射温暖鼓励语，无需LLM
+        outputs:
+          encouragements:
+            children: null
+            type: string
+          encouragement_summary:
+            children: null
+            type: string
+        selected: false
+        title: 生成鼓励语
+        type: code
+        variables:
+        - value_selector:
+          - '1748000003'
+          - error_codes
+          variable: error_codes
+        - value_selector:
+          - '1748000003'
+          - student_name
+          variable: student_name
+        - value_selector:
+          - '1748000003'
+          - error_count
+          variable: error_count
+        - value_selector:
+          - '1748000003'
+          - total
+          variable: total
+      height: 94
+      id: '1748000008'
+      position:
+        x: 1000
+        y: 340
+      positionAbsolute:
+        x: 1000
+        y: 340
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 241
+    - data:
+        desc: 汇聚三条并行分支的输出
+        output_type: string
+        selected: false
+        title: 合并批改结果
+        type: variable-aggregator
+        variables:
+        - - '1748000005'
+          - output
+        - - '1748000007'
+          - text
+        - - '1748000008'
+          - encouragement_summary
+      height: 186
+      id: '1748000009'
+      position:
+        x: 1600
+        y: 200
+      positionAbsolute:
+        x: 1600
+        y: 200
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 241
+    - data:
+        code: "import json\n\ndef main(\n    aggregated: str,\n    error_codes: str,\n\
+          \    error_count: str,\n    total: str,\n    encouragements: str,\n    student_name:\
+          \ str,\n) -> dict:\n    result = {\n        'mode': 'grading',\n       \
+          \ 'student_name': student_name,\n        'error_codes': error_codes,\n \
+          \       'total_errors': error_count,\n        'total_problems': total,\n\
+          \        'encouragements': encouragements,\n        'aggregated_analysis':\
+          \ aggregated,\n        'review_status': 'pending_teacher_review',\n    }\n\
+          \    return {\n        'branch_output': json.dumps(result, ensure_ascii=False),\n\
+          \        'error_codes': error_codes,\n        'total_errors': error_count,\n\
+          \    }\n"
+        code_language: python3
+        desc: 将并行分析结果合并为统一批改JSON
+        outputs:
+          branch_output:
+            children: null
+            type: string
+          error_codes:
+            children: null
+            type: string
+          total_errors:
+            children: null
+            type: string
+        selected: false
+        title: 组装批改输出
+        type: code
+        variables:
+        - value_selector:
+          - '1748000009'
+          - output
+          variable: aggregated
+        - value_selector:
+          - '1748000003'
+          - error_codes
+          variable: error_codes
+        - value_selector:
+          - '1748000003'
+          - error_count
+          variable: error_count
+        - value_selector:
+          - '1748000003'
+          - total
+          variable: total
+        - value_selector:
+          - '1748000008'
+          - encouragements
+          variable: encouragements
+        - value_selector:
+          - '1748000003'
+          - student_name
+          variable: student_name
+      height: 78
+      id: '1748000010'
+      position:
+        x: 1900
+        y: 200
+      positionAbsolute:
+        x: 1900
+        y: 200
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 241
+    - data:
+        code: "import json\n\ndef main(error_stats: str, accuracy_trend: str, student_info:\
+          \ str) -> dict:\n    try:\n        stats = json.loads(error_stats)\n   \
+          \ except:\n        stats = {}\n    try:\n        trend = json.loads(accuracy_trend)\n\
+          \    except:\n        trend = []\n    try:\n        stu = json.loads(student_info)\n\
+          \        stu_name = stu.get('name', '同学')\n        grade = stu.get('grade',\
+          \ '未知')\n    except:\n        stu_name = '同学'\n        grade = '未知'\n  \
+          \  if isinstance(stats, dict):\n        top_errors = sorted(stats.items(),\
+          \ key=lambda x: x[1], reverse=True)[:5]\n    else:\n        top_errors =\
+          \ []\n    top_error_str = ','.join([str(e[0]) for e in top_errors]) if top_errors\
+          \ else 'E99'\n    if isinstance(trend, list) and trend:\n        latest_acc\
+          \ = trend[-1]\n        if len(trend) >= 2:\n            prev_acc = trend[-2]\n\
+          \        else:\n            prev_acc = latest_acc\n    else:\n        latest_acc\
+          \ = 0\n        prev_acc = 0\n    return {\n        'top_errors': top_error_str,\n\
+          \        'latest_accuracy': str(latest_acc),\n        'prev_accuracy': str(prev_acc),\n\
+          \        'student_name': stu_name,\n        'grade': str(grade),\n     \
+          \   'stats_json': json.dumps(stats, ensure_ascii=False),\n        'trend_json':\
+          \ json.dumps(trend, ensure_ascii=False),\n        'retrieval_query': f'学生画像\
+          \ {top_error_str} 学习风格 成长叙事 能力评估',\n    }\n"
+        code_language: python3
+        desc: 解析错因统计和正确率趋势，准备画像数据
+        outputs:
+          top_errors:
+            children: null
+            type: string
+          latest_accuracy:
+            children: null
+            type: string
+          prev_accuracy:
+            children: null
+            type: string
+          student_name:
+            children: null
+            type: string
+          grade:
+            children: null
+            type: string
+          stats_json:
+            children: null
+            type: string
+          trend_json:
+            children: null
+            type: string
+          retrieval_query:
+            children: null
+            type: string
+        selected: false
+        title: 解析画像数据
+        type: code
+        variables:
+        - value_selector:
+          - '1748000001'
+          - error_stats
+          variable: error_stats
+        - value_selector:
+          - '1748000001'
+          - accuracy_trend
+          variable: accuracy_trend
+        - value_selector:
+          - '1748000001'
+          - student_info
+          variable: student_info
+      height: 94
+      id: '1748000011'
+      position:
+        x: 700
+        y: 550
+      positionAbsolute:
+        x: 700
+        y: 550
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 241
+    - data:
+        desc: 检索画像相关知识（学生画像、成长体系、能力维度）
+        dataset_ids:
+        - 8a588b72-2c02-4d34-b9ef-4f53dee606b0
+        retrieval_mode: single
+        single_retrieval_config:
+          model:
+            provider: langgenius/deepseek/deepseek
+            name: deepseek-chat
+            mode: chat
+        selected: false
+        title: 画像知识检索
+        type: knowledge-retrieval
+        query_variable_selector:
+        - '1748000011'
+        - retrieval_query
+      height: 132
+      id: '1748000012'
+      position:
+        x: 1000
+        y: 480
+      positionAbsolute:
+        x: 1000
+        y: 480
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 241
+    - data:
+        context:
+          enabled: true
+          variable_selector:
+          - '1748000012'
+          - result
+        desc: 基于历史数据生成学生能力画像，四个维度
+        model:
+          completion_params:
+            temperature: 0.7
+            max_tokens: 2048
+            top_p: 1
+          mode: chat
+          name: deepseek-chat
+          provider: langgenius/deepseek/deepseek
+        prompt_template:
+        - id: ability-system-prompt-v2
+          role: system
+          text: '你是一位学习分析专家。基于学生的历史错因统计和正确率趋势，生成学生能力画像。
+
+
+            分析维度： 1. 计算准确率 — 整体和各错因类别的准确率 2. 运算速度 — 基于题目完成情况推断 3. 知识点掌握 — 各知识点的掌握程度
+            4. 学习态度 — 从练习频率和进步趋势推断
+
+
+            结合知识库的学生画像和成长体系内容。
+
+
+            输出要求： - 中文JSON格式 - 包含 review_status: "pending_teacher_review" - 包含 dimensions,
+            overall_assessment, strengths, areas_for_improvement 字段 - 不贴标签，关注可改进行动
+
+            '
+        - id: ability-user-prompt-v2
+          role: user
+          text: '请为以下学生生成能力画像：
+
+
+            学生姓名：{{#1748000011.student_name#}}
+
+            年级：{{#1748000011.grade#}}
+
+            高频错因：{{#1748000011.top_errors#}}
+
+            最近正确率：{{#1748000011.latest_accuracy#}}
+
+
+            错因统计：
+
+            {{#1748000011.stats_json#}}
+
+
+            正确率趋势：
+
+            {{#1748000011.trend_json#}}
+
+
+            知识库参考内容：
+
+            {{#context#}}
+
+
+            请结合知识库内容，输出详细的能力维度分析JSON。
+
+            '
+        selected: false
+        title: 能力维度分析
+        type: llm
+        vision:
+          enabled: false
+      height: 130
+      id: '1748000013'
+      position:
+        x: 1300
+        y: 480
+      positionAbsolute:
+        x: 1300
+        y: 480
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 241
+    - data:
+        code: "import json\n\ndef main(latest_accuracy: str, prev_accuracy: str, trend_json:\
+          \ str) -> dict:\n    try:\n        latest = float(latest_accuracy)\n   \
+          \     prev = float(prev_accuracy)\n    except:\n        latest = 0.0\n \
+          \       prev = 0.0\n    change = latest - prev\n    if change > 0.05:\n\
+          \        direction = '上升'\n        emoji = '[UP]'\n    elif change < -0.05:\n\
+          \        direction = '下降'\n        emoji = '[DOWN]'\n    else:\n       \
+          \ direction = '稳定'\n        emoji = '[STABLE]'\n    try:\n        growth_rate\
+          \ = round(abs(change) / max(prev, 0.01) * 100, 1)\n    except:\n       \
+          \ growth_rate = 0.0\n    try:\n        trend = json.loads(trend_json)\n\
+          \        if isinstance(trend, list) and len(trend) >= 3:\n            recent_trend\
+          \ = trend[-3:]\n            trend_desc = f'近3次正确率: {recent_trend}'\n   \
+          \     elif isinstance(trend, list) and trend:\n            trend_desc =\
+          \ f'全部正确率: {trend}'\n        else:\n            trend_desc = '暂无趋势数据'\n\
+          \    except:\n        trend_desc = '暂无趋势数据'\n    return {\n        'direction':\
+          \ direction,\n        'change': '+' + str(round(change, 2)) if change >=\
+          \ 0 else str(round(change, 2)),\n        'growth_rate': str(growth_rate)\
+          \ + '%',\n        'latest_accuracy': str(round(latest, 2)),\n        'trend_description':\
+          \ trend_desc,\n        'emoji': emoji,\n    }\n"
+        code_language: python3
+        desc: 计算正确率变化、趋势方向、成长率
+        outputs:
+          direction:
+            children: null
+            type: string
+          change:
+            children: null
+            type: string
+          growth_rate:
+            children: null
+            type: string
+          latest_accuracy:
+            children: null
+            type: string
+          trend_description:
+            children: null
+            type: string
+          emoji:
+            children: null
+            type: string
+        selected: false
+        title: 计算成长轨迹
+        type: code
+        variables:
+        - value_selector:
+          - '1748000011'
+          - latest_accuracy
+          variable: latest_accuracy
+        - value_selector:
+          - '1748000011'
+          - prev_accuracy
+          variable: prev_accuracy
+        - value_selector:
+          - '1748000011'
+          - trend_json
+          variable: trend_json
+      height: 78
+      id: '1748000014'
+      position:
+        x: 1000
+        y: 600
+      positionAbsolute:
+        x: 1000
+        y: 600
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 241
+    - data:
+        desc: 将成长轨迹数据格式化为可读报告
+        selected: false
+        title: 格式化成长报告
+        type: template-transform
+        variables:
+        - value_selector:
+          - '1748000014'
+          - emoji
+          variable: emoji
+        - value_selector:
+          - '1748000014'
+          - direction
+          variable: direction
+        - value_selector:
+          - '1748000014'
+          - change
+          variable: change
+        - value_selector:
+          - '1748000014'
+          - growth_rate
+          variable: growth_rate
+        - value_selector:
+          - '1748000014'
+          - latest_accuracy
+          variable: latest_accuracy
+        - value_selector:
+          - '1748000014'
+          - trend_description
+          variable: trend_description
+        - value_selector:
+          - '1748000011'
+          - student_name
+          variable: student_name
+        template: '【成长轨迹报告】
+
+          学生：{{student_name}}
+
+
+          {{emoji}} 趋势方向：{{direction}}
+
+          📊 正确率变化：{{change}}
+
+          🌱 成长率：{{growth_rate}}
+
+          📋 当前正确率：{{latest_accuracy}}
+
+
+          {{trend_description}}
+
+
+          请基于以上成长数据进行综合分析。
+
+          '
+      height: 78
+      id: '1748000015'
+      position:
+        x: 1300
+        y: 600
+      positionAbsolute:
+        x: 1300
+        y: 600
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 241
+    - data:
+        context:
+          enabled: true
+          variable_selector:
+          - '1748000012'
+          - result
+        desc: 基于能力分析生成个性化教学干预建议
+        model:
+          completion_params:
+            temperature: 0.7
+            max_tokens: 2048
+            top_p: 1
+          mode: chat
+          name: deepseek-chat
+          provider: langgenius/deepseek/deepseek
+        prompt_template:
+        - id: intervention-system-prompt-v2
+          role: system
+          text: '你是一位教育顾问。基于能力维度分析结果，给出个性化的教学干预建议。
+
+
+            建议包括： 1. 短期目标 — 未来1-2周内可实现的改进目标 2. 练习重点 — 针对薄弱环节的练习方向 3. 教学方法建议 — 适合该学生的教学策略
+
+
+            结合知识库中的教学建议和练习方法。
+
+
+            输出要求： - 中文JSON格式 - 包含 review_status: "pending_teacher_review" - 包含 short_term_goals,
+            practice_focus, teaching_methods, timeline 字段 - 建议具体可执行，不空洞
+
+            '
+        - id: intervention-user-prompt-v2
+          role: user
+          text: '请为以下学生生成教学干预建议：
+
+
+            学生姓名：{{#1748000011.student_name#}}
+
+            年级：{{#1748000011.grade#}}
+
+            高频错因：{{#1748000011.top_errors#}}
+
+
+            成长趋势：{{#1748000014.direction#}}
+
+            成长率：{{#1748000014.growth_rate#}}
+
+            当前正确率：{{#1748000014.latest_accuracy#}}
+
+
+            错因统计详情：
+
+            {{#1748000011.stats_json#}}
+
+
+            知识库参考内容：
+
+            {{#context#}}
+
+
+            请结合知识库内容，输出详细的干预建议JSON。
+
+            '
+        selected: false
+        title: 干预建议生成
+        type: llm
+        vision:
+          enabled: false
+      height: 114
+      id: '1748000016'
+      position:
+        x: 1000
+        y: 720
+      positionAbsolute:
+        x: 1000
+        y: 720
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 241
+    - data:
+        desc: 汇聚三条并行分支的输出
+        output_type: string
+        selected: false
+        title: 合并画像结果
+        type: variable-aggregator
+        variables:
+        - - '1748000013'
+          - text
+        - - '1748000015'
+          - output
+        - - '1748000016'
+          - text
+      height: 186
+      id: '1748000017'
+      position:
+        x: 1600
+        y: 600
+      positionAbsolute:
+        x: 1600
+        y: 600
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 241
+    - data:
+        code: "import json\n\ndef main(\n    aggregated: str,\n    top_errors: str,\n\
+          \    latest_accuracy: str,\n    student_name: str,\n    growth_direction:\
+          \ str,\n) -> dict:\n    result = {\n        'mode': 'profiling',\n     \
+          \   'student_name': student_name,\n        'top_errors': top_errors,\n \
+          \       'latest_accuracy': latest_accuracy,\n        'growth_direction':\
+          \ growth_direction,\n        'aggregated_analysis': aggregated,\n      \
+          \  'review_status': 'pending_teacher_review',\n    }\n    return {\n   \
+          \     'branch_output': json.dumps(result, ensure_ascii=False),\n       \
+          \ 'top_errors': top_errors,\n        'latest_accuracy': latest_accuracy,\n\
+          \    }\n"
+        code_language: python3
+        desc: 将并行分析结果合并为统一画像JSON
+        outputs:
+          branch_output:
+            children: null
+            type: string
+          top_errors:
+            children: null
+            type: string
+          latest_accuracy:
+            children: null
+            type: string
+        selected: false
+        title: 组装画像输出
+        type: code
+        variables:
+        - value_selector:
+          - '1748000017'
+          - output
+          variable: aggregated
+        - value_selector:
+          - '1748000011'
+          - top_errors
+          variable: top_errors
+        - value_selector:
+          - '1748000011'
+          - latest_accuracy
+          variable: latest_accuracy
+        - value_selector:
+          - '1748000011'
+          - student_name
+          variable: student_name
+        - value_selector:
+          - '1748000014'
+          - direction
+          variable: growth_direction
+      height: 78
+      id: '1748000018'
+      position:
+        x: 1900
+        y: 600
+      positionAbsolute:
+        x: 1900
+        y: 600
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 241
+    - data:
+        code: "import json\n\ndef main(branch_output: str) -> dict:\n    try:\n  \
+          \      data = json.loads(branch_output)\n    except:\n        data = {'error':\
+          \ 'parse_failed', 'raw': branch_output}\n    mode = data.get('mode', 'unknown')\n\
+          \    review = data.get('review_status', 'pending_teacher_review')\n    summary_report\
+          \ = json.dumps(data, ensure_ascii=False)\n    if mode == 'grading':\n  \
+          \      return {\n            'grading_analysis': summary_report,\n     \
+          \       'error_codes': data.get('error_codes', ''),\n            'total_errors':\
+          \ data.get('total_errors', ''),\n            'profile': '',\n          \
+          \  'top_errors': '',\n            'latest_accuracy': '',\n            'summary_report':\
+          \ summary_report,\n        }\n    else:\n        return {\n            'grading_analysis':\
+          \ '',\n            'error_codes': '',\n            'total_errors': '',\n\
+          \            'profile': summary_report,\n            'top_errors': data.get('top_errors',\
+          \ ''),\n            'latest_accuracy': data.get('latest_accuracy', ''),\n\
+          \            'summary_report': summary_report,\n        }\n"
+        code_language: python3
+        desc: 合并批改或画像输出为统一响应结构
+        outputs:
+          grading_analysis:
+            children: null
+            type: string
+          error_codes:
+            children: null
+            type: string
+          total_errors:
+            children: null
+            type: string
+          profile:
+            children: null
+            type: string
+          top_errors:
+            children: null
+            type: string
+          latest_accuracy:
+            children: null
+            type: string
+          summary_report:
+            children: null
+            type: string
+        selected: false
+        title: 最终汇聚
+        type: code
+        variables:
+        - value_selector:
+          - '1748000010'
+          - branch_output
+          variable: branch_output
+        - value_selector:
+          - '1748000018'
+          - branch_output
+          variable: branch_output
+      height: 78
+      id: '1748000021'
+      position:
+        x: 2200
+        y: 400
+      positionAbsolute:
+        x: 2200
+        y: 400
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 241
+    - data:
+        desc: ''
+        outputs:
+        - value_selector:
+          - '1748000021'
+          - grading_analysis
+          value_type: string
+          variable: grading_analysis
+        - value_selector:
+          - '1748000021'
+          - error_codes
+          value_type: string
+          variable: error_codes
+        - value_selector:
+          - '1748000021'
+          - total_errors
+          value_type: string
+          variable: total_errors
+        - value_selector:
+          - '1748000021'
+          - profile
+          value_type: string
+          variable: profile
+        - value_selector:
+          - '1748000021'
+          - top_errors
+          value_type: string
+          variable: top_errors
+        - value_selector:
+          - '1748000021'
+          - latest_accuracy
+          value_type: string
+          variable: latest_accuracy
+        - value_selector:
+          - '1748000021'
+          - summary_report
+          value_type: string
+          variable: summary_report
+        selected: false
+        title: End
+        type: end
+      height: 242
+      id: '1748000022'
+      position:
+        x: 2500
+        y: 400
+      positionAbsolute:
+        x: 2500
+        y: 400
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 241
+    edges:
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: if-else
+      id: edge-start-router
+      source: '1748000001'
+      sourceHandle: source
+      target: '1748000002'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: code
+      id: edge-router-parse-grading
+      source: '1748000002'
+      sourceHandle: 'true'
+      target: '1748000003'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: code
+      id: edge-parse-extract
+      source: '1748000003'
+      sourceHandle: source
+      target: '1748000004'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: template-transform
+      id: edge-extract-format
+      source: '1748000004'
+      sourceHandle: source
+      target: '1748000005'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: knowledge-retrieval
+      id: edge-parse-kg-grading
+      source: '1748000003'
+      sourceHandle: source
+      target: '1748000006'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: knowledge-retrieval
+        targetType: llm
+      id: edge-kg-grading-llm
+      source: '1748000006'
+      sourceHandle: source
+      target: '1748000007'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: code
+      id: edge-parse-encourage
+      source: '1748000003'
+      sourceHandle: source
+      target: '1748000008'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: template-transform
+        targetType: variable-aggregator
+      id: edge-format-agg-grading
+      source: '1748000005'
+      sourceHandle: source
+      target: '1748000009'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: variable-aggregator
+      id: edge-llm-agg-grading
+      source: '1748000007'
+      sourceHandle: source
+      target: '1748000009'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: variable-aggregator
+      id: edge-encourage-agg-grading
+      source: '1748000008'
+      sourceHandle: source
+      target: '1748000009'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: variable-aggregator
+        targetType: code
+      id: edge-agg-grading-assemble
+      source: '1748000009'
+      sourceHandle: source
+      target: '1748000010'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: code
+      id: edge-assemble-grading-merge
+      source: '1748000010'
+      sourceHandle: source
+      target: '1748000021'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: code
+      id: edge-router-parse-profile
+      source: '1748000002'
+      sourceHandle: 'false'
+      target: '1748000011'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: knowledge-retrieval
+      id: edge-parse-kg-profile
+      source: '1748000011'
+      sourceHandle: source
+      target: '1748000012'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: knowledge-retrieval
+        targetType: llm
+      id: edge-kg-profile-llm
+      source: '1748000012'
+      sourceHandle: source
+      target: '1748000013'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: code
+      id: edge-parse-compute-growth
+      source: '1748000011'
+      sourceHandle: source
+      target: '1748000014'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: template-transform
+      id: edge-compute-format-growth
+      source: '1748000014'
+      sourceHandle: source
+      target: '1748000015'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: llm
+      id: edge-parse-intervention
+      source: '1748000011'
+      sourceHandle: source
+      target: '1748000016'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: variable-aggregator
+      id: edge-llm-agg-profile
+      source: '1748000013'
+      sourceHandle: source
+      target: '1748000017'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: template-transform
+        targetType: variable-aggregator
+      id: edge-format-agg-profile
+      source: '1748000015'
+      sourceHandle: source
+      target: '1748000017'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: variable-aggregator
+      id: edge-intervention-agg-profile
+      source: '1748000016'
+      sourceHandle: source
+      target: '1748000017'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: variable-aggregator
+        targetType: code
+      id: edge-agg-profile-assemble
+      source: '1748000017'
+      sourceHandle: source
+      target: '1748000018'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: code
+      id: edge-assemble-profile-merge
+      source: '1748000018'
+      sourceHandle: source
+      target: '1748000021'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: end
+      id: edge-merge-end
+      source: '1748000021'
+      sourceHandle: source
+      target: '1748000022'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: llm
+      id: edge-growth-to-intervention
+      source: '1748000014'
+      sourceHandle: source
+      target: '1748000016'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    viewport:
+      x: -706.6755165676798
+      y: 152.35873820246096
+      zoom: 0.6040447024024371
+  features:
+    opening_statement: ''
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      voice: ''
+      language: ''
+    speech_to_text:
+      enabled: false
+    retriever_resource:
+      enabled: false
+    sensitive_word_avoidance:
+      enabled: false
+    file_upload:
+      image:
+        enabled: false
+        number_limits: 3
+        transfer_methods:
+        - local_file
+        - remote_url
+      enabled: false
+      allowed_file_types:
+      - image
+      allowed_file_extensions:
+      - .JPG
+      - .JPEG
+      - .PNG
+      - .GIF
+      - .WEBP
+      - .SVG
+      allowed_file_upload_methods:
+      - local_file
+      - remote_url
+      number_limits: 3
+      fileUploadConfig:
+        file_size_limit: 15
+        batch_count_limit: 5
+        file_upload_limit: 20
+        image_file_size_limit: 10
+        video_file_size_limit: 100
+        audio_file_size_limit: 50
+        workflow_file_upload_limit: 10
+        image_file_batch_limit: 10
+        single_chunk_attachment_limit: 10
+        attachment_image_file_size_limit: 2
+  environment_variables: []
+  conversation_variables: []
+kind: app
+version: 0.5.0

@@ -97,6 +97,9 @@ def _response(
         record_id=record.record_id,
         student_id=record.student_id,
         is_correct=is_correct,
+        error_code=primary.code.value if hasattr(primary.code, 'value') else str(primary.code),
+        error_label=primary.label,
+        confidence=primary.confidence,
         primary_error=primary,
         secondary_errors=secondary,
         normalized={

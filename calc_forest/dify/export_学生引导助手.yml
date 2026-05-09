@@ -1,0 +1,932 @@
+app:
+  name: 我的计算森林_学生引导助手
+  icon: 🌱
+  icon_background: '#E4FBF5'
+  mode: advanced-chat
+  description: 学生引导 chatflow — 用四步引导法帮助小学生理解计算错误，温和地引导学生思考。
+workflow:
+  graph:
+    nodes:
+    - data:
+        desc: 接收学生对话消息 (sys.query)
+        selected: false
+        title: Start
+        type: start
+        variables: []
+      height: 90
+      id: '1749000001'
+      position:
+        x: 80
+        y: 400
+      positionAbsolute:
+        x: 80
+        y: 400
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 240
+    - data:
+        classes:
+        - description: 学生需要计算帮助、解题指导、不会做、算错了、怎么算
+          id: class-computation
+          name: 计算求助
+        - description: 验算、检查、对不对、检验、怎么检查答案
+          id: class-check
+          name: 验算检查
+        - description: 其他闲聊、打招呼、情绪表达、聊天、不开心、开心
+          id: class-chat
+          name: 闲聊鼓励
+        desc: 根据学生输入识别意图 — 计算求助/验算检查/闲聊鼓励
+        model:
+          completion_params:
+            temperature: 0.3
+          mode: chat
+          name: deepseek-chat
+          provider: langgenius/deepseek/deepseek
+        query_variable_selector:
+        - sys
+        - query
+        selected: false
+        title: 意图识别
+        type: question-classifier
+      height: 154
+      id: '1749000002'
+      position:
+        x: 380
+        y: 400
+      positionAbsolute:
+        x: 380
+        y: 400
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 260
+    - data:
+        code: "import re\n\ndef main(query: str) -> dict:\n    # Extract math expressions\
+          \ (numbers, operators, fractions)\n    math_patterns = re.findall(r'[\\\
+          d+\\-*/\\u00d7\\u00f7\\(\\)\\.=\\u5206\\u4e4b]+', query)\n    problem_hint\
+          \ = ' '.join(math_patterns) if math_patterns else query[:100]\n\n    # Find\
+          \ error codes mentioned explicitly\n    error_codes = re.findall(r'E\\d{2}',\
+          \ query)\n\n    # Keyword-based error detection\n    keyword_map = {\n \
+          \       '\\u9000\\u4f4d': 'E03', '\\u501f\\u4f4d': 'E03',\n        '\\u8fdb\\\
+          u4f4d': 'E02',\n        '\\u5bf9\\u9f50': 'E04', '\\u6570\\u4f4d': 'E04',\n\
+          \        '\\u5c0f\\u6570': 'E06', '\\u5206\\u6570': 'E06',\n        '\\\
+          u987a\\u5e8f': 'E05', '\\u5148\\u7b97': 'E05',\n        '\\u6284\\u9519':\
+          \ 'E07', '\\u6284\\u9898': 'E07',\n        '\\u5fd8': 'E08', '\\u6f0f':\
+          \ 'E08', '\\u8df3\\u6b65': 'E08',\n    }\n\n    if not error_codes:\n  \
+          \      found = []\n        for kw, code in keyword_map.items():\n      \
+          \      if kw in query:\n                found.append(code)\n        error_codes\
+          \ = list(set(found)) if found else ['E99']\n\n    error_keywords = ','.join(error_codes)\n\
+          \n    # Determine guidance style based on error complexity\n    complex_errors\
+          \ = {'E03', 'E04', 'E08'}\n    standard_errors = {'E01', 'E02', 'E06'}\n\
+          \    found_codes = set(error_codes)\n    if found_codes & complex_errors:\n\
+          \        guidance_style = 'exploration'\n    elif found_codes & standard_errors:\n\
+          \        guidance_style = 'standard'\n    else:\n        guidance_style\
+          \ = 'direct'\n\n    retrieval_query = f'{problem_hint} {error_keywords}\
+          \ \\u9519\\u56e0 \\u6559\\u5b66\\u7b56\\u7565 \\u5f15\\u5bfc\\u65b9\\u6cd5'\n\
+          \n    return {\n        'problem_hint': problem_hint[:200],\n        'error_keywords':\
+          \ error_keywords,\n        'retrieval_query': retrieval_query,\n       \
+          \ 'guidance_style': guidance_style,\n    }\n"
+        code_language: python3
+        desc: 解析学生输入，提取数学表达式、错因关键词，确定引导风格
+        outputs:
+          problem_hint:
+            children: null
+            type: string
+          error_keywords:
+            children: null
+            type: string
+          retrieval_query:
+            children: null
+            type: string
+          guidance_style:
+            children: null
+            type: string
+        selected: false
+        title: 提取题目信息
+        type: code
+        variables:
+        - value_selector:
+          - sys
+          - query
+          variable: query
+      height: 150
+      id: '1749000003'
+      position:
+        x: 700
+        y: 150
+      positionAbsolute:
+        x: 700
+        y: 150
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 300
+    - data:
+        dataset_ids:
+        - 8a588b72-2c02-4d34-b9ef-4f53dee606b0
+        desc: 根据错因关键词检索教学策略和引导方法
+        query_variable_selector:
+        - '1749000003'
+        - retrieval_query
+        retrieval_mode: single
+        selected: false
+        single_retrieval_config:
+          model:
+            mode: chat
+            name: deepseek-chat
+            provider: langgenius/deepseek/deepseek
+        title: 错因知识检索
+        type: knowledge-retrieval
+      height: 90
+      id: '1749000004'
+      position:
+        x: 1000
+        y: 150
+      positionAbsolute:
+        x: 1000
+        y: 150
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 280
+    - data:
+        cases:
+        - case_id: case-exploration
+          conditions:
+          - comparison_operator: is
+            value: exploration
+            variable_selector:
+            - '1749000003'
+            - guidance_style
+          logical_operator: and
+        - case_id: case-standard
+          conditions:
+          - comparison_operator: is
+            value: standard
+            variable_selector:
+            - '1749000003'
+            - guidance_style
+          logical_operator: and
+        desc: 根据错因复杂度路由 — 探索式(复杂)/标准式(一般)/直接式(简单)
+        selected: false
+        title: 引导风格路由
+        type: if-else
+      height: 126
+      id: '1749000005'
+      position:
+        x: 1300
+        y: 150
+      positionAbsolute:
+        x: 1300
+        y: 150
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 280
+    - data:
+        context:
+          enabled: true
+          variable_selector:
+          - '1749000004'
+          - result
+        desc: 苏格拉底式提问法，引导复杂错因(退位/数位对齐/步骤遗漏)的深度理解
+        model:
+          completion_params:
+            temperature: 0.8
+            max_tokens: 2048
+            top_p: 1
+          mode: chat
+          name: deepseek-chat
+          provider: langgenius/deepseek/deepseek
+        prompt_template:
+        - id: exploration-system-prompt
+          role: system
+          text: '你是小学数学引导老师。用苏格拉底式提问法，一步步引导学生自己发现错误。
+
+
+            核心规则：
+
+            1. 永远不直接给答案
+
+            2. 先肯定学生已经做对的部分
+
+            3. 用提问引导思考，每次只引导一个关键点
+
+            4. 语言温暖简短，适合六年级学生
+
+            5. 结合知识库的教学策略
+
+            6. 结尾给一道同类简单题让学生尝试
+
+
+            提问技巧：
+
+            - "你觉得这一步的计算...?"
+
+            - "如果把这个数拆开来看...?"
+
+            - "我们再看看这里，你发现了什么?"'
+        - id: exploration-user-prompt
+          role: user
+          text: '学生输入：{{#sys.query#}}
+
+
+            题目提示：{{#1749000003.problem_hint#}}
+
+            错因关键词：{{#1749000003.error_keywords#}}
+
+
+            知识库参考内容：
+
+            {{#1749000004.result#}}
+
+
+            请用苏格拉底式提问法，一步步引导学生自己发现问题。不要直接告诉答案。'
+        selected: false
+        title: 探索式引导
+        type: llm
+        vision:
+          enabled: false
+      height: 98
+      id: '1749000006'
+      position:
+        x: 1600
+        y: 50
+      positionAbsolute:
+        x: 1600
+        y: 50
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 280
+    - data:
+        context:
+          enabled: true
+          variable_selector:
+          - '1749000004'
+          - result
+        desc: 四步引导法 — 接纳安慰/算理推理引导/总结方法/巩固练习
+        model:
+          completion_params:
+            temperature: 0.7
+            max_tokens: 2048
+            top_p: 1
+          mode: chat
+          name: deepseek-chat
+          provider: langgenius/deepseek/deepseek
+        prompt_template:
+        - id: standard-system-prompt
+          role: system
+          text: '你是小学数学引导老师。使用四步引导法帮助学生理解计算错误。
+
+
+            四步引导法：
+
+            第一步：接纳安慰 — 先肯定学生的努力，"你已经很棒了，我们来看看这一步..."
+
+            第二步：算理推理引导 — 指出关键步骤，用问题引导学生思考
+
+            第三步：总结方法 — 帮学生用自己的话总结要点
+
+            第四步：巩固练习 — 给一道同类简单题让学生尝试
+
+
+            核心规则：
+
+            1. 语言温暖简短，适合六年级学生
+
+            2. 每次只纠正一个关键错误
+
+            3. 结合知识库的教学策略
+
+            4. 不直接给最终答案'
+        - id: standard-user-prompt
+          role: user
+          text: '学生输入：{{#sys.query#}}
+
+
+            题目提示：{{#1749000003.problem_hint#}}
+
+            错因关键词：{{#1749000003.error_keywords#}}
+
+
+            知识库参考内容：
+
+            {{#1749000004.result#}}
+
+
+            请按照四步引导法给学生一段温暖、具体、可操作的引导反馈。'
+        selected: false
+        title: 标准四步引导
+        type: llm
+        vision:
+          enabled: false
+      height: 98
+      id: '1749000007'
+      position:
+        x: 1600
+        y: 150
+      positionAbsolute:
+        x: 1600
+        y: 150
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 280
+    - data:
+        context:
+          enabled: true
+          variable_selector:
+          - '1749000004'
+          - result
+        desc: 对于简单/明确问题，直接给出关键提示和相似练习
+        model:
+          completion_params:
+            temperature: 0.5
+            max_tokens: 1024
+            top_p: 1
+          mode: chat
+          name: deepseek-chat
+          provider: langgenius/deepseek/deepseek
+        prompt_template:
+        - id: direct-system-prompt
+          role: system
+          text: '你是小学数学引导老师。对于简单的计算问题，直接给出关键提示和相似练习。
+
+
+            核心规则：
+
+            1. 保持简短，不超过3句话的提示
+
+            2. 指出关键点，让学生自己算出最终答案
+
+            3. 结尾给一道同类简单练习题
+
+            4. 结合知识库内容
+
+            5. 语言温暖适合六年级学生'
+        - id: direct-user-prompt
+          role: user
+          text: '学生输入：{{#sys.query#}}
+
+
+            题目提示：{{#1749000003.problem_hint#}}
+
+            错因关键词：{{#1749000003.error_keywords#}}
+
+
+            知识库参考内容：
+
+            {{#1749000004.result#}}
+
+
+            请给出简短的关键提示和一道同类练习题。'
+        selected: false
+        title: 直接引导
+        type: llm
+        vision:
+          enabled: false
+      height: 98
+      id: '1749000008'
+      position:
+        x: 1600
+        y: 250
+      positionAbsolute:
+        x: 1600
+        y: 250
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 280
+    - data:
+        code: "def main(query: str) -> dict:\n    check_types = []\n    if any(w in\
+          \ query for w in ['\\u52a0\\u6cd5', '\\u52a0', '+']):\n        check_types.append('\\\
+          u9006\\u8fd0\\u7b97\\u51cf\\u6cd5\\u9a8c\\u7b97')\n    if any(w in query\
+          \ for w in ['\\u51cf\\u6cd5', '\\u51cf', '-']):\n        check_types.append('\\\
+          u9006\\u8fd0\\u7b97\\u52a0\\u6cd5\\u9a8c\\u7b97')\n    if any(w in query\
+          \ for w in ['\\u4e58\\u6cd5', '\\u4e58', '\\u00d7']):\n        check_types.append('\\\
+          u9006\\u8fd0\\u7b97\\u9664\\u6cd5\\u9a8c\\u7b97')\n    if any(w in query\
+          \ for w in ['\\u9664\\u6cd5', '\\u9664', '\\u00f7']):\n        check_types.append('\\\
+          u9006\\u8fd0\\u7b97\\u4e58\\u6cd5\\u9a8c\\u7b97')\n\n    if not check_types:\n\
+          \        check_types = ['\\u9006\\u8fd0\\u7b97\\u6cd5', '\\u4f30\\u7b97\\\
+          u6cd5', '\\u4ee3\\u5165\\u6cd5']\n\n    check_query = f'\\u9a8c\\u7b97\\\
+          u65b9\\u6cd5 {\" \".join(check_types)} \\u68c0\\u9a8c\\u65b9\\u6cd5 \\u6559\\\
+          u5b66\\u7b56\\u7565'\n\n    return {\n        'check_query': check_query,\n\
+          \        'check_type': ', '.join(check_types),\n    }\n"
+        code_language: python3
+        desc: 根据学生问题构建验算方法检索查询
+        outputs:
+          check_query:
+            children: null
+            type: string
+          check_type:
+            children: null
+            type: string
+        selected: false
+        title: 构建验算引导
+        type: code
+        variables:
+        - value_selector:
+          - sys
+          - query
+          variable: query
+      height: 150
+      id: '1749000009'
+      position:
+        x: 700
+        y: 450
+      positionAbsolute:
+        x: 700
+        y: 450
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 300
+    - data:
+        dataset_ids:
+        - 8a588b72-2c02-4d34-b9ef-4f53dee606b0
+        desc: 检索验算方法知识（逆运算法、估算法、代入法）
+        query_variable_selector:
+        - '1749000009'
+        - check_query
+        retrieval_mode: single
+        selected: false
+        single_retrieval_config:
+          model:
+            mode: chat
+            name: deepseek-chat
+            provider: langgenius/deepseek/deepseek
+        title: 验算方法检索
+        type: knowledge-retrieval
+      height: 90
+      id: '1749000010'
+      position:
+        x: 1000
+        y: 450
+      positionAbsolute:
+        x: 1000
+        y: 450
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 280
+    - data:
+        context:
+          enabled: true
+          variable_selector:
+          - '1749000010'
+          - result
+        desc: 教导学生验算方法 — 逆运算法、估算法、代入法，给出具体步骤
+        model:
+          completion_params:
+            temperature: 0.5
+            max_tokens: 2048
+            top_p: 1
+          mode: chat
+          name: deepseek-chat
+          provider: langgenius/deepseek/deepseek
+        prompt_template:
+        - id: check-system-prompt
+          role: system
+          text: '你是小学数学引导老师。教导学生验算方法，帮助学生养成检查答案的好习惯。
+
+
+            常用验算方法：
+
+            1. 逆运算法 — 加法用减法验，减法用加法验，乘法用除法验
+
+            2. 估算法 — 先估算大致范围，看结果是否合理
+
+            3. 代入法 — 把答案代回原式验证
+
+            4. 重算法 — 换一种方法重新算一遍
+
+
+            核心规则：
+
+            1. 给出具体步骤，不要抽象说教
+
+            2. 用学生的题目举例说明
+
+            3. 语言温暖简短，适合六年级学生
+
+            4. 结合知识库的验算方法
+
+            5. 鼓励学生养成验算习惯'
+        - id: check-user-prompt
+          role: user
+          text: '学生输入：{{#sys.query#}}
+
+
+            验算类型：{{#1749000009.check_type#}}
+
+
+            知识库参考内容：
+
+            {{#1749000010.result#}}
+
+
+            请教导学生如何验算，给出具体的步骤和示例。'
+        selected: false
+        title: 验算引导生成
+        type: llm
+        vision:
+          enabled: false
+      height: 98
+      id: '1749000011'
+      position:
+        x: 1300
+        y: 450
+      positionAbsolute:
+        x: 1300
+        y: 450
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 280
+    - data:
+        desc: 以树精灵朋友的身份和学生温暖闲聊，鼓励坚持练习
+        model:
+          completion_params:
+            temperature: 0.9
+            max_tokens: 1024
+            top_p: 1
+          mode: chat
+          name: deepseek-chat
+          provider: langgenius/deepseek/deepseek
+        prompt_template:
+        - id: chat-system-prompt
+          role: system
+          text: '你是「我的计算森林」的树精灵朋友。用温暖简短的语言和学生聊天。
+
+
+            你的特点：
+
+            1. 友好、温暖、像朋友一样
+
+            2. 喜欢用森林和树木的比喻
+
+            3. 鼓励学生坚持练习
+
+            4. 可以聊聊计算森林的成长故事
+
+            5. 回答简短，不超过3-4句话
+
+
+            禁止：
+
+            - 不要教学生算题（让引导分支处理）
+
+            - 不要提及分数或排名
+
+            - 不要说教'
+        - id: chat-user-prompt
+          role: user
+          text: '{{#sys.query#}}'
+        selected: false
+        title: 温暖闲聊
+        type: llm
+        vision:
+          enabled: false
+        context:
+          enabled: false
+      height: 98
+      id: '1749000012'
+      position:
+        x: 700
+        y: 650
+      positionAbsolute:
+        x: 700
+        y: 650
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 280
+    - data:
+        desc: 汇聚所有分支的引导输出 — 计算求助(3路)/验算检查/闲聊鼓励
+        output_type: string
+        selected: false
+        title: 最终汇聚
+        type: variable-aggregator
+        variables:
+        - - '1749000006'
+          - text
+        - - '1749000007'
+          - text
+        - - '1749000008'
+          - text
+        - - '1749000011'
+          - text
+        - - '1749000012'
+          - text
+      height: 80
+      id: '1749000013'
+      position:
+        x: 2200
+        y: 400
+      positionAbsolute:
+        x: 2200
+        y: 400
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 280
+    - data:
+        answer: '{{#1749000013.output#}}'
+        desc: ''
+        selected: false
+        title: 回复
+        type: answer
+      height: 90
+      id: '1749000014'
+      position:
+        x: 2500
+        y: 400
+      positionAbsolute:
+        x: 2500
+        y: 400
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 240
+    edges:
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: question-classifier
+      id: edge-start-classifier
+      source: '1749000001'
+      sourceHandle: source
+      target: '1749000002'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: question-classifier
+        targetType: code
+      id: edge-classifier-extract
+      source: '1749000002'
+      sourceHandle: class-computation
+      target: '1749000003'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: knowledge-retrieval
+      id: edge-extract-knowledge
+      source: '1749000003'
+      sourceHandle: source
+      target: '1749000004'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: knowledge-retrieval
+        targetType: if-else
+      id: edge-knowledge-router
+      source: '1749000004'
+      sourceHandle: source
+      target: '1749000005'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: llm
+      id: edge-router-exploration
+      source: '1749000005'
+      sourceHandle: case-exploration
+      target: '1749000006'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: llm
+      id: edge-router-standard
+      source: '1749000005'
+      sourceHandle: case-standard
+      target: '1749000007'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: llm
+      id: edge-router-direct
+      source: '1749000005'
+      sourceHandle: 'false'
+      target: '1749000008'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: variable-aggregator
+      id: edge-exploration-merge
+      source: '1749000006'
+      sourceHandle: source
+      target: '1749000013'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: variable-aggregator
+      id: edge-standard-merge
+      source: '1749000007'
+      sourceHandle: source
+      target: '1749000013'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: variable-aggregator
+      id: edge-direct-merge
+      source: '1749000008'
+      sourceHandle: source
+      target: '1749000013'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: question-classifier
+        targetType: code
+      id: edge-classifier-check
+      source: '1749000002'
+      sourceHandle: class-check
+      target: '1749000009'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: knowledge-retrieval
+      id: edge-check-knowledge
+      source: '1749000009'
+      sourceHandle: source
+      target: '1749000010'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: knowledge-retrieval
+        targetType: llm
+      id: edge-knowledge-check-llm
+      source: '1749000010'
+      sourceHandle: source
+      target: '1749000011'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: variable-aggregator
+      id: edge-check-llm-merge
+      source: '1749000011'
+      sourceHandle: source
+      target: '1749000013'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: question-classifier
+        targetType: llm
+      id: edge-classifier-chat
+      source: '1749000002'
+      sourceHandle: class-chat
+      target: '1749000012'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: variable-aggregator
+      id: edge-chat-merge
+      source: '1749000012'
+      sourceHandle: source
+      target: '1749000013'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: variable-aggregator
+        targetType: answer
+      id: edge-merge-answer
+      source: '1749000013'
+      sourceHandle: source
+      target: '1749000014'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    viewport:
+      x: 0
+      y: 0
+      zoom: 0.45
+  features:
+    opening_statement: '你好呀！我是你的计算森林小助手 🌱
+
+
+      如果你在计算中遇到了困难，或者对自己的答案不太确定，随时告诉我，我们一起想办法！'
+    suggested_questions:
+    - 我做错了这道题，能帮帮我吗？
+    - 我算出来的答案好像不太对
+    - 这道题我不太确定怎么算
+    suggested_questions_after_answer:
+      enabled: true
+    text_to_speech:
+      enabled: false
+      voice: ''
+      language: ''
+    speech_to_text:
+      enabled: false
+    retriever_resource:
+      enabled: true
+    sensitive_word_avoidance:
+      enabled: false
+    file_upload:
+      image:
+        enabled: false
+        number_limits: 3
+        transfer_methods:
+        - local_file
+        - remote_url
+      enabled: false
+      allowed_file_types:
+      - image
+      allowed_file_extensions:
+      - .JPG
+      - .JPEG
+      - .PNG
+      - .GIF
+      - .WEBP
+      - .SVG
+      allowed_file_upload_methods:
+      - local_file
+      - remote_url
+      number_limits: 3
+      fileUploadConfig:
+        file_size_limit: 15
+        batch_count_limit: 5
+        file_upload_limit: 20
+        image_file_size_limit: 10
+        video_file_size_limit: 100
+        audio_file_size_limit: 50
+        workflow_file_upload_limit: 10
+        image_file_batch_limit: 10
+        single_chunk_attachment_limit: 10
+        attachment_image_file_size_limit: 2
+  environment_variables: []
+  conversation_variables: []
+kind: app
+version: 0.5.0

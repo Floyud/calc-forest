@@ -64,7 +64,9 @@ from app.services.student_service import get_student as svc_get_student
 from app.services.student_service import get_student_profile
 from app.services.pdf_service import (
     generate_student_report_pdf,
+    generate_class_report_pdf,
     list_student_reports,
+    list_class_reports,
 )
 
 
@@ -285,8 +287,9 @@ async def knowledge_search_endpoint(q: str = "", limit: int = 5):
     from app.services.knowledge_service import search_knowledge
 
     if not q:
-        return []
-    return await search_knowledge(q, limit)
+        return {"results": []}
+    results = await search_knowledge(q, limit)
+    return {"results": results}
 
 
 @app.post("/api/homework/generate")
@@ -314,13 +317,27 @@ async def homework_detail_endpoint(homework_id: str):
 
 
 @app.post("/api/homework/assign")
-async def homework_assign_endpoint(homework_id: str, due_date: str | None = None):
+async def homework_assign_endpoint(
+    homework_id: str | None = None,
+    class_id: str | None = None,
+    due_date: str | None = None,
+    body: dict | None = Body(default=None),
+):
     from app.services.homework_service import assign_homework, get_homework
+    # Support both query params and JSON body
+    if not homework_id and body:
+        homework_id = body.get("homework_id")
+    if not class_id and body:
+        class_id = body.get("class_id")
+    if not due_date and body:
+        due_date = body.get("due_date")
+    if not homework_id:
+        raise HTTPException(status_code=400, detail="homework_id is required")
     hw = await get_homework(homework_id)
     if not hw:
         raise HTTPException(status_code=404, detail="Homework not found")
     await assign_homework(homework_id, due_date)
-    return {"homework_id": homework_id, "status": "assigned"}
+    return {"homework_id": homework_id, "class_id": class_id, "status": "assigned"}
 
 
 @app.post("/api/homework/submit")
@@ -372,7 +389,7 @@ async def quiz_get_endpoint(quiz_id: str):
 
 @app.post("/api/quiz/{quiz_id}/response")
 async def quiz_response_endpoint(quiz_id: str, record: QuizResponseRecord):
-    from app.services.quiz_service import record_response
+    from app.services.quiz_service import get_quiz, record_response
     quiz = await get_quiz(quiz_id)
     if quiz is None:
         raise HTTPException(status_code=404, detail="Quiz not found")
@@ -930,6 +947,39 @@ async def generate_report_endpoint(
 async def list_reports_endpoint(student_id: str):
     reports = await list_student_reports(student_id)
     return {"student_id": student_id, "reports": reports}
+
+
+# === Class Reports ===
+
+@app.post("/api/reports/class/{class_id}/generate")
+async def generate_class_report_endpoint(
+    class_id: str,
+    report_type: str = "monthly",
+    period_start: str | None = None,
+    period_end: str | None = None,
+):
+    from fastapi.responses import FileResponse
+    import os
+
+    try:
+        pdf_path = await generate_class_report_pdf(
+            class_id=class_id,
+            report_type=report_type,
+            period_start=period_start,
+            period_end=period_end,
+        )
+        filename = os.path.basename(pdf_path)
+        return FileResponse(pdf_path, media_type="application/pdf", filename=filename)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except RuntimeError as e:
+        raise HTTPException(status_code=500, detail=f"PDF 生成失败: {e}")
+
+
+@app.get("/api/reports/class/{class_id}")
+async def list_class_reports_endpoint(class_id: str):
+    reports = await list_class_reports(class_id)
+    return {"class_id": class_id, "reports": reports}
 
 
 @app.get("/api/exercise-types")

@@ -86,11 +86,7 @@ async def generate_homework(
 
         await db.commit()
 
-    return {
-        "homework_id": homework_id,
-        "problem_count": len(problems),
-        "error_codes_target": error_codes_target,
-    }
+    return await get_homework(homework_id)
 
 
 async def get_homework(homework_id: str) -> dict[str, Any] | None:
@@ -101,6 +97,7 @@ async def get_homework(homework_id: str) -> dict[str, Any] | None:
             return None
 
         result = dict(row)
+        result["homework_id"] = result["id"]
         result["knowledge_points"] = json.loads(result.get("knowledge_points", "[]"))
         result["error_codes_target"] = json.loads(result.get("error_codes_target", "[]"))
 

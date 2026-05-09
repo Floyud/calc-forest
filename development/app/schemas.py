@@ -285,6 +285,9 @@ class DiagnosisResponse(BaseModel):
     record_id: str | None
     student_id: str
     is_correct: bool
+    error_code: str = ""  # convenience: mirrors primary_error.code
+    error_label: str = ""  # convenience: mirrors primary_error.label
+    confidence: float = 0.0  # convenience: mirrors primary_error.confidence
     primary_error: ErrorTag
     secondary_errors: list[ErrorTag] = Field(default_factory=list)
     normalized: dict[str, Any] = Field(default_factory=dict)

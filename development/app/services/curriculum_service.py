@@ -69,14 +69,80 @@ async def get_calendar(academic_year: str, semester: int = 2) -> list[dict[str, 
 async def get_student_trajectory(student_id: str) -> list[dict[str, Any]]:
     async with get_db() as db:
         cursor = await db.execute(
-            """SELECT trajectory.*, tu.title as unit_title, tu.unit_number
-               FROM student_error_trajectory trajectory
-               LEFT JOIN teaching_units tu ON trajectory.unit_id = tu.id
-               WHERE trajectory.student_id = ?
-               ORDER BY trajectory.week_number, tu.sort_order""",
+            """SELECT error_code,
+                      COUNT(*) as total_count,
+                      SUM(CASE WHEN is_correct = 0 THEN 1 ELSE 0 END) as error_count,
+                      SUM(CASE WHEN is_correct = 1 THEN 1 ELSE 0 END) as correct_count,
+                      ROUND(AVG(CASE WHEN is_correct = 1 THEN 1.0 ELSE 0.0 END), 4) as accuracy
+               FROM diagnosis_history
+               WHERE student_id = ? AND error_code != 'OK'
+               GROUP BY error_code
+               ORDER BY error_count DESC""",
             (student_id,),
         )
-        return [dict(r) for r in await cursor.fetchall()]
+        rows = await cursor.fetchall()
+
+        result = []
+        for i, r in enumerate(rows):
+            result.append({
+                "id": f"TRAJ_{student_id}_{i}",
+                "student_id": student_id,
+                "unit_id": None,
+                "unit_title": None,
+                "unit_number": None,
+                "week_number": None,
+                "error_code": r["error_code"],
+                "error_count": r["error_count"],
+                "correct_count": r["correct_count"],
+                "accuracy": r["accuracy"] or 0.0,
+                "total_count": r["total_count"],
+                "notes": "",
+                "created_at": "",
+            })
+
+        sa_cursor = await db.execute(
+            """SELECT error_code,
+                      COUNT(*) as total_count,
+                      SUM(CASE WHEN is_correct = 0 THEN 1 ELSE 0 END) as error_count,
+                      SUM(CASE WHEN is_correct = 1 THEN 1 ELSE 0 END) as correct_count,
+                      ROUND(AVG(CASE WHEN is_correct = 1 THEN 1.0 ELSE 0.0 END), 4) as accuracy
+               FROM student_answers
+               WHERE student_id = ? AND error_code IS NOT NULL AND error_code != 'OK'
+               GROUP BY error_code
+               ORDER BY error_count DESC""",
+            (student_id,),
+        )
+        sa_rows = await sa_cursor.fetchall()
+
+        existing = {r["error_code"]: r for r in result}
+        for r in sa_rows:
+            code = r["error_code"]
+            if code in existing:
+                existing[code]["error_count"] = (existing[code].get("error_count") or 0) + (r["error_count"] or 0)
+                existing[code]["correct_count"] = (existing[code].get("correct_count") or 0) + (r["correct_count"] or 0)
+                existing[code]["total_count"] = (existing[code].get("total_count") or 0) + (r["total_count"] or 0)
+                tc = existing[code]["total_count"]
+                cc = existing[code]["correct_count"]
+                existing[code]["accuracy"] = round(cc / tc, 4) if tc > 0 else 0.0
+            else:
+                result.append({
+                    "id": f"TRAJ_{student_id}_SA_{len(result)}",
+                    "student_id": student_id,
+                    "unit_id": None,
+                    "unit_title": None,
+                    "unit_number": None,
+                    "week_number": None,
+                    "error_code": code,
+                    "error_count": r["error_count"],
+                    "correct_count": r["correct_count"],
+                    "accuracy": r["accuracy"] or 0.0,
+                    "total_count": r["total_count"],
+                    "notes": "",
+                    "created_at": "",
+                })
+
+        result.sort(key=lambda x: x.get("error_count", 0), reverse=True)
+        return result
 
 
 async def update_student_profile(

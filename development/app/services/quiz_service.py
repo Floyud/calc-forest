@@ -47,7 +47,7 @@ async def generate_quiz(
             )
         await db.commit()
 
-    return {"quiz_id": quiz_id, "problem_count": len(problems), "error_codes_target": error_codes_target}
+    return await get_quiz(quiz_id)
 
 
 async def get_quiz(quiz_id: str) -> dict[str, Any] | None:

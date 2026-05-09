@@ -103,7 +103,15 @@ async def get_student_profile(student_id: str) -> StudentProfile | None:
             "WHERE student_id = ? ORDER BY created_at ASC",
             (student_id,),
         )
-        rows = await dh_cursor.fetchall()
+        dh_rows = list(await dh_cursor.fetchall())
+
+        sa_cursor = await db.execute(
+            "SELECT is_correct, error_code FROM student_answers "
+            "WHERE student_id = ?",
+            (student_id,),
+        )
+        sa_rows = list(await sa_cursor.fetchall())
+        rows = dh_rows + sa_rows
 
         ses_cursor = await db.execute(
             "SELECT error_code, total_attempts, correct_count FROM student_error_stats "
@@ -144,11 +152,11 @@ async def get_student_profile(student_id: str) -> StudentProfile | None:
         elif diff < -0.1:
             recent_accuracy_trend = "declining"
 
-    last_active_date = rows[-1]["created_at"]
+    last_active_date = dh_rows[-1]["created_at"] if dh_rows else None
 
     weekly_accuracy: list[WeeklyAccuracy] = []
     weekly_group: dict[int, list[bool]] = {}
-    for r in rows:
+    for r in dh_rows:
         created = r["created_at"] or ""
         try:
             month = int(created[5:7]) if len(created) >= 7 else 0

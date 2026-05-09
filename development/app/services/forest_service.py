@@ -6,6 +6,7 @@ from typing import Any
 
 from app.db import get_db
 from app.schemas import ClassForestResponse, StudentTree, WeeklyAccuracy
+from app.services.cycle_service import get_current_cycle
 
 
 TREE_SPECIES_MAP: dict[str, dict[str, str]] = {
@@ -103,12 +104,8 @@ async def get_class_forest(class_id: str) -> ClassForestResponse | None:
                 class_emotional_state="stable",
             )
 
-        cycle_cursor = await db.execute(
-            "SELECT id FROM academic_cycles WHERE grade = ? LIMIT 1",
-            (grade,),
-        )
-        cycle_row = await cycle_cursor.fetchone()
-        cycle_id = cycle_row["id"] if cycle_row else None
+        cycle = await get_current_cycle(grade)
+        cycle_id = cycle.id if cycle else None
 
         ph = _build_in_placeholders(student_ids)
 

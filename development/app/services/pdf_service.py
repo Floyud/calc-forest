@@ -285,6 +285,8 @@ _REPORT_TYPE_LABELS = {
     "weekly": "周报",
     "monthly": "月报",
     "unit": "单元报告",
+    "semester": "学期报告",
+    "full_year": "学年报告",
 }
 
 _STAGE_LABELS = {
@@ -412,6 +414,22 @@ def _render_report_tex(**data: object) -> str:
     return template.render(**data)
 
 
+def _render_class_report_tex(**data: object) -> str:
+    env = jinja2.Environment(
+        loader=jinja2.FileSystemLoader(str(TEMPLATES_DIR)),
+        autoescape=False,
+        keep_trailing_newline=True,
+        variable_start_string="<<",
+        variable_end_string=">>",
+        block_start_string="<%",
+        block_end_string="%>",
+        comment_start_string="<#",
+        comment_end_string="#>",
+    )
+    template = env.get_template("class_report.tex")
+    return template.render(**data)
+
+
 async def generate_student_report_pdf(
     student_id: str,
     report_type: str = "weekly",
@@ -449,6 +467,10 @@ async def generate_student_report_pdf(
                 period_start = (date.today() - timedelta(days=7)).isoformat()
             elif report_type == "monthly":
                 period_start = (date.today() - timedelta(days=30)).isoformat()
+            elif report_type == "semester":
+                period_start = (date.today() - timedelta(days=138)).isoformat()
+            elif report_type == "full_year":
+                period_start = (date.today() - timedelta(days=276)).isoformat()
             else:
                 period_start = (date.today() - timedelta(days=14)).isoformat()
 
@@ -536,18 +558,34 @@ async def generate_student_report_pdf(
                     "indicator": indicator,
                 })
 
-        # 8. Accuracy trend (weekly)
-        cursor = await db.execute(
-            """SELECT
-                CAST(strftime('%W', created_at) AS INTEGER) as week_num,
-                COUNT(*) as total,
-                SUM(CASE WHEN is_correct = 1 THEN 1 ELSE 0 END) as correct
-               FROM diagnosis_history
-               WHERE student_id = ? AND created_at >= ? AND created_at <= ?
-               GROUP BY week_num
-               ORDER BY week_num""",
-            (student_id, period_start, period_end + " 23:59:59"),
-        )
+        # 8. Accuracy trend (weekly or monthly depending on report type)
+        if report_type in ("semester", "full_year"):
+            # Monthly resolution for long-period reports
+            cursor = await db.execute(
+                """SELECT
+                    CAST(strftime('%m', created_at) AS INTEGER) as period_num,
+                    strftime('%Y-%m', created_at) as period_label,
+                    COUNT(*) as total,
+                    SUM(CASE WHEN is_correct = 1 THEN 1 ELSE 0 END) as correct
+                   FROM diagnosis_history
+                   WHERE student_id = ? AND created_at >= ? AND created_at <= ?
+                   GROUP BY period_label
+                   ORDER BY period_label""",
+                (student_id, period_start, period_end + " 23:59:59"),
+            )
+        else:
+            # Weekly resolution for short-period reports
+            cursor = await db.execute(
+                """SELECT
+                    CAST(strftime('%W', created_at) AS INTEGER) as week_num,
+                    COUNT(*) as total,
+                    SUM(CASE WHEN is_correct = 1 THEN 1 ELSE 0 END) as correct
+                   FROM diagnosis_history
+                   WHERE student_id = ? AND created_at >= ? AND created_at <= ?
+                   GROUP BY week_num
+                   ORDER BY week_num""",
+                (student_id, period_start, period_end + " 23:59:59"),
+            )
         trend_rows = [dict(r) for r in await cursor.fetchall()]
 
         accuracy_trend = []
@@ -564,7 +602,10 @@ async def generate_student_report_pdf(
                     trend_xlabels += ","
                 trend_coordinates += f"({i + 1},{acc})"
                 trend_xticks += str(i + 1)
-                trend_xlabels += f"第{i + 1}周"
+                if report_type in ("semester", "full_year") and "period_label" in tr:
+                    trend_xlabels += tr["period_label"]
+                else:
+                    trend_xlabels += f"第{i + 1}周"
 
         trend_highlight = ""
         if accuracy_trend:
@@ -575,6 +616,7 @@ async def generate_student_report_pdf(
             )
 
         trend_label_x = 1 if not accuracy_trend else accuracy_trend[-1]["week"] + 0.5
+        trend_xlabel = "月份" if report_type in ("semester", "full_year") else "周次"
 
         # 9. Growth stage
         cursor = await db.execute(
@@ -750,6 +792,7 @@ async def generate_student_report_pdf(
             trend_xlabels=trend_xlabels,
             trend_highlight=trend_highlight,
             trend_label_x=trend_label_x,
+            trend_xlabel=trend_xlabel,
             ability_dimensions=ability_dimensions,
             milestones=milestones,
             timeline_height=timeline_height,
@@ -780,6 +823,329 @@ async def list_student_reports(student_id: str) -> list[dict]:
                 "filename": f.name,
                 "path": str(f),
                 "student_id": student_id,
+                "generated_date": f.stem.split("_")[-1],
+            })
+    return results
+
+
+# ---------------------------------------------------------------------------
+# Class Report PDF
+# ---------------------------------------------------------------------------
+
+_CLASS_REPORT_TYPE_LABELS = {
+    "weekly": "周报",
+    "monthly": "月度报告",
+    "semester": "学期报告",
+    "full_year": "学年报告",
+}
+
+_WEAK_SPOT_COLORS = ["softred", "warmgold!80!black", "skyblue!70!black", "forestgreen", "bark"]
+
+
+async def generate_class_report_pdf(
+    class_id: str,
+    report_type: str = "monthly",
+    period_start: str | None = None,
+    period_end: str | None = None,
+) -> str:
+    from datetime import datetime, timedelta
+
+    report_type_label = _CLASS_REPORT_TYPE_LABELS.get(report_type, "班级报告")
+
+    async with get_db() as db:
+        cursor = await db.execute("SELECT * FROM classes WHERE id = ?", (class_id,))
+        class_row = await cursor.fetchone()
+        if not class_row:
+            raise ValueError(f"Class {class_id} not found")
+        class_data = dict(class_row)
+        class_name = _escape_tex(class_data["name"])
+
+        if not period_end:
+            period_end = date.today().isoformat()
+        if not period_start:
+            if report_type == "weekly":
+                period_start = (date.today() - timedelta(days=7)).isoformat()
+            elif report_type == "monthly":
+                period_start = (date.today() - timedelta(days=30)).isoformat()
+            elif report_type == "semester":
+                period_start = (date.today() - timedelta(days=138)).isoformat()
+            elif report_type == "full_year":
+                period_start = (date.today() - timedelta(days=276)).isoformat()
+            else:
+                period_start = (date.today() - timedelta(days=30)).isoformat()
+
+        cursor = await db.execute(
+            "SELECT id, name FROM students WHERE class_id = ?", (class_id,)
+        )
+        students = [dict(r) for r in await cursor.fetchall()]
+        total_students = len(students)
+
+        period_filter = (period_start, period_end + " 23:59:59")
+
+        student_stats = []
+        for stu in students:
+            sid = stu["id"]
+            cursor = await db.execute(
+                """SELECT COUNT(*) as total,
+                        SUM(CASE WHEN is_correct = 1 THEN 1 ELSE 0 END) as correct
+                   FROM diagnosis_history
+                   WHERE student_id = ? AND created_at >= ? AND created_at <= ?""",
+                (sid, *period_filter),
+            )
+            row = await cursor.fetchone()
+            total = row["total"] or 0
+            correct = row["correct"] or 0
+            acc = round(correct / total * 100, 1) if total > 0 else 0.0
+
+            cursor = await db.execute(
+                """SELECT error_code, COUNT(*) as cnt
+                   FROM diagnosis_history
+                   WHERE student_id = ? AND created_at >= ? AND created_at <= ?
+                     AND is_correct = 0 AND error_code != 'OK'
+                   GROUP BY error_code
+                   ORDER BY cnt DESC LIMIT 1""",
+                (sid, *period_filter),
+            )
+            top_err_row = await cursor.fetchone()
+            top_error = ""
+            if top_err_row:
+                top_error = f"{top_err_row['error_code']} {_ERROR_LABELS.get(top_err_row['error_code'], '')}"
+
+            student_stats.append({
+                "id": sid,
+                "name": _escape_tex(stu["name"]),
+                "accuracy": acc,
+                "total": total,
+                "correct": correct,
+                "top_error": top_error,
+            })
+
+        total_practice_count = sum(s["total"] for s in student_stats)
+        total_correct = sum(s["correct"] for s in student_stats)
+        avg_accuracy = round(total_correct / total_practice_count * 100, 1) if total_practice_count > 0 else 0.0
+        avg_accuracy_frac = round(total_correct / total_practice_count, 4) if total_practice_count > 0 else 0.0
+
+        cursor = await db.execute(
+            """SELECT COUNT(DISTINCT DATE(created_at)) as days
+               FROM diagnosis_history
+               WHERE student_id IN (SELECT id FROM students WHERE class_id = ?)
+                 AND created_at >= ? AND created_at <= ?""",
+            (class_id, *period_filter),
+        )
+        active_days_row = await cursor.fetchone()
+        active_days = active_days_row["days"] if active_days_row else 0
+
+        tier_excellent = [s for s in student_stats if s["accuracy"] >= 80]
+        tier_good = [s for s in student_stats if 60 <= s["accuracy"] < 80]
+        tier_attention = [s for s in student_stats if s["accuracy"] < 60]
+
+        cursor = await db.execute(
+            """SELECT error_code, COUNT(DISTINCT student_id) as student_count,
+                      SUM(CASE WHEN is_correct = 0 THEN 1 ELSE 0 END) as error_count
+               FROM diagnosis_history
+               WHERE student_id IN (SELECT id FROM students WHERE class_id = ?)
+                 AND created_at >= ? AND created_at <= ?
+                 AND is_correct = 0 AND error_code != 'OK'
+               GROUP BY error_code
+               ORDER BY error_count DESC""",
+            (class_id, *period_filter),
+        )
+        error_dist_rows = [dict(r) for r in await cursor.fetchall()]
+
+        error_distribution = []
+        for row in error_dist_rows:
+            error_distribution.append({
+                "code": row["error_code"],
+                "label": _ERROR_LABELS.get(row["error_code"], row["error_code"]),
+                "count": row["error_count"],
+                "student_count": row["student_count"],
+            })
+
+        weak_spots = []
+        for i, ed in enumerate(error_distribution[:5]):
+            weak_spots.append({
+                "rank": i + 1,
+                "code": ed["code"],
+                "label": f"{ed['code']} {ed['label']}",
+                "student_count": ed["student_count"],
+                "suggestion": f"建议针对{ed['label']}进行专项练习，涉及 {ed['student_count']} 名学生。",
+                "color": _WEAK_SPOT_COLORS[i % len(_WEAK_SPOT_COLORS)],
+            })
+
+        if report_type in ("semester", "full_year"):
+            cursor = await db.execute(
+                """SELECT
+                    strftime('%Y-%m', created_at) as period_label,
+                    COUNT(*) as total,
+                    SUM(CASE WHEN is_correct = 1 THEN 1 ELSE 0 END) as correct
+                   FROM diagnosis_history
+                   WHERE student_id IN (SELECT id FROM students WHERE class_id = ?)
+                     AND created_at >= ? AND created_at <= ?
+                   GROUP BY period_label
+                   ORDER BY period_label""",
+                (class_id, *period_filter),
+            )
+        else:
+            cursor = await db.execute(
+                """SELECT
+                    CAST(strftime('%W', created_at) AS INTEGER) as week_num,
+                    COUNT(*) as total,
+                    SUM(CASE WHEN is_correct = 1 THEN 1 ELSE 0 END) as correct
+                   FROM diagnosis_history
+                   WHERE student_id IN (SELECT id FROM students WHERE class_id = ?)
+                     AND created_at >= ? AND created_at <= ?
+                   GROUP BY week_num
+                   ORDER BY week_num""",
+                (class_id, *period_filter),
+            )
+        trend_rows = [dict(r) for r in await cursor.fetchall()]
+
+        accuracy_trend = []
+        trend_coordinates = ""
+        trend_xticks = ""
+        trend_xlabels = ""
+        if trend_rows:
+            for i, tr in enumerate(trend_rows):
+                acc = round(tr["correct"] / tr["total"] * 100, 1) if tr["total"] > 0 else 0.0
+                accuracy_trend.append({"week": i + 1, "accuracy": acc})
+                if i > 0:
+                    trend_coordinates += " "
+                    trend_xticks += ","
+                    trend_xlabels += ","
+                trend_coordinates += f"({i + 1},{acc})"
+                trend_xticks += str(i + 1)
+                if report_type in ("semester", "full_year") and "period_label" in tr:
+                    trend_xlabels += tr["period_label"]
+                else:
+                    trend_xlabels += f"第{i + 1}周"
+
+        trend_highlight = ""
+        if accuracy_trend:
+            last_pt = accuracy_trend[-1]
+            trend_highlight = (
+                f"\\draw[warmgold, thick, dashed] "
+                f"(axis cs:{last_pt['week']},0) -- (axis cs:{last_pt['week']},{last_pt['accuracy']});"
+            )
+
+        trend_label_x = 1 if not accuracy_trend else accuracy_trend[-1]["week"] + 0.5
+        trend_xlabel = "月份" if report_type in ("semester", "full_year") else "周次"
+
+        error_x_coords = ""
+        error_bar_data = ""
+        chart_ymax = 5
+        if error_distribution:
+            for i, ed in enumerate(error_distribution[:8]):
+                if i > 0:
+                    error_x_coords += ","
+                error_x_coords += f"{ed['code']}"
+                error_bar_data += f"({ed['code']},{ed['count']}) "
+            chart_ymax = max(max(ed["count"] for ed in error_distribution) + 2, 5)
+
+        rec_bg_colors = ["forestgreen!8", "warmgold!10", "skyblue!10"]
+        rec_fg_colors = ["forestgreen", "warmgold!80!black", "skyblue!70!black"]
+        recommendations = []
+        if weak_spots:
+            for i, ws in enumerate(weak_spots[:3]):
+                priority = 1 if i == 0 else 2
+                recommendations.append({
+                    "priority": priority,
+                    "area": ws["label"],
+                    "description": ws["suggestion"],
+                    "bg_color": rec_bg_colors[i % len(rec_bg_colors)],
+                    "fg_color": rec_fg_colors[i % len(rec_fg_colors)],
+                })
+        if not recommendations:
+            recommendations.append({
+                "priority": 2,
+                "area": "综合练习",
+                "description": "班级整体表现良好，建议适当增加挑战题以保持进步。",
+                "bg_color": "forestgreen!8",
+                "fg_color": "forestgreen",
+            })
+
+        alerts = []
+        try:
+            ps_dt = datetime.fromisoformat(period_start)
+            pe_dt = datetime.fromisoformat(period_end)
+            delta = pe_dt - ps_dt
+            prev_end = period_start
+            prev_start = (ps_dt - delta).isoformat()
+        except (ValueError, TypeError):
+            prev_start = None
+            prev_end = None
+
+        if prev_start and prev_end:
+            for stu in student_stats:
+                cursor = await db.execute(
+                    """SELECT COUNT(*) as total,
+                            SUM(CASE WHEN is_correct = 1 THEN 1 ELSE 0 END) as correct
+                       FROM diagnosis_history
+                       WHERE student_id = ? AND created_at >= ? AND created_at <= ?""",
+                    (stu["id"], prev_start, prev_end + " 23:59:59"),
+                )
+                prev_row = await cursor.fetchone()
+                if prev_row and prev_row["total"] and prev_row["total"] > 0:
+                    prev_acc = round(prev_row["correct"] / prev_row["total"] * 100, 1)
+                    drop = prev_acc - stu["accuracy"]
+                    if drop >= 15:
+                        alerts.append({
+                            "student_id": stu["id"],
+                            "student_name": stu["name"],
+                            "description": f"正确率从 {prev_acc}% 下降至 {stu['accuracy']}%（下降 {round(drop, 1)}%），建议重点关注。"
+                            + (f" 主要错因：{stu['top_error']}。" if stu["top_error"] else ""),
+                        })
+
+        tex_source = _render_class_report_tex(
+            class_name=class_name,
+            report_type_label=report_type_label,
+            period_start=period_start,
+            period_end=period_end,
+            total_students=total_students,
+            avg_accuracy=avg_accuracy,
+            avg_accuracy_frac=avg_accuracy_frac,
+            total_practice_count=total_practice_count,
+            active_days=active_days,
+            tier_excellent=tier_excellent,
+            tier_excellent_count=len(tier_excellent),
+            tier_good=tier_good,
+            tier_good_count=len(tier_good),
+            tier_attention=tier_attention,
+            tier_attention_count=len(tier_attention),
+            error_distribution=error_distribution,
+            error_x_coords=error_x_coords,
+            error_bar_data=error_bar_data,
+            chart_ymax=chart_ymax,
+            accuracy_trend=accuracy_trend,
+            trend_coordinates=trend_coordinates,
+            trend_xticks=trend_xticks,
+            trend_xlabels=trend_xlabels,
+            trend_highlight=trend_highlight,
+            trend_label_x=trend_label_x,
+            trend_xlabel=trend_xlabel,
+            weak_spots=weak_spots,
+            recommendations=recommendations,
+            alerts=alerts,
+            generated_date=date.today().strftime("%Y-%m-%d"),
+        )
+
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    pdf_filename = f"class_report_{class_id}_{date.today().strftime('%Y%m%d')}.pdf"
+    pdf_path = OUTPUT_DIR / pdf_filename
+
+    await compile_tex_to_pdf(tex_source, pdf_path)
+
+    return str(pdf_path)
+
+
+async def list_class_reports(class_id: str) -> list[dict]:
+    pattern = f"class_report_{class_id}_*.pdf"
+    results = []
+    if OUTPUT_DIR.exists():
+        for f in sorted(OUTPUT_DIR.glob(pattern), reverse=True):
+            results.append({
+                "filename": f.name,
+                "path": str(f),
+                "class_id": class_id,
                 "generated_date": f.stem.split("_")[-1],
             })
     return results

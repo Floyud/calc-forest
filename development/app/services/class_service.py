@@ -39,11 +39,19 @@ async def get_class_summary(class_id: str) -> ClassSummary | None:
         class_name = cls_row["name"]
 
         diag_cursor = await db.execute(
-            "SELECT student_id, is_correct, error_code FROM diagnosis_history "
-            "WHERE class_id = ?",
+            "SELECT dh.student_id, dh.is_correct, dh.error_code FROM diagnosis_history dh "
+            "WHERE dh.student_id IN (SELECT id FROM students WHERE class_id = ?)",
             (class_id,),
         )
         rows = await diag_cursor.fetchall()
+
+        sa_cursor = await db.execute(
+            "SELECT sa.student_id, sa.is_correct, sa.error_code FROM student_answers sa "
+            "WHERE sa.student_id IN (SELECT id FROM students WHERE class_id = ?)",
+            (class_id,),
+        )
+        sa_rows = await sa_cursor.fetchall()
+        rows = list(rows) + list(sa_rows)
 
     total_students = len(student_ids)
     total_attempts = len(rows)
