@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -929,3 +930,73 @@ async def generate_report_endpoint(
 async def list_reports_endpoint(student_id: str):
     reports = await list_student_reports(student_id)
     return {"student_id": student_id, "reports": reports}
+
+
+@app.get("/api/exercise-types")
+async def list_exercise_types(category: str | None = None):
+    from app.db import get_db
+
+    async with get_db() as db:
+        if category:
+            cursor = await db.execute(
+                "SELECT * FROM exercise_types WHERE category = ? ORDER BY sort_order, id",
+                (category,),
+            )
+        else:
+            cursor = await db.execute(
+                "SELECT * FROM exercise_types ORDER BY sort_order, id"
+            )
+        rows = await cursor.fetchall()
+
+    cats: dict[str, dict] = {}
+    for row in rows:
+        r = dict(row)
+        r["difficulty_range"] = json.loads(r.get("difficulty_range") or "[]")
+        r["related_error_codes"] = json.loads(r.get("related_error_codes") or "[]")
+        r["knowledge_points"] = json.loads(r.get("knowledge_points") or "[]")
+        r["grade_range"] = json.loads(r.get("grade_range") or "[]")
+        r["is_active"] = bool(r.get("is_active", 1))
+
+        if r["parent_id"] is None:
+            cats[r["id"]] = {
+                "id": r["id"],
+                "name": r["name"],
+                "code": r["code"],
+                "description": r.get("description", ""),
+                "sort_order": r.get("sort_order", 0),
+                "subtypes": [],
+            }
+        else:
+            parent = cats.get(r["parent_id"])
+            if parent:
+                parent["subtypes"].append(r)
+
+    return {"categories": list(cats.values())}
+
+
+@app.get("/api/exercise-types/{type_id}")
+async def get_exercise_type_endpoint(type_id: str):
+    from app.db import get_db
+
+    async with get_db() as db:
+        cursor = await db.execute(
+            "SELECT * FROM exercise_types WHERE id = ?", (type_id,)
+        )
+        row = await cursor.fetchone()
+        if row is None:
+            raise HTTPException(status_code=404, detail="Exercise type not found")
+        result = dict(row)
+        result["difficulty_range"] = json.loads(result.get("difficulty_range") or "[]")
+        result["related_error_codes"] = json.loads(result.get("related_error_codes") or "[]")
+        result["knowledge_points"] = json.loads(result.get("knowledge_points") or "[]")
+        result["grade_range"] = json.loads(result.get("grade_range") or "[]")
+        result["is_active"] = bool(result.get("is_active", 1))
+
+        if result["parent_id"] is not None:
+            pcursor = await db.execute(
+                "SELECT * FROM exercise_types WHERE id = ?", (result["parent_id"],)
+            )
+            parent_row = await pcursor.fetchone()
+            if parent_row:
+                result["parent_name"] = dict(parent_row)["name"]
+    return result

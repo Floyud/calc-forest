@@ -520,3 +520,41 @@ class HomeworkLifecycleRequest(BaseModel):
 
 class SimulateRequest(BaseModel):
     class_id: str = "G6A1"
+
+
+# ---------------------------------------------------------------------------
+# Exercise Type Catalog (题型类别库)
+# ---------------------------------------------------------------------------
+
+class ExerciseTypeBase(BaseModel):
+    """A single exercise subtype (leaf node in the catalog tree)."""
+    id: str
+    parent_id: str | None = None
+    category: str
+    name: str
+    code: str
+    difficulty_range: list[str] = Field(default_factory=lambda: ["A", "B", "C"])
+    related_error_codes: list[str] = Field(default_factory=list)
+    knowledge_points: list[str] = Field(default_factory=list)
+    description: str = ""
+    example_problem: str = ""
+    example_answer: str = ""
+    sort_order: int = 0
+    is_active: bool = True
+    grade_range: list[int] = Field(default_factory=lambda: [5, 6])
+    textbook_unit: str = ""
+
+
+class ExerciseTypeCategory(BaseModel):
+    """A top-level category with its subtypes."""
+    id: str
+    name: str
+    code: str
+    description: str = ""
+    sort_order: int = 0
+    subtypes: list[ExerciseTypeBase] = Field(default_factory=list)
+
+
+class ExerciseTypeCatalogResponse(BaseModel):
+    """Full exercise type catalog as a tree structure."""
+    categories: list[ExerciseTypeCategory] = Field(default_factory=list)

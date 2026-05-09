@@ -14,6 +14,7 @@ class GeneratedProblem:
     knowledge_point: str
     difficulty: str
     hint: str
+    exercise_type: str = ""
 
 
 # ---------------------------------------------------------------------------
@@ -1279,3 +1280,879 @@ def generate_quiz_problems(
         all_problems.extend(problems)
     rng.shuffle(all_problems)
     return all_problems[:total_count]
+
+
+# ---------------------------------------------------------------------------
+# Exercise-type-based generators (parallel dispatch to E01-E11 system)
+# ---------------------------------------------------------------------------
+
+def _gen_mental_int_add(rng: random.Random, difficulty: str) -> GeneratedProblem:
+    a = rng.randint(2, 9)
+    b = rng.randint(2, 9)
+    op = rng.choice(["+", "-"])
+    if op == "+":
+        result = a + b
+    else:
+        if a < b:
+            a, b = b, a
+        result = a - b
+    return GeneratedProblem(
+        problem=f"{a}{op}{b}=",
+        correct_answer=str(result),
+        error_code="E01",
+        knowledge_point="整数口算",
+        difficulty=difficulty,
+        hint="直接心算",
+        exercise_type="ET-0101",
+    )
+
+
+def _gen_mental_int_mul(rng: random.Random, difficulty: str) -> GeneratedProblem:
+    if difficulty == "A":
+        a = rng.randint(2, 9)
+        b = rng.randint(2, 9)
+        return GeneratedProblem(
+            problem=f"{a}×{b}=",
+            correct_answer=str(a * b),
+            error_code="E01",
+            knowledge_point="乘法口算",
+            difficulty=difficulty,
+            hint="用乘法口诀",
+            exercise_type="ET-0103",
+        )
+    a = rng.choice([25, 50, 125, 15])
+    b = rng.choice([4, 8, 2, 6])
+    result = a * b
+    return GeneratedProblem(
+        problem=f"{a}×{b}=",
+        correct_answer=str(result),
+        error_code="E01",
+        knowledge_point="特殊数口算",
+        difficulty=difficulty,
+        hint="记住25×4=100, 125×8=1000等",
+        exercise_type="ET-0103",
+    )
+
+
+def _gen_mental_decimal(rng: random.Random, difficulty: str) -> GeneratedProblem:
+    op = rng.choice(["+", "-", "×", "÷"])
+    if op in ("+", "-"):
+        a_dec = round(rng.uniform(0.1, 5.0), 1)
+        b_dec = round(rng.uniform(0.1, 5.0), 1)
+        if op == "-" and a_dec < b_dec:
+            a_dec, b_dec = b_dec, a_dec
+        result = round(a_dec + b_dec if op == "+" else a_dec - b_dec, 2)
+        return GeneratedProblem(
+            problem=f"{a_dec}{op}{b_dec}=",
+            correct_answer=str(result),
+            error_code="E06",
+            knowledge_point="小数口算",
+            difficulty=difficulty,
+            hint="小数点对齐心算",
+            exercise_type="ET-0104",
+        )
+    if op == "×":
+        a = Fraction(rng.randint(1, 9), 10)
+        b = rng.randint(2, 9)
+        result = a * b
+        return GeneratedProblem(
+            problem=f"{float(a):.1f}×{b}=",
+            correct_answer=_decimal_str(result),
+            error_code="E06",
+            knowledge_point="小数乘整数口算",
+            difficulty=difficulty,
+            hint="先按整数乘，再定小数位",
+            exercise_type="ET-0104",
+        )
+    b = Fraction(rng.randint(1, 9), 10)
+    a_frac = b * rng.randint(2, 9)
+    return GeneratedProblem(
+        problem=f"{float(a_frac):.1f}÷{float(b):.1f}=",
+        correct_answer=_decimal_str(a_frac / b),
+        error_code="E06",
+        knowledge_point="小数除法口算",
+        difficulty=difficulty,
+        hint="转化为分数计算",
+        exercise_type="ET-0104",
+    )
+
+
+def _gen_mental_fraction(rng: random.Random, difficulty: str) -> GeneratedProblem:
+    f1 = _rand_frac_for(rng, difficulty)
+    f2 = _rand_frac_for(rng, difficulty)
+    op = rng.choice(["+", "-", "×"])
+    if op == "+":
+        result = f1 + f2
+    elif op == "-":
+        hi, lo = max(f1, f2), min(f1, f2)
+        f1, f2 = hi, lo
+        result = hi - lo
+    else:
+        result = f1 * f2
+    return GeneratedProblem(
+        problem=f"{_frac_str(f1)}{op}{_frac_str(f2)}=",
+        correct_answer=_frac_str(result),
+        error_code="E01",
+        knowledge_point="分数口算",
+        difficulty=difficulty,
+        hint="直接心算",
+        exercise_type="ET-0105",
+    )
+
+
+def _gen_mental_percent(rng: random.Random, difficulty: str) -> GeneratedProblem:
+    pct = rng.choice([10, 20, 25, 50, 75])
+    base = rng.choice([20, 40, 50, 80, 100, 200])
+    result = base * pct // 100
+    return GeneratedProblem(
+        problem=f"{pct}%×{base}=",
+        correct_answer=str(result),
+        error_code="E05",
+        knowledge_point="百分数口算",
+        difficulty=difficulty,
+        hint="百分数=÷100×百分比",
+        exercise_type="ET-0106",
+    )
+
+
+def _gen_mental_mixed(rng: random.Random, difficulty: str) -> GeneratedProblem:
+    f = _rand_frac_for(rng, difficulty)
+    dec_entry = rng.choice(_DECIMAL_POOL_B)
+    dec_display, dec_frac = dec_entry
+    result = f * dec_frac
+    return GeneratedProblem(
+        problem=f"{_frac_str(f)}×{dec_display}=",
+        correct_answer=_frac_str(result),
+        error_code="E09",
+        knowledge_point="分数×小数口算",
+        difficulty=difficulty,
+        hint="统一化成分数",
+        exercise_type="ET-0107",
+    )
+
+
+def _gen_vertical_add_sub(rng: random.Random, difficulty: str) -> GeneratedProblem:
+    if difficulty == "A":
+        a = rng.randint(100, 500)
+        b = rng.randint(100, 400)
+        if rng.random() < 0.5:
+            result = a + b
+            op = "+"
+        else:
+            if a < b:
+                a, b = b, a
+            result = a - b
+            op = "-"
+    elif difficulty == "B":
+        a = rng.randint(1000, 5000)
+        b = rng.randint(1000, 4000)
+        if rng.random() < 0.5:
+            result = a + b
+            op = "+"
+        else:
+            if a < b:
+                a, b = b, a
+            result = a - b
+            op = "-"
+    else:
+        a = rng.randint(10000, 99999)
+        b = rng.randint(10000, 99999)
+        if rng.random() < 0.5:
+            result = a + b
+            op = "+"
+        else:
+            if a < b:
+                a, b = b, a
+            result = a - b
+            op = "-"
+    return GeneratedProblem(
+        problem=f"{a}{op}{b}=",
+        correct_answer=str(result),
+        error_code="E03",
+        knowledge_point="多位数加减竖式",
+        difficulty=difficulty,
+        hint="列竖式，注意数位对齐和进退位",
+        exercise_type="ET-0201",
+    )
+
+
+def _gen_vertical_mul(rng: random.Random, difficulty: str) -> GeneratedProblem:
+    if difficulty in ("A", "B"):
+        a = rng.randint(11, 99)
+        b = rng.randint(11, 99)
+    else:
+        a = rng.randint(100, 999)
+        b = rng.randint(11, 99)
+    result = a * b
+    return GeneratedProblem(
+        problem=f"{a}×{b}=",
+        correct_answer=str(result),
+        error_code="E02",
+        knowledge_point="多位数乘法竖式",
+        difficulty=difficulty,
+        hint="列竖式，部分积要对齐数位",
+        exercise_type="ET-0202" if difficulty in ("A", "B") else "ET-0203",
+    )
+
+
+def _gen_vertical_div(rng: random.Random, difficulty: str) -> GeneratedProblem:
+    if difficulty == "A":
+        b = rng.randint(2, 9)
+        q = rng.randint(11, 99)
+    elif difficulty == "B":
+        b = rng.randint(11, 49)
+        q = rng.randint(11, 49)
+    else:
+        b = rng.randint(11, 99)
+        q = rng.randint(11, 99)
+    a = b * q
+    return GeneratedProblem(
+        problem=f"{a}÷{b}=",
+        correct_answer=str(q),
+        error_code="E02",
+        knowledge_point="除法竖式",
+        difficulty=difficulty,
+        hint="列竖式，从高位除起",
+        exercise_type="ET-0204",
+    )
+
+
+def _gen_step_int(rng: random.Random, difficulty: str) -> GeneratedProblem:
+    a = rng.randint(2, 20)
+    b = rng.randint(2, 12)
+    c = rng.randint(2, 12)
+    has_paren = rng.choice([True, False])
+    if has_paren:
+        pattern = rng.choice(["add_div", "sub_div", "add_mul", "sub_mul"])
+        if pattern == "add_div":
+            result = (a + b) * c
+            return GeneratedProblem(
+                problem=f"({a}+{b})×{c}=",
+                correct_answer=str(result),
+                error_code="E05",
+                knowledge_point="整数脱式（有括号）",
+                difficulty=difficulty,
+                hint="先算括号里的",
+                exercise_type="ET-0302",
+            )
+        if pattern == "sub_div":
+            if a <= b:
+                a = b + rng.randint(1, 10)
+            result = (a - b) * c
+            return GeneratedProblem(
+                problem=f"({a}-{b})×{c}=",
+                correct_answer=str(result),
+                error_code="E05",
+                knowledge_point="整数脱式（有括号）",
+                difficulty=difficulty,
+                hint="先算括号里的",
+                exercise_type="ET-0302",
+            )
+        if pattern == "add_mul":
+            result = a + b * c
+            return GeneratedProblem(
+                problem=f"{a}+{b}×{c}=",
+                correct_answer=str(result),
+                error_code="E05",
+                knowledge_point="整数脱式（先乘后加）",
+                difficulty=difficulty,
+                hint="先算乘法，再算加法",
+                exercise_type="ET-0301",
+            )
+        result = a * b - c
+        return GeneratedProblem(
+            problem=f"{a}×{b}-{c}=",
+            correct_answer=str(result),
+            error_code="E05",
+            knowledge_point="整数脱式（先乘后减）",
+            difficulty=difficulty,
+            hint="先算乘法，再算减法",
+            exercise_type="ET-0301",
+        )
+    result = a + b * c
+    return GeneratedProblem(
+        problem=f"{a}+{b}×{c}=",
+        correct_answer=str(result),
+        error_code="E05",
+        knowledge_point="整数脱式（先乘除后加减）",
+        difficulty=difficulty,
+        hint="先算乘除，再算加减",
+        exercise_type="ET-0301",
+    )
+
+
+def _gen_step_decimal(rng: random.Random, difficulty: str) -> GeneratedProblem:
+    a = round(rng.uniform(1.0, 10.0), 1)
+    b = round(rng.uniform(0.5, 5.0), 1)
+    c = round(rng.uniform(0.5, 3.0), 1)
+    has_paren = rng.choice([True, False])
+    if has_paren:
+        result = round((a + b) * c, 2)
+        return GeneratedProblem(
+            problem=f"({a}+{b})×{c}=",
+            correct_answer=str(result),
+            error_code="E05",
+            knowledge_point="小数脱式（有括号）",
+            difficulty=difficulty,
+            hint="先算括号里",
+            exercise_type="ET-0303",
+        )
+    result = round(a * b + c, 2)
+    return GeneratedProblem(
+        problem=f"{a}×{b}+{c}=",
+        correct_answer=str(result),
+        error_code="E05",
+        knowledge_point="小数脱式",
+        difficulty=difficulty,
+        hint="先算乘法，再算加法",
+        exercise_type="ET-0303",
+    )
+
+
+def _gen_step_fraction(rng: random.Random, difficulty: str) -> GeneratedProblem:
+    f1 = _rand_frac_for(rng, difficulty)
+    f2 = _rand_frac_for(rng, difficulty)
+    f3 = _rand_frac_for(rng, difficulty)
+    has_paren = rng.choice([True, False])
+    if has_paren:
+        result = (f1 + f2) * f3
+        return GeneratedProblem(
+            problem=f"({_frac_str(f1)}+{_frac_str(f2)})×{_frac_str(f3)}=",
+            correct_answer=_frac_str(result),
+            error_code="E03",
+            knowledge_point="分数脱式（有括号）",
+            difficulty=difficulty,
+            hint="先算括号里",
+            exercise_type="ET-0304",
+        )
+    product = f2 * f3
+    result = f1 + product
+    return GeneratedProblem(
+        problem=f"{_frac_str(f1)}+{_frac_str(f2)}×{_frac_str(f3)}=",
+        correct_answer=_frac_str(result),
+        error_code="E03",
+        knowledge_point="分数脱式（先乘后加）",
+        difficulty=difficulty,
+        hint="先算乘法，再算加法",
+        exercise_type="ET-0304",
+    )
+
+
+def _gen_step_mixed(rng: random.Random, difficulty: str) -> GeneratedProblem:
+    f = _rand_frac_for(rng, difficulty)
+    dec_entry = rng.choice(_DECIMAL_POOL_B)
+    dec_display, dec_frac = dec_entry
+    f2 = _rand_frac_for(rng, difficulty)
+    result = f * dec_frac + f2
+    return GeneratedProblem(
+        problem=f"{_frac_str(f)}×{dec_display}+{_frac_str(f2)}=",
+        correct_answer=_frac_str(result),
+        error_code="E09",
+        knowledge_point="混合脱式（分数+小数）",
+        difficulty=difficulty,
+        hint="统一化成分数再算",
+        exercise_type="ET-0305",
+    )
+
+
+def _gen_shortcut_round(rng: random.Random, difficulty: str) -> GeneratedProblem:
+    patterns = [
+        (25, 4, 100), (25, 8, 200), (25, 12, 300),
+        (125, 8, 1000), (125, 4, 500), (125, 16, 2000),
+        (50, 2, 100), (50, 4, 200),
+    ]
+    a, b, expected = rng.choice(patterns)
+    return GeneratedProblem(
+        problem=f"{a}×{b}=",
+        correct_answer=str(expected),
+        error_code="E10",
+        knowledge_point="凑整巧算",
+        difficulty=difficulty,
+        hint=f"记住{a}×{b}={expected}",
+        exercise_type="ET-0406",
+    )
+
+
+def _gen_shortcut_distrib(rng: random.Random, difficulty: str) -> GeneratedProblem:
+    kind = rng.choice(["forward", "reverse"])
+    if kind == "forward":
+        f = _rand_frac_for(rng, difficulty)
+        n = _rand_int_for(rng, difficulty)
+        m = _rand_int_for(rng, difficulty)
+        result = f * (n + m)
+        return GeneratedProblem(
+            problem=f"{_frac_str(f)}×({n}+{m})=",
+            correct_answer=_frac_str(result),
+            error_code="E10",
+            knowledge_point="乘法分配律",
+            difficulty=difficulty,
+            hint=f"用分配律：{_frac_str(f)}×{n}+{_frac_str(f)}×{m}",
+            exercise_type="ET-0403",
+        )
+    f = _rand_frac_for(rng, difficulty)
+    n = _rand_int_for(rng, difficulty)
+    m = _rand_int_for(rng, difficulty)
+    result = f * n + f * m
+    return GeneratedProblem(
+        problem=f"{_frac_str(f)}×{n}+{_frac_str(f)}×{m}=",
+        correct_answer=_frac_str(result),
+        error_code="E10",
+        knowledge_point="乘法分配律（逆用）",
+        difficulty=difficulty,
+        hint=f"提取{_frac_str(f)}：{_frac_str(f)}×({n}+{m})",
+        exercise_type="ET-0403",
+    )
+
+
+def _gen_shortcut_decompose(rng: random.Random, difficulty: str) -> GeneratedProblem:
+    kind = rng.choice(["plus_one", "near_round"])
+    if kind == "plus_one":
+        n = rng.randint(2, 20)
+        f = _rand_frac_for(rng, difficulty)
+        result = f * n + f
+        return GeneratedProblem(
+            problem=f"{_frac_str(f)}×{n}+{_frac_str(f)}=",
+            correct_answer=_frac_str(result),
+            error_code="E10",
+            knowledge_point="拆项巧算（+1凑整）",
+            difficulty=difficulty,
+            hint=f"把{_frac_str(f)}看成{_frac_str(f)}×1，提取公因数",
+            exercise_type="ET-0407",
+        )
+    n = rng.choice([99, 98, 101, 102])
+    m = rng.randint(2, 9)
+    result = n * m
+    base = (n + 1) if n < 100 else (n - 1)
+    return GeneratedProblem(
+        problem=f"{n}×{m}=",
+        correct_answer=str(result),
+        error_code="E10",
+        knowledge_point="拆项巧算",
+        difficulty=difficulty,
+        hint=f"把{n}拆成{base}-{1 if n < 100 else -1}来算",
+        exercise_type="ET-0407",
+    )
+
+
+def _gen_word_int(rng: random.Random, difficulty: str) -> GeneratedProblem:
+    n = rng.randint(2, 9)
+    m = rng.randint(10, 30)
+    templates = [
+        (f"{n}的{m}倍是多少？", str(n * m), "整数文字题——倍数"),
+        (f"{n*m}比{m}多多少？", str(n * m - m), "整数文字题——差"),
+        (f"{m}的{n}倍与{m//2}的和是多少？", str(m * n + m // 2), "整数文字题——综合"),
+    ]
+    if difficulty != "C":
+        problem, answer, kp = templates[0] if difficulty == "A" else rng.choice(templates[:2])
+    else:
+        problem, answer, kp = rng.choice(templates)
+    return GeneratedProblem(
+        problem=problem,
+        correct_answer=answer,
+        error_code="E05",
+        knowledge_point=kp,
+        difficulty=difficulty,
+        hint="把文字翻译成算式",
+        exercise_type="ET-0501",
+    )
+
+
+def _gen_word_frac(rng: random.Random, difficulty: str) -> GeneratedProblem:
+    f = _rand_frac_for(rng, difficulty)
+    n = _rand_int_for(rng, difficulty)
+    result = f * n
+    templates = [
+        (f"{n}的{_frac_str(f)}是多少？", _frac_str(result)),
+        (f"{_frac_str(f)}的{_frac_str(Fraction(1, 2))}是多少？", _frac_str(f * Fraction(1, 2))),
+    ]
+    problem, answer = rng.choice(templates)
+    return GeneratedProblem(
+        problem=problem,
+        correct_answer=answer,
+        error_code="E01",
+        knowledge_point="分数文字题",
+        difficulty=difficulty,
+        hint="求一个数的几分之几用乘法",
+        exercise_type="ET-0502",
+    )
+
+
+def _gen_word_pct(rng: random.Random, difficulty: str) -> GeneratedProblem:
+    pct = rng.choice([10, 20, 25, 50, 75])
+    base = rng.choice([40, 60, 80, 100, 200])
+    result = base * pct // 100
+    return GeneratedProblem(
+        problem=f"{base}的{pct}%是多少？",
+        correct_answer=str(result),
+        error_code="E05",
+        knowledge_point="百分数文字题",
+        difficulty=difficulty,
+        hint="求一个数的百分之几=乘法",
+        exercise_type="ET-0503",
+    )
+
+
+def _gen_word_ratio(rng: random.Random, difficulty: str) -> GeneratedProblem:
+    a = rng.randint(1, 5)
+    b = rng.randint(1, 5)
+    while b == a:
+        b = rng.randint(1, 5)
+    k = rng.randint(3, 10)
+    total = (a + b) * k
+    return GeneratedProblem(
+        problem=f"把{total}按{a}:{b}分配，较大数是多少？",
+        correct_answer=str(k * max(a, b)),
+        error_code="E04",
+        knowledge_point="按比分配",
+        difficulty=difficulty,
+        hint=f"总份数={a + b}，先算每份",
+        exercise_type="ET-0504",
+    )
+
+
+def _gen_word_comprehensive(rng: random.Random, difficulty: str) -> GeneratedProblem:
+    denom = rng.choice([6, 10, 12, 15, 20])
+    f1 = Fraction(rng.randint(1, denom - 1), denom)
+    f2 = Fraction(rng.randint(1, denom - 1), denom)
+    while f2 >= f1:
+        f2 = Fraction(rng.randint(1, denom - 1), denom)
+    diff_val = f1 - f2
+    unit_val = Fraction(1, 1) / diff_val if diff_val != 0 else Fraction(1, 1)
+    if unit_val.denominator != 1 or unit_val <= 0:
+        f1 = Fraction(3, 5)
+        f2 = Fraction(1, 2)
+        diff_val = f1 - f2
+        unit_val = Fraction(1, 1) / diff_val
+    return GeneratedProblem(
+        problem=f"一个数的{_frac_str(f1)}比它的{_frac_str(f2)}多{int(diff_val * unit_val)}，这个数是多少？",
+        correct_answer=str(int(unit_val)),
+        error_code="E05",
+        knowledge_point="综合文字题",
+        difficulty=difficulty,
+        hint="设这个数为x，列方程",
+        exercise_type="ET-0505",
+    )
+
+
+def _gen_geo_circle_perimeter(rng: random.Random, difficulty: str) -> GeneratedProblem:
+    r = rng.randint(2, 10)
+    coeff = 2 * r
+    return GeneratedProblem(
+        problem=f"半径{r}cm的圆的周长",
+        correct_answer=f"{coeff}π cm",
+        error_code="E07",
+        knowledge_point="圆的周长",
+        difficulty=difficulty,
+        hint="周长=2×π×半径",
+        exercise_type="ET-0601",
+    )
+
+
+def _gen_geo_circle_area(rng: random.Random, difficulty: str) -> GeneratedProblem:
+    r = rng.randint(2, 10)
+    coeff = r * r
+    return GeneratedProblem(
+        problem=f"半径{r}cm的圆的面积",
+        correct_answer=f"{coeff}π cm²",
+        error_code="E07",
+        knowledge_point="圆的面积",
+        difficulty=difficulty,
+        hint="面积=π×半径²",
+        exercise_type="ET-0602",
+    )
+
+
+def _gen_geo_annulus(rng: random.Random, difficulty: str) -> GeneratedProblem:
+    R = rng.randint(4, 10)
+    r = rng.randint(2, R - 1)
+    coeff = R * R - r * r
+    return GeneratedProblem(
+        problem=f"外圆半径{R}cm、内圆半径{r}cm的环形面积",
+        correct_answer=f"{coeff}π cm²",
+        error_code="E07",
+        knowledge_point="环形面积",
+        difficulty=difficulty,
+        hint="环形面积=π(R²-r²)",
+        exercise_type="ET-0603",
+    )
+
+
+def _gen_geo_sector(rng: random.Random, difficulty: str) -> GeneratedProblem:
+    r = rng.randint(3, 8)
+    angle = rng.choice([60, 90, 120, 150, 180])
+    num_coeff = r * r * angle
+    den_coeff = 360
+    from math import gcd
+    g = gcd(num_coeff, den_coeff)
+    num_coeff //= g
+    den_coeff //= g
+    if den_coeff == 1:
+        answer = f"{num_coeff}π cm²"
+    else:
+        answer = f"{num_coeff}/{den_coeff}π cm²"
+    return GeneratedProblem(
+        problem=f"半径{r}cm、圆心角{angle}°的扇形面积",
+        correct_answer=answer,
+        error_code="E07",
+        knowledge_point="扇形面积",
+        difficulty=difficulty,
+        hint="扇形面积=n/360×πr²",
+        exercise_type="ET-0604",
+    )
+
+
+def _gen_geo_composite(rng: random.Random, difficulty: str) -> GeneratedProblem:
+    kind = rng.choice(["rect_semicircle", "l_shape"])
+    if kind == "rect_semicircle":
+        w = rng.choice([4, 6, 8])
+        h = rng.choice([3, 4, 5])
+        d = w
+        r = d // 2
+        area = w * h + Fraction(r * r, 2)
+        area_str = f"{w * h}+{r * r}π/2" if r * r > 1 else f"{w * h}+π/2"
+        return GeneratedProblem(
+            problem=f"长{w}cm、宽{h}cm的矩形，一端加一个直径{d}cm的半圆，总面积",
+            correct_answer=f"({area_str}) cm²",
+            error_code="E07",
+            knowledge_point="组合图形面积",
+            difficulty=difficulty,
+            hint="矩形面积+半圆面积",
+            exercise_type="ET-0605",
+        )
+    a = rng.randint(3, 8)
+    b = rng.randint(2, a)
+    c = rng.randint(2, 5)
+    area = a * a - b * c
+    return GeneratedProblem(
+        problem=f"L形图形，外边长{a}cm，缺角宽{b}cm高{c}cm，面积",
+        correct_answer=f"{area} cm²",
+        error_code="E07",
+        knowledge_point="L形面积（割补法）",
+        difficulty=difficulty,
+        hint="大矩形-小矩形",
+        exercise_type="ET-0605",
+    )
+
+
+def _gen_geo_cylinder_volume(rng: random.Random, difficulty: str) -> GeneratedProblem:
+    r = rng.randint(2, 6)
+    h = rng.randint(5, 15)
+    coeff = r * r * h
+    return GeneratedProblem(
+        problem=f"底面半径{r}cm、高{h}cm的圆柱体积",
+        correct_answer=f"{coeff}π cm³",
+        error_code="E07",
+        knowledge_point="圆柱体积",
+        difficulty=difficulty,
+        hint="圆柱体积=πr²h",
+        exercise_type="ET-0610",
+    )
+
+
+def _gen_geo_cone_volume(rng: random.Random, difficulty: str) -> GeneratedProblem:
+    r = rng.randint(2, 6)
+    h = rng.randint(6, 18)
+    coeff = r * r * h
+    from math import gcd as mgcd
+    g = mgcd(coeff, 3)
+    num = coeff // g
+    den = 3 // g
+    if den == 1:
+        answer = f"{num}π cm³"
+    else:
+        answer = f"{num}/{den}π cm³"
+    return GeneratedProblem(
+        problem=f"底面半径{r}cm、高{h}cm的圆锥体积",
+        correct_answer=answer,
+        error_code="E07",
+        knowledge_point="圆锥体积",
+        difficulty=difficulty,
+        hint="圆锥体积=1/3πr²h",
+        exercise_type="ET-0611",
+    )
+
+
+def _gen_frac_add_sub(rng: random.Random, difficulty: str) -> GeneratedProblem:
+    f1 = _rand_frac_for(rng, difficulty)
+    f2 = _rand_frac_for(rng, difficulty)
+    op = rng.choice(["+", "-"])
+    if op == "+":
+        result = f1 + f2
+    else:
+        hi, lo = max(f1, f2), min(f1, f2)
+        f1, f2 = hi, lo
+        result = hi - lo
+    return GeneratedProblem(
+        problem=f"{_frac_str(f1)}{op}{_frac_str(f2)}=",
+        correct_answer=_frac_str(result),
+        error_code="E01",
+        knowledge_point="分数加减",
+        difficulty=difficulty,
+        hint="通分后加减",
+        exercise_type="ET-0702",
+    )
+
+
+def _gen_frac_convert(rng: random.Random, difficulty: str) -> GeneratedProblem:
+    entry = rng.choice(_CONV_TABLE)
+    _, frac, dec, pct = entry
+    direction = rng.choice(["frac_dec", "dec_frac", "frac_pct", "pct_frac"])
+    if direction == "frac_dec":
+        return GeneratedProblem(
+            problem=f"把{_frac_str(frac)}化成小数",
+            correct_answer=dec,
+            error_code="E06",
+            knowledge_point="分数化小数",
+            difficulty=difficulty,
+            hint="分子÷分母",
+            exercise_type="ET-0706",
+        )
+    if direction == "dec_frac":
+        return GeneratedProblem(
+            problem=f"把{dec}化成最简分数",
+            correct_answer=_frac_str(frac),
+            error_code="E06",
+            knowledge_point="小数化分数",
+            difficulty=difficulty,
+            hint="写成分母10/100/1000的分数再约分",
+            exercise_type="ET-0706",
+        )
+    if direction == "frac_pct":
+        return GeneratedProblem(
+            problem=f"把{_frac_str(frac)}化成百分数",
+            correct_answer=pct,
+            error_code="E05",
+            knowledge_point="分数化百分数",
+            difficulty=difficulty,
+            hint="分子÷分母×100%",
+            exercise_type="ET-0707",
+        )
+    return GeneratedProblem(
+        problem=f"把{pct}化成最简分数",
+        correct_answer=_frac_str(frac),
+        error_code="E06",
+        knowledge_point="百分数化分数",
+        difficulty=difficulty,
+        hint="写成分母100再约分",
+        exercise_type="ET-0707",
+    )
+
+
+def _gen_unit_convert(rng: random.Random, difficulty: str) -> GeneratedProblem:
+    conversions = [
+        ("km", "m", 1000, "长度"),
+        ("m", "cm", 100, "长度"),
+        ("m²", "dm²", 100, "面积"),
+        ("dm²", "cm²", 100, "面积"),
+        ("m³", "dm³", 1000, "体积"),
+        ("L", "mL", 1000, "体积"),
+        ("t", "kg", 1000, "质量"),
+        ("kg", "g", 1000, "质量"),
+        ("小时", "分钟", 60, "时间"),
+    ]
+    unit_from, unit_to, factor, domain = rng.choice(conversions)
+    val = round(rng.uniform(0.5, 10.0), 1)
+    result = val * factor
+    return GeneratedProblem(
+        problem=f"{val}{unit_from}=?{unit_to}",
+        correct_answer=f"{result}{unit_to}",
+        error_code="E06",
+        knowledge_point=f"{domain}单位换算",
+        difficulty=difficulty,
+        hint=f"1{unit_from}={factor}{unit_to}",
+        exercise_type="ET-0801",
+    )
+
+
+def _gen_estimate(rng: random.Random, difficulty: str) -> GeneratedProblem:
+    a = round(rng.uniform(2.0, 10.0), 1)
+    b = round(rng.uniform(2.0, 10.0), 1)
+    op = rng.choice(["×", "+"])
+    if op == "×":
+        exact = round(a * b, 1)
+        approx = round(round(a) * round(b), 1)
+        return GeneratedProblem(
+            problem=f"估算 {a}×{b} 的结果大约是多少",
+            correct_answer=f"约{approx}（精确值{exact}）",
+            error_code="E11",
+            knowledge_point="计算估算",
+            difficulty=difficulty,
+            hint="先取近似值再计算",
+            exercise_type="ET-0806",
+        )
+    exact = round(a + b, 1)
+    approx = round(round(a) + round(b), 1)
+    return GeneratedProblem(
+        problem=f"估算 {a}+{b} 的结果大约是多少",
+        correct_answer=f"约{approx}（精确值{exact}）",
+        error_code="E11",
+        knowledge_point="计算估算",
+        difficulty=difficulty,
+        hint="先取近似值再计算",
+        exercise_type="ET-0806",
+    )
+
+
+_EXERCISE_TYPE_GENERATORS: dict[str, type] = {
+    "ET-0101": _gen_mental_int_add,
+    "ET-0103": _gen_mental_int_mul,
+    "ET-0104": _gen_mental_decimal,
+    "ET-0105": _gen_mental_fraction,
+    "ET-0106": _gen_mental_percent,
+    "ET-0107": _gen_mental_mixed,
+    "ET-0201": _gen_vertical_add_sub,
+    "ET-0202": _gen_vertical_mul,
+    "ET-0203": _gen_vertical_mul,
+    "ET-0204": _gen_vertical_div,
+    "ET-0301": _gen_step_int,
+    "ET-0302": _gen_step_int,
+    "ET-0303": _gen_step_decimal,
+    "ET-0304": _gen_step_fraction,
+    "ET-0305": _gen_step_mixed,
+    "ET-0403": _gen_shortcut_distrib,
+    "ET-0406": _gen_shortcut_round,
+    "ET-0407": _gen_shortcut_decompose,
+    "ET-0501": _gen_word_int,
+    "ET-0502": _gen_word_frac,
+    "ET-0503": _gen_word_pct,
+    "ET-0504": _gen_word_ratio,
+    "ET-0505": _gen_word_comprehensive,
+    "ET-0601": _gen_geo_circle_perimeter,
+    "ET-0602": _gen_geo_circle_area,
+    "ET-0603": _gen_geo_annulus,
+    "ET-0604": _gen_geo_sector,
+    "ET-0605": _gen_geo_composite,
+    "ET-0610": _gen_geo_cylinder_volume,
+    "ET-0611": _gen_geo_cone_volume,
+    "ET-0702": _gen_frac_add_sub,
+    "ET-0706": _gen_frac_convert,
+    "ET-0707": _gen_frac_convert,
+    "ET-0801": _gen_unit_convert,
+    "ET-0802": _gen_unit_convert,
+    "ET-0803": _gen_unit_convert,
+    "ET-0804": _gen_unit_convert,
+    "ET-0805": _gen_unit_convert,
+    "ET-0806": _gen_estimate,
+}
+
+
+def generate_problems_by_exercise_type(
+    exercise_type_id: str,
+    difficulty: str = "B",
+    count: int = 5,
+    seed: int | None = None,
+) -> list[GeneratedProblem]:
+    gen = _EXERCISE_TYPE_GENERATORS.get(exercise_type_id)
+    if gen is None:
+        return []
+    rng = random.Random(seed)
+    results: list[GeneratedProblem] = []
+    seen: set[str] = set()
+    attempts = 0
+    while len(results) < count and attempts < count * 20:
+        p = gen(rng, difficulty)
+        if p.problem not in seen:
+            seen.add(p.problem)
+            results.append(p)
+        attempts += 1
+    return results

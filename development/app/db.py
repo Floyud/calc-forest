@@ -354,6 +354,26 @@ CREATE TABLE IF NOT EXISTS profile_snapshots (
     created_at TEXT,
     FOREIGN KEY (student_id) REFERENCES students(id)
 );
+
+-- Exercise type catalog (题型类别库)
+CREATE TABLE IF NOT EXISTS exercise_types (
+    id TEXT PRIMARY KEY,
+    parent_id TEXT,
+    category TEXT NOT NULL,
+    name TEXT NOT NULL,
+    code TEXT NOT NULL UNIQUE,
+    difficulty_range TEXT NOT NULL DEFAULT '["A","B","C"]',
+    related_error_codes TEXT NOT NULL DEFAULT '[]',
+    knowledge_points TEXT NOT NULL DEFAULT '[]',
+    description TEXT NOT NULL DEFAULT '',
+    example_problem TEXT NOT NULL DEFAULT '',
+    example_answer TEXT NOT NULL DEFAULT '',
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    is_active INTEGER NOT NULL DEFAULT 1,
+    grade_range TEXT NOT NULL DEFAULT '[5,6]',
+    textbook_unit TEXT NOT NULL DEFAULT '',
+    FOREIGN KEY (parent_id) REFERENCES exercise_types(id)
+);
 """
 
 _MIGRATE_SQL = [
@@ -386,6 +406,9 @@ _MIGRATE_SQL = [
     "CREATE INDEX IF NOT EXISTS idx_gc_hw_student ON grading_comments(homework_id, student_id)",
     "CREATE INDEX IF NOT EXISTS idx_ps_student ON profile_snapshots(student_id)",
     "CREATE INDEX IF NOT EXISTS idx_ps_type ON profile_snapshots(snapshot_type)",
+    "CREATE INDEX IF NOT EXISTS idx_et_parent ON exercise_types(parent_id)",
+    "CREATE INDEX IF NOT EXISTS idx_et_category ON exercise_types(category)",
+    "CREATE INDEX IF NOT EXISTS idx_et_code ON exercise_types(code)",
 ]
 
 _DEFAULT_TEACHER_SQL = """
