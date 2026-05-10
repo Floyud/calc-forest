@@ -72,7 +72,7 @@
 | BI-044 | DONE | PDF 作业生成 (weasyprint + jinja2) | `development/app/services/pdf_service.py` + `templates/homework.html` |
 | BI-045 | DONE | 前端 bundle 优化 — dynamic import + memo + tree-shaking | 首页 277kB→167kB (-40%) |
 | BI-046 | DONE | OCR schema stub + API (returns 501) | `scanned_submissions` table + `/api/ocr/stub`, `/api/ocr/upload` |
-| BI-047 | DOING | 首页接入真实后端 API (替换 mock) | `page.tsx` + `ClassForestGrid.tsx` |
+| BI-047 | DONE | 前端全量接入真实后端 API (所有页面) | 所有页面已接入 `/api/classes/G6C1/forest` 等真实端点，仅 `/guidance` 为纯静态页 |
 
 ## Competition Material Backlog
 

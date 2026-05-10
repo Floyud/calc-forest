@@ -289,7 +289,7 @@ Plus 6 FTS5 virtual tables for knowledge base search.
 - Dify 知识检索 retrieval_mode 已修复（全部改为 `single`，`query` → `query_variable_selector`）。
 - Cloud Dify 所有 3 个 API 返回 401（需删除旧 app → 从 DSL 重新导入）。
 - Local Dify Embedding 供应商连接验证失败（OpenAI 插件与本地服务不兼容）。
-- Frontend pages use mock data; only `/diagnose` calls real backend API。
+- ~~Frontend pages use mock data; only `/diagnose` calls real backend API~~ → **All pages connected to real backend API.** Only `/guidance` page is purely static content. `/botanical` uses API + local enrichment data.
 - `problem_generation` 无独立 Dify workflow，始终走 DeepSeek 回退。
 - `.mcp.json` 配置了 Playwright MCP（需重载 session 生效，设置 `TMPDIR=/tmp` 解决 WSL Unix socket 问题）。
 

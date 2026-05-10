@@ -15,7 +15,14 @@ workflow:
         selected: false
         title: Start
         type: start
-        variables: []
+        variables:
+        - label: 学生学习上下文
+          max_length: 4096
+          options: []
+          required: false
+          variable: student_context
+          description: 学生的错因历史、掌握度、薄弱知识点等上下文信息
+          type: text-input
       height: 90
       id: '1749000001'
       position:
@@ -244,6 +251,8 @@ workflow:
 
             错因关键词：{{#1749000003.error_keywords#}}
 
+            {{#1749000001.student_context#}}
+
 
             知识库参考内容：
 
@@ -319,6 +328,8 @@ workflow:
 
             错因关键词：{{#1749000003.error_keywords#}}
 
+            {{#1749000001.student_context#}}
+
 
             知识库参考内容：
 
@@ -384,6 +395,8 @@ workflow:
             题目提示：{{#1749000003.problem_hint#}}
 
             错因关键词：{{#1749000003.error_keywords#}}
+
+            {{#1749000001.student_context#}}
 
 
             知识库参考内容：
@@ -534,6 +547,8 @@ workflow:
 
             验算类型：{{#1749000009.check_type#}}
 
+            {{#1749000001.student_context#}}
+
 
             知识库参考内容：
 
@@ -597,7 +612,9 @@ workflow:
             - 不要说教'
         - id: chat-user-prompt
           role: user
-          text: '{{#sys.query#}}'
+          text: '{{#sys.query#}}
+
+            {{#1749000001.student_context#}}'
         selected: false
         title: 温暖闲聊
         type: llm

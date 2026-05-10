@@ -6,6 +6,36 @@ from collections import Counter
 from app.db import get_db
 from app.schemas import Student, StudentProfile
 
+# Error code labels for guidance context
+ERROR_LABELS = {
+    "E01": "基础事实",
+    "E02": "进位错误",
+    "E03": "退位错误",
+    "E04": "数位对齐",
+    "E05": "运算顺序",
+    "E06": "小数点/分数单位",
+    "E07": "抄写转写",
+    "E08": "步骤遗漏",
+    "E09": "算理理解",
+    "E10": "审题",
+    "E11": "未验算",
+}
+
+# Chinese labels for mastery zones
+ZONE_LABELS = {
+    "mastered": "已掌握",
+    "learning": "学习中",
+    "needs_practice": "需练习",
+    "no_data": "无数据",
+}
+
+# Trend labels
+TREND_LABELS = {
+    "improving": "进步中",
+    "declining": "退步中",
+    "stable": "稳定",
+}
+
 
 def _row_to_student(row) -> Student:
     import json
@@ -375,3 +405,105 @@ async def get_student_profile(student_id: str) -> StudentProfile | None:
         pass
 
     return profile
+
+
+async def build_guidance_context(student_id: str) -> str:
+    student = await get_student(student_id)
+    if student is None:
+        return f"未找到学生（ID: {student_id}）"
+
+    profile = await get_student_profile(student_id)
+    if profile is None:
+        return f"学生 {student.name} 暂无学习数据。"
+
+    from app.services.mastery_service import get_student_mastery
+    mastery_data = await get_student_mastery(student_id)
+    if "error" in mastery_data:
+        mastery_error_codes: dict[str, dict] = {}
+    else:
+        mastery_error_codes = mastery_data.get("error_codes", {})
+
+    accuracy = profile.accuracy or 0.0
+    trend_label = TREND_LABELS.get(profile.recent_accuracy_trend or "stable", "稳定")
+
+    tags = ", ".join(student.personality_tags) if student.personality_tags else ""
+    learning_style = student.learning_style or ""
+
+    header = (
+        f"【学生学习画像】\n"
+        f"学生：{student.name}（学号 {student.student_number}）| "
+        f"六年级 | {student.class_id}班\n"
+        f"总体正确率：{accuracy:.0%} | 近期趋势：{trend_label}"
+    )
+    if tags:
+        header += f"\n学习特点：{tags}"
+    if learning_style:
+        header += f"\n学习风格：{learning_style}"
+
+    sorted_codes = sorted(
+        [(c, a) for c, a in profile.accuracy_by_error_code.items() if c != "OK"],
+        key=lambda x: x[1],
+    )
+
+    mastery_lines: list[str] = ["\n【各错因掌握度】"]
+    for code, acc in sorted_codes:
+        label = ERROR_LABELS.get(code, code)
+        mastery_info = mastery_error_codes.get(code, {})
+        mastery_prob = mastery_info.get("mastery_probability", 0.0)
+        zone = mastery_info.get("zone", "no_data")
+        zone_label = ZONE_LABELS.get(zone, zone)
+
+        if acc < 0.3:
+            emoji = "🔴"
+        elif acc < 0.6:
+            emoji = "🟡"
+        else:
+            emoji = "🟢"
+
+        mastery_lines.append(
+            f"{emoji} {code} {label}: {acc:.0%} 正确率, "
+            f"掌握度={mastery_prob:.0%} ({zone_label})"
+        )
+
+    weak_lines: list[str] = ["\n【薄弱知识点】"]
+    weak_points = profile.weak_knowledge_points or []
+    for wp in weak_points[:5]:
+        code = wp.get("error_code", "")
+        unit_title = wp.get("unit_title", "")
+        kp = wp.get("knowledge_point", "")
+        typical = wp.get("typical_error", "")
+        line = f"{code} {unit_title}· {kp}"
+        if typical:
+            line += f" — 典型错误：{typical}"
+        weak_lines.append(line)
+
+    guidance_lines: list[str] = ["\n【引导建议】"]
+    critical = [c for c, a in sorted_codes if a < 0.3]
+    needs_work = [c for c, a in sorted_codes if 0.3 <= a < 0.6]
+
+    if critical:
+        code = critical[0]
+        label = ERROR_LABELS.get(code, code)
+        guidance_lines.append(
+            f"- 学生{code}（{label}）极其薄弱，优先引导相关概念的位值理解"
+        )
+    if len(critical) > 1 or len(needs_work) > 0:
+        all_weak = critical[1:] + needs_work[:2]
+        for code in all_weak[:2]:
+            label = ERROR_LABELS.get(code, code)
+            guidance_lines.append(
+                f"- {code}（{label}）多次出错，引导时强调分步验证"
+            )
+
+    if trend_label == "进步中" and critical:
+        guidance_lines.append(
+            f"- 学生近期有进步趋势，适当给予肯定"
+        )
+
+    sections = [header] + mastery_lines + weak_lines + guidance_lines
+    result = "\n".join(sections)
+
+    if len(result) > 2000:
+        result = result[:1997] + "..."
+
+    return result

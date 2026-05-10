@@ -1107,3 +1107,11 @@ async def get_student_mastery_endpoint(student_id: str):
     if "error" in result:
         raise HTTPException(status_code=404, detail=result["error"])
     return result
+
+
+@app.get("/api/guidance/context/{student_id}")
+async def get_guidance_context(student_id: str):
+    from app.services.student_service import build_guidance_context
+
+    context = await build_guidance_context(student_id)
+    return {"student_id": student_id, "context": context, "length": len(context)}
