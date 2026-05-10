@@ -409,6 +409,16 @@ _MIGRATE_SQL = [
     "CREATE INDEX IF NOT EXISTS idx_et_parent ON exercise_types(parent_id)",
     "CREATE INDEX IF NOT EXISTS idx_et_category ON exercise_types(category)",
     "CREATE INDEX IF NOT EXISTS idx_et_code ON exercise_types(code)",
+    # Batch-lookup and grading hot-path indexes
+    "CREATE INDEX IF NOT EXISTS idx_hp_homework ON homework_problems(homework_id)",
+    "CREATE INDEX IF NOT EXISTS idx_hs_hw_student ON homework_submissions(homework_id, student_id)",
+    "CREATE INDEX IF NOT EXISTS idx_diag_created ON diagnosis_history(created_at)",
+    "CREATE INDEX IF NOT EXISTS idx_diag_student_created ON diagnosis_history(student_id, created_at)",
+    "CREATE INDEX IF NOT EXISTS idx_hw_class ON homework(class_id)",
+    "CREATE INDEX IF NOT EXISTS idx_scanned_hw ON scanned_submissions(homework_id)",
+    "CREATE INDEX IF NOT EXISTS idx_hw_student ON homework(student_id)",
+    "CREATE INDEX IF NOT EXISTS idx_answers_submission ON student_answers(submission_id)",
+    "CREATE INDEX IF NOT EXISTS idx_progress_cycle ON student_cycle_progress(cycle_id)",
 ]
 
 _DEFAULT_TEACHER_SQL = """
@@ -427,36 +437,47 @@ async def seed_default_teacher() -> None:
             await db.execute("UPDATE classes SET teacher_id = 'T001' WHERE teacher_id = ''")
             await db.commit()
 
-_pragmas_done: bool = False
+_db: aiosqlite.Connection | None = None
 
 
 @asynccontextmanager
 async def get_db():
-    global _pragmas_done
-    db = await aiosqlite.connect(str(DB_PATH))
-    db.row_factory = sqlite3.Row
-    if not _pragmas_done:
-        await db.execute("PRAGMA journal_mode=WAL")
-        await db.execute("PRAGMA foreign_keys=ON")
-        _pragmas_done = True
-    try:
-        yield db
-    finally:
-        await db.close()
+    """Yield the shared database connection (singleton).
+
+    The connection is created once by ``init_db()`` and lives for the
+    entire app lifetime.  The async-context-manager protocol is kept
+    for backward compatibility — ``__aexit__`` is a no-op (does NOT
+    close the connection).
+    """
+    if _db is None:
+        await init_db()
+    assert _db is not None  # for type-checkers
+    yield _db
 
 
 async def close_db() -> None:
-    pass
+    """Close the shared connection (called on app shutdown)."""
+    global _db
+    if _db is not None:
+        await _db.close()
+        _db = None
 
 
 async def init_db() -> None:
+    """Create schema, run migrations, and open the shared connection."""
+    global _db
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-    async with get_db() as db:
-        await db.executescript(_SCHEMA_SQL)
-        for sql in _MIGRATE_SQL:
-            try:
-                await db.execute(sql)
-            except Exception:
-                pass
-        await db.commit()
+
+    _db = await aiosqlite.connect(str(DB_PATH))
+    _db.row_factory = sqlite3.Row
+    await _db.execute("PRAGMA journal_mode=WAL")
+    await _db.execute("PRAGMA foreign_keys=ON")
+
+    await _db.executescript(_SCHEMA_SQL)
+    for sql in _MIGRATE_SQL:
+        try:
+            await _db.execute(sql)
+        except Exception:
+            pass
+    await _db.commit()
     await seed_default_teacher()

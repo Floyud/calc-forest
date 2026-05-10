@@ -9,7 +9,7 @@ from app.schemas import Student, StudentProfile
 
 def _row_to_student(row) -> Student:
     return Student(
-        id=row["id"],
+        student_id=row["id"],
         name=row["name"],
         grade=row["grade"],
         class_id=row["class_id"],
@@ -68,6 +68,38 @@ async def update_error_stats(
                    (id, student_id, error_code, total_attempts, correct_count, last_seen_at)
                    VALUES (?, ?, ?, 1, ?, datetime('now'))""",
                 (stat_id, student_id, error_code, 1 if is_correct else 0),
+            )
+        await db.commit()
+
+
+async def batch_update_error_stats(
+    student_id: str, results: list[tuple[str, bool]]
+) -> None:
+    """Batch-update error stats in a single DB connection.
+
+    Args:
+        student_id: The student ID.
+        results: List of (error_code, is_correct) tuples.
+    """
+    if not results:
+        return
+    async with get_db() as db:
+        for error_code, is_correct in results:
+            await db.execute(
+                """INSERT INTO student_error_stats
+                       (id, student_id, error_code, total_attempts, correct_count, last_seen_at)
+                       VALUES (?, ?, ?, 1, ?, datetime('now'))
+                       ON CONFLICT(student_id, error_code) DO UPDATE SET
+                       total_attempts = total_attempts + 1,
+                       correct_count = correct_count + ?,
+                       last_seen_at = datetime('now')""",
+                (
+                    f"SES{uuid.uuid4().hex[:8].upper()}",
+                    student_id,
+                    error_code,
+                    1 if is_correct else 0,
+                    1 if is_correct else 0,
+                ),
             )
         await db.commit()
 
@@ -176,7 +208,7 @@ async def get_student_profile(student_id: str) -> StudentProfile | None:
             correct_count=wk_correct,
         ))
 
-    return StudentProfile(
+    profile = StudentProfile(
         student_id=student_id,
         student=student,
         total_attempts=total_attempts,
@@ -188,3 +220,12 @@ async def get_student_profile(student_id: str) -> StudentProfile | None:
         recent_accuracy_trend=recent_accuracy_trend,
         last_active_date=last_active_date,
     )
+
+    try:
+        from app.services.growth_milestone import get_growth_milestone
+        milestone = await get_growth_milestone(student_id)
+        profile.growth_milestone = milestone
+    except Exception:
+        pass
+
+    return profile
