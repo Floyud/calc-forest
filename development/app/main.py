@@ -43,6 +43,7 @@ from app.schemas import (
     Teacher,
     TeacherLoginRequest,
     TeacherLoginResponse,
+    TTSRequest,
     TreeSpecies,
 )
 from app.services.class_service import get_class as svc_get_class
@@ -261,12 +262,16 @@ async def get_class_endpoint(class_id: str):
 
 @app.get("/api/classes/{class_id}/summary", response_model=ClassSummary)
 async def get_class_summary_endpoint(class_id: str):
+    from app.services.student_service import get_class_weak_points
+
     enriched = await get_class_error_summary(class_id)
     if enriched is None:
         raise HTTPException(status_code=404, detail="Class not found")
 
     tiers = enriched.get("student_tiers", {})
     attention_ids = tiers.get("需关注", [])
+
+    class_weak_points = await get_class_weak_points(class_id)
 
     return ClassSummary(
         class_id=class_id,
@@ -275,6 +280,7 @@ async def get_class_summary_endpoint(class_id: str):
         class_accuracy=enriched.get("class_accuracy", 0.0),
         top_error_tags=enriched.get("error_distribution", []),
         students_needing_attention=attention_ids,
+        class_weak_points=class_weak_points,
         teacher_brief=f"{enriched['class_name']}共{enriched['total_students']}名学生，"
                       f"全班正确率{enriched.get('class_accuracy', 0.0):.0%}。"
                       f"优秀{len(tiers.get('优秀', []))}人，"
@@ -1075,4 +1081,29 @@ async def get_exercise_type_endpoint(type_id: str):
             parent_row = await pcursor.fetchone()
             if parent_row:
                 result["parent_name"] = dict(parent_row)["name"]
+    return result
+
+
+@app.post("/api/tts/generate")
+async def generate_tts_endpoint(request: TTSRequest):
+    from fastapi.responses import Response
+
+    from app.services import tts_service
+
+    try:
+        audio_bytes = await tts_service.generate_tts(request.text, request.voice)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except RuntimeError as e:
+        raise HTTPException(status_code=502, detail=str(e))
+    return Response(content=audio_bytes, media_type="audio/mpeg")
+
+
+@app.get("/api/students/{student_id}/mastery")
+async def get_student_mastery_endpoint(student_id: str):
+    from app.services import mastery_service
+
+    result = await mastery_service.get_student_mastery(student_id)
+    if "error" in result:
+        raise HTTPException(status_code=404, detail=result["error"])
     return result
