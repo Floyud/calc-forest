@@ -228,6 +228,14 @@ def _detect_carry(
 def _detect_basic_fact(
     record: AnswerRecord, expression: str | None, computed: ComputedValues
 ) -> ErrorTag | None:
+    if computed.student is None and record.student_answer.strip():
+        return _tag(
+            ErrorCode.BASIC_FACT,
+            0.70,
+            "学生答案无法识别为有效数字，可能是计算过程完全跳过或对算式理解有误。",
+            "让学生口头描述自己是怎么得到这个答案的，重新审题后再算一遍。",
+            "先把题目中的数字和运算符号找出来，再开始算。",
+        )
     if computed.student is None or computed.expected is None:
         return None
     if expression:
@@ -368,6 +376,13 @@ def _detect_decimal_error(
 ) -> ErrorTag | None:
     if computed.student is None or computed.expected is None:
         return None
+
+    # If answer is very close to correct (≤2 units), defer to no_checking (E11)
+    if abs(float(computed.expected)) > 0:
+        diff_ratio = abs(float(computed.student - computed.expected)) / abs(float(computed.expected))
+        if diff_ratio <= 0.02:
+            return None
+
     has_decimal = "." in record.problem or "." in record.correct_answer or "." in record.student_answer
     if has_decimal and computed.expected != 0:
         ratio = computed.student / computed.expected
@@ -657,6 +672,17 @@ def _detect_no_checking(
                 "培养做完后逐位检查的习惯，特别关注个位和十位。",
                 "算完后再检查每一位数字对不对。",
             )
+
+    # Close-answer check: difference ≤ 2 units (e.g. 7.85 vs 7.86)
+    diff_abs = abs(float(computed.expected - computed.student))
+    if 0 < diff_abs <= 2 and expected_abs > 0 and student_abs / expected_abs > 0.9:
+        return _tag(
+            ErrorCode.NO_CHECKING,
+            0.55,
+            f"学生答案与正确答案非常接近（差 {diff_abs}），通过简单估算或逆向验算即可发现。",
+            "培养学生做完后用逆运算或估算法快速验证的习惯。",
+            "算完后用逆运算检查一下，或者估一估答案应该大概多少。",
+        )
 
     return None
 
