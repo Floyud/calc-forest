@@ -374,6 +374,20 @@ CREATE TABLE IF NOT EXISTS exercise_types (
     textbook_unit TEXT NOT NULL DEFAULT '',
     FOREIGN KEY (parent_id) REFERENCES exercise_types(id)
 );
+
+-- Error code → knowledge point mapping (人教版六年级下册)
+CREATE TABLE IF NOT EXISTS error_code_knowledge_map (
+    id TEXT PRIMARY KEY,
+    error_code TEXT NOT NULL,
+    unit_id TEXT NOT NULL,
+    unit_title TEXT NOT NULL,
+    knowledge_point TEXT NOT NULL,
+    typical_error TEXT NOT NULL DEFAULT '',
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    FOREIGN KEY (unit_id) REFERENCES teaching_units(id)
+);
+CREATE INDEX IF NOT EXISTS idx_eckm_error_code ON error_code_knowledge_map(error_code);
+CREATE INDEX IF NOT EXISTS idx_eckm_unit_id ON error_code_knowledge_map(unit_id);
 """
 
 _MIGRATE_SQL = [
@@ -419,6 +433,8 @@ _MIGRATE_SQL = [
     "CREATE INDEX IF NOT EXISTS idx_hw_student ON homework(student_id)",
     "CREATE INDEX IF NOT EXISTS idx_answers_submission ON student_answers(submission_id)",
     "CREATE INDEX IF NOT EXISTS idx_progress_cycle ON student_cycle_progress(cycle_id)",
+    # Add student_number column
+    "ALTER TABLE students ADD COLUMN student_number TEXT NOT NULL DEFAULT ''",
 ]
 
 _DEFAULT_TEACHER_SQL = """
