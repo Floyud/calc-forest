@@ -32,6 +32,28 @@ async def get_student_top_errors(student_id: str, limit: int = 3) -> list[str]:
         return [row[0] for row in rows]
 
 
+async def _get_student_accuracy(student_id: str) -> float | None:
+    async with get_db() as db:
+        cursor = await db.execute(
+            """SELECT SUM(total_attempts) as total,
+                      SUM(correct_count) as correct
+               FROM student_error_stats WHERE student_id = ?""",
+            (student_id,),
+        )
+        row = await cursor.fetchone()
+        if row and row["total"] and row["total"] > 0:
+            return row["correct"] / row["total"]
+    return None
+
+
+def _difficulty_distribution_for(accuracy: float) -> dict[str, float]:
+    if accuracy < 0.6:
+        return {"A": 0.6, "B": 0.4}
+    if accuracy < 0.8:
+        return {"A": 0.3, "B": 0.5, "C": 0.2}
+    return {"B": 0.4, "C": 0.6}
+
+
 async def generate_homework(
     class_id: str,
     grade: int = 6,
@@ -49,10 +71,17 @@ async def generate_homework(
     if not error_codes_target:
         error_codes_target = ["E03"]
 
+    diff_dist: dict[str, float] | None = None
+    if student_id:
+        accuracy = await _get_student_accuracy(student_id)
+        if accuracy is not None:
+            diff_dist = _difficulty_distribution_for(accuracy)
+
     problems = generate_quiz_problems(
         error_codes=error_codes_target,
         difficulty=difficulty,
         total_count=problem_count,
+        difficulty_distribution=diff_dist,
     )
 
     homework_id = f"HW{uuid.uuid4().hex[:8].upper()}"
@@ -81,7 +110,7 @@ async def generate_homework(
                    correct_answer, knowledge_point, target_error_code, difficulty)
                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
                 (pid, homework_id, i, p.problem, p.correct_answer,
-                 p.knowledge_point, p.error_code, difficulty),
+                 p.knowledge_point, p.error_code, p.difficulty),
             )
 
         await db.commit()

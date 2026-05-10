@@ -47,6 +47,7 @@ from app.schemas import (
 )
 from app.services.class_service import get_class as svc_get_class
 from app.services.class_service import get_class_summary
+from app.services.summaries import get_class_error_summary
 from app.services.cycle_service import get_current_cycle, get_student_growth
 from app.services.curriculum_service import (
     get_calendar,
@@ -260,10 +261,26 @@ async def get_class_endpoint(class_id: str):
 
 @app.get("/api/classes/{class_id}/summary", response_model=ClassSummary)
 async def get_class_summary_endpoint(class_id: str):
-    summary = await get_class_summary(class_id)
-    if summary is None:
+    enriched = await get_class_error_summary(class_id)
+    if enriched is None:
         raise HTTPException(status_code=404, detail="Class not found")
-    return summary
+
+    tiers = enriched.get("student_tiers", {})
+    attention_ids = tiers.get("需关注", [])
+
+    return ClassSummary(
+        class_id=class_id,
+        class_name=enriched["class_name"],
+        total_students=enriched["total_students"],
+        class_accuracy=enriched.get("class_accuracy", 0.0),
+        top_error_tags=enriched.get("error_distribution", []),
+        students_needing_attention=attention_ids,
+        teacher_brief=f"{enriched['class_name']}共{enriched['total_students']}名学生，"
+                      f"全班正确率{enriched.get('class_accuracy', 0.0):.0%}。"
+                      f"优秀{len(tiers.get('优秀', []))}人，"
+                      f"良好{len(tiers.get('良好', []))}人，"
+                      f"需关注{len(attention_ids)}人。",
+    )
 
 
 @app.get("/api/cycles/current", response_model=AcademicCycle)
@@ -282,6 +299,15 @@ async def get_student_growth_endpoint(student_id: str):
     return progress
 
 
+@app.post("/api/students/{student_id}/growth/record")
+async def record_growth(student_id: str):
+    from app.services.growth_milestone import record_practice_day
+    result = await record_practice_day(student_id)
+    if "error" in result:
+        raise HTTPException(status_code=404, detail=result["error"])
+    return result
+
+
 @app.get("/api/knowledge/search")
 async def knowledge_search_endpoint(q: str = "", limit: int = 5):
     from app.services.knowledge_service import search_knowledge
@@ -292,7 +318,7 @@ async def knowledge_search_endpoint(q: str = "", limit: int = 5):
     return {"results": results}
 
 
-@app.post("/api/homework/generate")
+@app.post("/api/homework/generate", response_model=Homework)
 async def homework_generate_endpoint(request: HomeworkGenerateRequest):
     from app.services.homework_service import generate_homework
     result = await generate_homework(

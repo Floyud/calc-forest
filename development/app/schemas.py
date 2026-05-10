@@ -3,7 +3,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import Any
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, computed_field, field_validator
 
 
 class ErrorCode(str, Enum):
@@ -56,7 +56,7 @@ class ErrorTag(BaseModel):
 
 class AnswerRecord(BaseModel):
     record_id: str | None = None
-    student_id: str = Field(default="S000")
+    student_id: str | None = Field(default=None)
     grade: int = Field(ge=1, le=6)
     class_id: str | None = None
     knowledge_point: str | None = None
@@ -81,13 +81,18 @@ class GrowthMilestone(BaseModel):
 
 
 class TreeSpecies(BaseModel):
-    id: str
+    species_id: str
     name: str
     category: str
     emoji: str
     education_value: str
     knowledge_highlight: str
     available_cycles: list[str] = Field(default_factory=list)
+
+    @computed_field
+    @property
+    def id(self) -> str:
+        return self.species_id
 
 
 class EncouragementRule(BaseModel):
@@ -153,7 +158,7 @@ class DifySessionDraftResponse(BaseModel):
 
 
 class Student(BaseModel):
-    id: str
+    student_id: str
     name: str
     grade: int = Field(ge=1, le=6)
     class_id: str
@@ -283,7 +288,7 @@ class DiagnosisRecord(BaseModel):
 
 class DiagnosisResponse(BaseModel):
     record_id: str | None
-    student_id: str
+    student_id: str | None
     is_correct: bool
     error_code: str = ""  # convenience: mirrors primary_error.code
     error_label: str = ""  # convenience: mirrors primary_error.label
@@ -319,6 +324,7 @@ class HomeworkProblem(BaseModel):
 
 class Homework(BaseModel):
     id: str
+    homework_id: str | None = None
     class_id: str
     student_id: str | None = None
     cycle_id: str | None = None
@@ -371,7 +377,12 @@ class HomeworkGenerateRequest(BaseModel):
 class HomeworkSubmitRequest(BaseModel):
     homework_id: str
     student_id: str
-    answers: list[dict[str, str]]
+    answers: list[HomeworkAnswerInput]
+
+
+class HomeworkAnswerInput(BaseModel):
+    problem_sequence: int
+    raw_answer: str
 
 
 class HomeworkGradeResult(BaseModel):
