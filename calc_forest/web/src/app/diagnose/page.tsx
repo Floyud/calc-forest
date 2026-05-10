@@ -33,6 +33,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { DifySessionDraftResponse, DifySessionDraftRequest, GuidanceMode } from "@/lib/types";
+import { API_BASE, DEFAULT_STUDENT_ID } from "@/lib/config";
 import PipelineProgress from "@/components/diagnose/PipelineProgress";
 
 const VerticalCalcAnimation = dynamic(
@@ -83,6 +84,7 @@ const DEMO_EXAMPLES: DemoExample[] = [
 ];
 
 export default function DiagnosePage() {
+  const [studentId, setStudentId] = useState(DEFAULT_STUDENT_ID);
   const [grade, setGrade] = useState(6);
   const [problem, setProblem] = useState("2/3×3/4=");
   const [correctAnswer, setCorrectAnswer] = useState("1/2");
@@ -123,6 +125,7 @@ export default function DiagnosePage() {
     }
 
     const body: DifySessionDraftRequest = {
+      student_id: studentId,
       grade,
       problem_text: problem,
       correct_answer_text: correctAnswer,
@@ -201,7 +204,17 @@ export default function DiagnosePage() {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="mode">引导模式</Label>
+                  <Label htmlFor="student">学生</Label>
+                  <Input
+                    id="student"
+                    value={studentId}
+                    onChange={(e) => setStudentId(e.target.value)}
+                    placeholder="S001"
+                  />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="mode">引导模式</Label>
                   <Select
                     value={guidanceMode}
                     onValueChange={(val) =>
@@ -218,7 +231,6 @@ export default function DiagnosePage() {
                     </SelectContent>
                   </Select>
                 </div>
-              </div>
 
               <div className="space-y-1.5">
                 <Label htmlFor="problem">题目</Label>

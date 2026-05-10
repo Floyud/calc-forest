@@ -198,8 +198,8 @@ def encouragements() -> list[EncouragementRule]:
 
 
 @app.post("/api/dify/session-draft", response_model=DifySessionDraftResponse)
-def dify_session_draft(request: DifySessionDraftRequest) -> DifySessionDraftResponse:
-    return build_session_draft(request)
+async def dify_session_draft(request: DifySessionDraftRequest) -> DifySessionDraftResponse:
+    return await build_session_draft(request)
 
 
 @app.post("/api/dify/full-pipeline", response_model=DifySessionDraftResponse)

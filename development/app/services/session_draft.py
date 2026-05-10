@@ -1,13 +1,11 @@
 from __future__ import annotations
 
-import asyncio
-
 from app.schemas import AnswerRecord, DifySessionDraftRequest, DifySessionDraftResponse
 from app.pipeline.session_draft_pipeline import create_session_draft_pipeline
 from app.pipeline.response_assembler import assemble_response
 
 
-def build_session_draft(request: DifySessionDraftRequest) -> DifySessionDraftResponse:
+async def build_session_draft(request: DifySessionDraftRequest) -> DifySessionDraftResponse:
     student_steps = []
     if request.student_steps_text:
         student_steps = [line.strip() for line in request.student_steps_text.splitlines() if line.strip()]
@@ -23,7 +21,7 @@ def build_session_draft(request: DifySessionDraftRequest) -> DifySessionDraftRes
     )
 
     pipeline = create_session_draft_pipeline()
-    context = asyncio.run(pipeline.run({
+    context = await pipeline.run({
         "record": record,
         "student_id": request.student_id,
         "grade": request.grade,
@@ -33,6 +31,6 @@ def build_session_draft(request: DifySessionDraftRequest) -> DifySessionDraftRes
         "problem": request.problem_text,
         "correct_answer": request.correct_answer_text,
         "student_answer": request.student_answer_text,
-    }))
+    })
 
     return assemble_response(context, request)
