@@ -1,6 +1,6 @@
 \documentclass[12pt,a4paper]{ctexart}
 
-\usepackage[margin=20mm]{geometry}
+\usepackage[margin=15mm]{geometry}
 \usepackage{amsmath,amssymb}
 \usepackage{xcolor}
 \usepackage{tikz}
@@ -8,6 +8,7 @@
 \usepackage{fancyhdr}
 \usepackage{lastpage}
 
+% ---- Colors ----
 \definecolor{forestgreen}{RGB}{56,118,74}
 \definecolor{bark}{RGB}{93,64,55}
 \definecolor{parchment}{RGB}{250,253,247}
@@ -18,83 +19,86 @@
 \definecolor{diffAfg}{RGB}{46,120,46}
 \definecolor{diffBfg}{RGB}{180,130,20}
 \definecolor{diffCfg}{RGB}{180,60,60}
+\definecolor{errbg}{RGB}{218,232,252}
+\definecolor{errfg}{RGB}{30,60,120}
 
+% ---- Page style ----
 \pagestyle{fancy}
 \fancyhf{}
 \fancyhead[C]{\small\color{gray} 我的计算森林 $\cdot$ 数学练习}
-\fancyfoot[C]{\small\color{gray} 第 \thepage\ 页 / 共 \pageref{LastPage} 页}
+\fancyfoot[C]{\small\color{gray} 第 \thepage\ 页\,/\,共 \pageref{LastPage} 页}
 \renewcommand{\headrulewidth}{0.4pt}
 \renewcommand{\headrule}{\hbox to\headwidth{\color{warmgold}\leaders\hrule height 0.8pt\hfill}}
 
 \setlength{\parindent}{0pt}
 \setlength{\parskip}{0pt}
+\setlength{\columnsep}{14mm}
 
+% ---- Badge commands ----
 \newcommand{\diffbadge}[1]{%
   \if#1A\colorbox{diffAbg}{\color{diffAfg}\scriptsize\bfseries 基础}\fi
   \if#1B\colorbox{diffBbg}{\color{diffBfg}\scriptsize\bfseries 中档}\fi
   \if#1C\colorbox{diffCbg}{\color{diffCfg}\scriptsize\bfseries 高档}\fi
 }
 
-\newcommand{\answerline}{\underline{\hfill\hspace{6cm}\hfill}}
+\newcommand{\errbadge}[1]{%
+  \colorbox{errbg}{\color{errfg}\scriptsize #1}%
+}
+
+\newcommand{\answerline}{\underline{\hfill\hspace{3cm}\hfill}}
+
+<# Error code → short label mapping (used in Jinja2 loop below) #>
+<% set _err_map = {
+  "E01": "基础事实", "E02": "进位", "E03": "退位", "E04": "数位对齐",
+  "E05": "运算顺序", "E06": "分数",   "E07": "抄题",  "E08": "步骤",
+  "E09": "算理理解", "E10": "审题",   "E11": "未验算", "E99": "综合"
+} %>
+
+<% set _cn = ['①','②','③','④','⑤','⑥','⑦','⑧','⑨','⑩',
+              '⑪','⑫','⑬','⑭','⑮','⑯','⑰','⑱','⑲','⑳'] %>
 
 \begin{document}
 
-\begin{center}
-  {\LARGE\bfseries\color{bark} 我的计算森林 $\cdot$ 数学练习}
-  \par\vspace{4pt}
-  {\small\color{gray} << class_name >> $\cdot$ << title >> $\cdot$ << date >>}
-  \par\vspace{2pt}
-  \rule{0.6\textwidth}{0.8pt}
-\end{center}
+\twocolumn[%
+% ---- Compact one-column header ----
+{\centering
+  {\large\bfseries\color{bark} 我的计算森林\enspace$\cdot$\enspace 数学练习}%
+  \enspace{\small\color{gray}<< class_name >>\enspace$\cdot$\enspace << title >>\enspace$\cdot$\enspace << date >>}%
+\par}%
+\vspace{2pt}%
+{\color{warmgold}\hrule height 0.6pt}%
+\vspace{4pt}%
+{\noindent\small\color{bark}%
+姓名：<% if student_name %><< student_name >><% else %>\underline{\hspace{2cm}}<% endif %>\hfill
+班级：<< class_name >>\hfill
+难度：<< difficulty >>\hfill
+用时：\underline{\hspace{1.5cm}}}%
+\par\vspace{3pt}%
+{\color{bark!20}\hrule height 0.3pt}%
+\vspace{6pt}%
+]
 
-\vspace{6pt}
-
-\begin{tikzpicture}
-  \node[rounded corners=4pt, draw=bark!30, fill=parchment,
-        inner sep=8pt, text width=\dimexpr\textwidth-24pt\relax] {
-    \begin{minipage}{\dimexpr\textwidth-28pt\relax}
-      \color{bark}
-      \quad 姓名：<% if student_name %><< student_name >><% else %>\underline{\hspace{3cm}}<% endif %>
-      \hfill
-      班级：<< class_name >>
-      \hfill
-      难度：<< difficulty >>
-      \hfill
-      用时：\underline{\hspace{2cm}}
-    \end{minipage}
-  };
-\end{tikzpicture}
-
-\vspace{10pt}
-
+% ---- Problems (two-column, workbook style) ----
 <% for p in problems %>
+<% set _ec = p.get('error_code', 'E99') %>
+<% set _el = p.get('error_label', '') or _err_map.get(_ec, '综合') %>
 \noindent
-\begin{minipage}[t]{\textwidth}
-  \vspace{6pt}
-  \begin{tikzpicture}[baseline=(num.base)]
-    \node[circle, fill=warmgold, text=white, font=\small\bfseries,
-          minimum size=20pt, inner sep=0pt] (num) {<< loop.index >>};
-  \end{tikzpicture}\quad
-  {\large << p.problem >>}%
-  \hfill
-  \diffbadge{<< p.difficulty >>}
-  \par\vspace{6pt}
-  \quad\answerline
-  \par\vspace{2pt}
-\end{minipage}
-
-\vspace{4pt}
-<% if not loop.last %>
-\textcolor{bark!15}{\rule{\textwidth}{0.3pt}}
-<% endif %>
+<< _cn[loop.index0] if loop.index0 < 20 else loop.index >>\enspace
+<< p.problem >>\hfill
+\diffbadge{<< p.difficulty >>}\enspace
+\errbadge{<< _ec >>\enspace<< _el >>}
+\par\vspace{1pt}
+\quad\answerline
+\par\vspace{8pt}
 <% endfor %>
 
 \vfill
 
+% ---- Forest-themed closing ----
 \begin{center}
-  \rule{0.4\textwidth}{0.4pt}
-  \par\vspace{4pt}
-  {\small\color{gray} 每一棵小树都需要耐心浇灌 $\cdot$ 我的计算森林}
+{\color{bark!20}\rule{0.5\columnwidth}{0.3pt}}
+\par\vspace{2pt}
+{\small\color{gray} 每一棵小树都需要耐心浇灌\enspace$\cdot$\enspace 我的计算森林}
 \end{center}
 
 \end{document}

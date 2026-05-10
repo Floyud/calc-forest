@@ -127,7 +127,6 @@ async def _run_xelatex(work_dir: str, tex_file: Path) -> None:
         proc = await asyncio.create_subprocess_exec(
             str(XELATEX_BIN),
             "-interaction=nonstopmode",
-            "-halt-on-error",
             "-output-directory", work_dir,
             str(tex_file),
             stdout=asyncio.subprocess.PIPE,
@@ -882,34 +881,53 @@ async def generate_class_report_pdf(
 
         period_filter = (period_start, period_end + " 23:59:59")
 
+        student_ids = [stu["id"] for stu in students]
+        sid_placeholders = ",".join("?" for _ in student_ids)
+        sid_params = student_ids
+
+        accuracy_map: dict[str, dict] = {}
+        cursor = await db.execute(
+            f"""SELECT student_id,
+                       COUNT(*) as total,
+                       SUM(CASE WHEN is_correct = 1 THEN 1 ELSE 0 END) as correct
+                  FROM diagnosis_history
+                  WHERE student_id IN ({sid_placeholders})
+                    AND created_at >= ? AND created_at <= ?
+                  GROUP BY student_id""",
+            (*sid_params, *period_filter),
+        )
+        for row in await cursor.fetchall():
+            r = dict(row)
+            accuracy_map[r["student_id"]] = r
+
+        top_error_map: dict[str, str] = {}
+        cursor = await db.execute(
+            f"""SELECT student_id, error_code, COUNT(*) as cnt
+                  FROM diagnosis_history
+                  WHERE student_id IN ({sid_placeholders})
+                    AND created_at >= ? AND created_at <= ?
+                    AND is_correct = 0 AND error_code != 'OK'
+                  GROUP BY student_id, error_code
+                  ORDER BY student_id, cnt DESC""",
+            (*sid_params, *period_filter),
+        )
+        seen_students: set[str] = set()
+        for row in await cursor.fetchall():
+            r = dict(row)
+            if r["student_id"] not in seen_students:
+                seen_students.add(r["student_id"])
+                top_error_map[r["student_id"]] = (
+                    f"{r['error_code']} {_ERROR_LABELS.get(r['error_code'], '')}"
+                )
+
         student_stats = []
         for stu in students:
             sid = stu["id"]
-            cursor = await db.execute(
-                """SELECT COUNT(*) as total,
-                        SUM(CASE WHEN is_correct = 1 THEN 1 ELSE 0 END) as correct
-                   FROM diagnosis_history
-                   WHERE student_id = ? AND created_at >= ? AND created_at <= ?""",
-                (sid, *period_filter),
-            )
-            row = await cursor.fetchone()
-            total = row["total"] or 0
-            correct = row["correct"] or 0
+            acc_row = accuracy_map.get(sid, {})
+            total = acc_row.get("total") or 0
+            correct = acc_row.get("correct") or 0
             acc = round(correct / total * 100, 1) if total > 0 else 0.0
-
-            cursor = await db.execute(
-                """SELECT error_code, COUNT(*) as cnt
-                   FROM diagnosis_history
-                   WHERE student_id = ? AND created_at >= ? AND created_at <= ?
-                     AND is_correct = 0 AND error_code != 'OK'
-                   GROUP BY error_code
-                   ORDER BY cnt DESC LIMIT 1""",
-                (sid, *period_filter),
-            )
-            top_err_row = await cursor.fetchone()
-            top_error = ""
-            if top_err_row:
-                top_error = f"{top_err_row['error_code']} {_ERROR_LABELS.get(top_err_row['error_code'], '')}"
+            top_error = top_error_map.get(sid, "")
 
             student_stats.append({
                 "id": sid,
@@ -1075,15 +1093,23 @@ async def generate_class_report_pdf(
             prev_end = None
 
         if prev_start and prev_end:
+            prev_accuracy_map: dict[str, dict] = {}
+            cursor = await db.execute(
+                f"""SELECT student_id,
+                           COUNT(*) as total,
+                           SUM(CASE WHEN is_correct = 1 THEN 1 ELSE 0 END) as correct
+                      FROM diagnosis_history
+                      WHERE student_id IN ({sid_placeholders})
+                        AND created_at >= ? AND created_at <= ?
+                      GROUP BY student_id""",
+                (*sid_params, prev_start, prev_end + " 23:59:59"),
+            )
+            for row in await cursor.fetchall():
+                r = dict(row)
+                prev_accuracy_map[r["student_id"]] = r
+
             for stu in student_stats:
-                cursor = await db.execute(
-                    """SELECT COUNT(*) as total,
-                            SUM(CASE WHEN is_correct = 1 THEN 1 ELSE 0 END) as correct
-                       FROM diagnosis_history
-                       WHERE student_id = ? AND created_at >= ? AND created_at <= ?""",
-                    (stu["id"], prev_start, prev_end + " 23:59:59"),
-                )
-                prev_row = await cursor.fetchone()
+                prev_row = prev_accuracy_map.get(stu["id"])
                 if prev_row and prev_row["total"] and prev_row["total"] > 0:
                     prev_acc = round(prev_row["correct"] / prev_row["total"] * 100, 1)
                     drop = prev_acc - stu["accuracy"]

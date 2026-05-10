@@ -11,6 +11,7 @@
 \usepackage{enumitem}
 \usepackage{tabularx}
 \usepackage{booktabs}
+\usepackage{needspace}
 
 \usetikzlibrary{shapes.geometric,calc,positioning,decorations.pathmorphing}
 \pgfplotsset{compat=1.18}
@@ -126,11 +127,13 @@
   \end{tikzpicture}
 \end{minipage}
 
+\enlargethispage{\baselineskip}
 \vspace{12pt}
 
 %% =====================================================
 %%  SECTION 2: 错误分布热力图
 %% =====================================================
+\needspace{6cm}
 \sectiontitle{二、错误分布}{Error Distribution}
 
 \vspace{4pt}
@@ -140,9 +143,9 @@
 \begin{tikzpicture}
   \begin{axis}[
     ybar,
-    bar width=14pt,
-    width=0.85\textwidth,
-    height=5.5cm,
+    bar width=12pt,
+    width=0.75\textwidth,
+    height=4.5cm,
     ymin=0,
     ymax=<< chart_ymax >>,
     ylabel={\small 错误人次},
@@ -175,73 +178,69 @@
 %% =====================================================
 %%  SECTION 3: 学生分层
 %% =====================================================
+\needspace{6cm}
 \sectiontitle{三、学生分层}{Student Tiers}
 
 \vspace{4pt}
 
 \noindent
-\begin{minipage}[t]{0.32\textwidth}
-  \begin{tikzpicture}
-    \node[rounded corners=3pt, fill=forestgreen!8, draw=forestgreen!30, inner sep=6pt,
-          text width=\dimexpr0.32\textwidth-18pt\relax] {
-      \begin{minipage}{\dimexpr0.32\textwidth-22pt\relax}
-        {\small\bfseries\color{forestgreen} 优秀 ({$\geq$}80\%)}\par\vspace{2pt}
-        {\tiny\color{gray} << tier_excellent_count >> 人}
-        <% if tier_excellent %>
-        \par\vspace{3pt}
-        <% for s in tier_excellent %>
-        {\tiny\color{bark} \treectr{} << s.name >> << s.accuracy >>\%}\par\vspace{1pt}
-        <% endfor %>
-        <% endif %>
-      \end{minipage}
-    };
-  \end{tikzpicture}
-\end{minipage}%
+\parbox[t]{0.32\textwidth}{%
+  \setlength{\fboxsep}{5pt}%
+  \fcolorbox{forestgreen!30}{forestgreen!8}{%
+    \parbox[t]{\dimexpr0.32\textwidth-16pt\relax}{%
+      {\small\bfseries\color{forestgreen} 优秀 ({$\geq$}80\%)}\par\vspace{2pt}
+      {\tiny\color{gray} << tier_excellent_count >> 人}
+      <% if tier_excellent %>
+      \par\vspace{3pt}
+      <% for s in tier_excellent %>
+      {\tiny\color{bark} \treectr{} << s.name >> << s.accuracy >>\%}\par\vspace{1pt}
+      <% endfor %>
+      <% endif %>
+    }%
+  }%
+}%
 \hfill
-\begin{minipage}[t]{0.32\textwidth}
-  \begin{tikzpicture}
-    \node[rounded corners=3pt, fill=warmgold!8, draw=warmgold!30, inner sep=6pt,
-          text width=\dimexpr0.32\textwidth-18pt\relax] {
-      \begin{minipage}{\dimexpr0.32\textwidth-22pt\relax}
-        {\small\bfseries\color{warmgold!80!black} 良好 (60--80\%)}\par\vspace{2pt}
-        {\tiny\color{gray} << tier_good_count >> 人}
-        <% if tier_good %>
-        \par\vspace{3pt}
-        <% for s in tier_good %>
-        {\tiny\color{bark} \treectr{} << s.name >> << s.accuracy >>\%}\par\vspace{1pt}
-        <% endfor %>
-        <% endif %>
-      \end{minipage}
-    };
-  \end{tikzpicture}
-\end{minipage}%
+\parbox[t]{0.32\textwidth}{%
+  \setlength{\fboxsep}{5pt}%
+  \fcolorbox{warmgold!30}{warmgold!8}{%
+    \parbox[t]{\dimexpr0.32\textwidth-16pt\relax}{%
+      {\small\bfseries\color{warmgold!80!black} 良好 (60--80\%)}\par\vspace{2pt}
+      {\tiny\color{gray} << tier_good_count >> 人}
+      <% if tier_good %>
+      \par\vspace{3pt}
+      <% for s in tier_good %>
+      {\tiny\color{bark} \treectr{} << s.name >> << s.accuracy >>\%}\par\vspace{1pt}
+      <% endfor %>
+      <% endif %>
+    }%
+  }%
+}%
 \hfill
-\begin{minipage}[t]{0.32\textwidth}
-  \begin{tikzpicture}
-    \node[rounded corners=3pt, fill=softred!8, draw=softred!30, inner sep=6pt,
-          text width=\dimexpr0.32\textwidth-18pt\relax] {
-      \begin{minipage}{\dimexpr0.32\textwidth-22pt\relax}
-        {\small\bfseries\color{softred} 需关注 ({<}60\%)}\par\vspace{2pt}
-        {\tiny\color{gray} << tier_attention_count >> 人}
-        <% if tier_attention %>
-        \par\vspace{3pt}
-        <% for s in tier_attention %>
-        {\tiny\color{bark} \treectr{} << s.name >> << s.accuracy >>\%}\par\vspace{1pt}
-        <% if s.top_error %>
-        {\tiny\color{softred!70!black} 主错因: << s.top_error >>}\par\vspace{1pt}
-        <% endif %>
-        <% endfor %>
-        <% endif %>
-      \end{minipage}
-    };
-  \end{tikzpicture}
-\end{minipage}
+\parbox[t]{0.32\textwidth}{%
+  \setlength{\fboxsep}{5pt}%
+  \fcolorbox{softred!30}{softred!8}{%
+    \parbox[t]{\dimexpr0.32\textwidth-16pt\relax}{%
+      {\small\bfseries\color{softred} 需关注 ({<}60\%)}\par\vspace{2pt}
+      {\tiny\color{gray} << tier_attention_count >> 人}
+      <% if tier_attention %>
+      \par\vspace{3pt}
+      <% for s in tier_attention %>
+      {\tiny\color{bark} \treectr{} << s.name >> << s.accuracy >>\%}\par\vspace{1pt}
+      <% if s.top_error %>
+      {\tiny\color{softred!70!black} 主错因: << s.top_error >>}\par\vspace{1pt}
+      <% endif %>
+      <% endfor %>
+      <% endif %>
+    }%
+  }%
+}
 
 \vspace{12pt}
 
 %% =====================================================
 %%  SECTION 4: 班级正确率趋势
 %% =====================================================
+\needspace{6cm}
 \sectiontitle{四、正确率趋势}{Accuracy Trend}
 
 \vspace{4pt}
@@ -250,8 +249,8 @@
 <% if accuracy_trend %>
 \begin{tikzpicture}
   \begin{axis}[
-    width=0.85\textwidth,
-    height=5cm,
+    width=0.75\textwidth,
+    height=4.5cm,
     xlabel={\small << trend_xlabel >>},
     ylabel={\small 正确率 (\%)},
     ymin=0, ymax=100,
@@ -298,6 +297,7 @@
 %% =====================================================
 %%  SECTION 5: 薄弱知识点 TOP 5
 %% =====================================================
+\needspace{6cm}
 \sectiontitle{五、薄弱知识点 TOP 5}{Weak Spots}
 
 \vspace{4pt}
@@ -324,6 +324,7 @@
 %% =====================================================
 %%  SECTION 6: 教学建议
 %% =====================================================
+\needspace{6cm}
 \sectiontitle{六、教学建议}{Teaching Recommendations}
 
 \vspace{4pt}
@@ -353,6 +354,7 @@
 %% =====================================================
 %%  SECTION 7: 个体差异提醒
 %% =====================================================
+\needspace{6cm}
 \sectiontitle{七、个体差异提醒}{Individual Alerts}
 
 \vspace{4pt}
