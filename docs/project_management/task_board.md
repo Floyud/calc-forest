@@ -10,7 +10,7 @@
 
 ## Current Focus
 
-当前阶段目标：保持 `Agent.md`、`docs/`、`development/`、`calc_forest/` 四条主线一致，把当前主叙事收束为 **Dify-first 教师工作台 + 错因诊断闭环 + 教师审核边界**，并将森林相关内容降级为品牌表达与后续扩展层。
+当前阶段目标：保持 `Agent.md`、`docs/`、`development/`、`calc_forest/` 四条主线一致，把当前主叙事聚焦为 **教师工作台 + 纳米级错因图谱 + 课本章节精准定位 + 森林情感成长**，让 E01-E11 错因被雷达图看见、被热力图看见、被 TTS 听见、被粒子动画感受到。
 
 ## Exploration Backlog
 
@@ -36,33 +36,42 @@
 | BI-003 | DONE | 实现 Pydantic 数据结构 | `development/app/schemas.py` |
 | BI-004 | DONE | 实现基础错因诊断规则 | `development/app/services/diagnosis.py` |
 | BI-005 | DONE | 实现 FastAPI `/api/diagnose` | `development/app/main.py` |
-| BI-006 | TODO | 实现学生画像更新逻辑（含森林数据） | `development/app/services/profiles.py` |
+| BI-006 | DONE | 实现学生画像更新逻辑（含森林数据） | `development/app/services/profiles.py` — `get_student_profile_summary()`, `get_class_profile_summary()` |
 | BI-007 | DONE | 实现分层练习推荐草案 | `development/app/services/practice.py` |
-| BI-008 | TODO | 实现班级摘要接口 | `development/app/services/summaries.py` |
+| BI-008 | DONE | 实现班级摘要接口 | `development/app/services/summaries.py` — `get_class_error_summary()`, `get_class_period_summary()`, `get_error_code_breakdown()` |
 | BI-009 | DONE | 写首批诊断单元测试 | `development/tests/test_diagnosis.py` |
 | BI-010 | DONE | 写 README 和本地运行命令 | `README.md` |
 | BI-011 | TODO | 增强括号混合运算步骤错误诊断 | `development/app/services/diagnosis.py` |
 | BI-012 | TODO | 增强两位数乘法部分积错位合并诊断 | `development/app/services/diagnosis.py` |
 | BI-013 | DONE | 将成长里程碑 + 树种 + 引导模式加入 schemas | `development/app/schemas.py` |
 | BI-014 | DONE | 创建8种核心树种数据和鼓励语配置 | `development/data/tree_species.json` + `development/data/encouragements.json` |
-| BI-015 | TODO | 实现成长里程碑更新逻辑 | `development/app/services/growth.py` |
+| BI-015 | DONE | 实现成长里程碑更新逻辑 | `development/app/services/growth_milestone.py` — 9阶段自动递进 |
 | BI-016 | TODO | 实现4步引导法（标准模式） | 扩展 `development/app/services/diagnosis.py` 的 student_feedback |
 | BI-017 | TODO | 实现1-2年级口算题型诊断规则 | `development/app/services/diagnosis.py` |
-| BI-018 | TODO | 评估森林视图 API 是否仍保留在后续扩展层 | 范围澄清后再决定是否实现 |
-| BI-019 | DONE | 建立产品侧 Dify 工作区和首个工作流清单 | `calc_forest/dify/` |
-| BI-020 | DONE | 实现 Dify 夜间版组合接口 | `development/app/services/session_draft.py` + `POST /api/dify/session-draft` |
-| BI-021 | DONE | 产出正式版 V2 多节点 Dify 工作流 | `calc_forest/dify/my_calc_forest_dify_formal_v2.yml` |
-| BI-022 | DONE | 补齐 Dify 设计文档、运行脚本和知识源文档 | `calc_forest/dify/formal_workflow_design.md` + `knowledge_sources/` + `scripts/` |
-| BI-023 | DONE | 扩展 DB schema — 6 张新表 + students 扩展字段 | `teaching_units`, `teaching_schedule`, `calendar_weeks`, `student_error_trajectory`, `scanned_submissions`, `homework_pdfs` |
-| BI-024 | DONE | 人教版六年级下册种子数据 | `development/scripts/seed_curriculum.py` |
-| BI-025 | DONE | 课程 API 端点 — units/schedule/calendar/trajectory | `development/app/services/curriculum_service.py` |
-| BI-026 | DONE | 《火山的女儿》视觉风格重构 — 色板/卡片/字体 | `globals.css` parchment/warm/volcano/ink/sage 色系 |
-| BI-027 | DONE | 森林网格缩略/展开 Zoom 模式 | `ClassForestGrid.tsx` + `StudentTreeCard.tsx` compact |
-| BI-028 | DONE | 学生 3-tab 详情 drawer (数据概览/错因轨迹/学习画像) | `StudentDetailDrawer.tsx` |
-| BI-029 | DONE | PDF 作业生成 (weasyprint + jinja2) | `development/app/services/pdf_service.py` + `templates/homework.html` |
-| BI-030 | DONE | 前端 bundle 优化 — dynamic import + memo + tree-shaking | 首页 277kB→167kB (-40%) |
-| BI-031 | DONE | OCR schema stub + API (returns 501) | `scanned_submissions` table + `/api/ocr/stub`, `/api/ocr/upload` |
-| BI-032 | DOING | 首页接入真实后端 API (替换 mock) | `page.tsx` + `ClassForestGrid.tsx` |
+| BI-018 | DONE | E01-E11错因雷达图 | `calc_forest/web/src/components/forest/ErrorRadarChart.tsx` |
+| BI-019 | DONE | 班级错因热力图 | `calc_forest/web/src/components/forest/ClassErrorHeatmap.tsx` |
+| BI-020 | DONE | Edge-TTS语音端点 + Fake IRT掌握度API | `development/app/services/tts_service.py` + `/api/tts/*`, `/api/mastery/*` |
+| BI-021 | DONE | Canvas粒子系统增强（萤火虫+生长脉冲） | `calc_forest/web/src/components/forest/ForestBackground.tsx` |
+| BI-022 | DONE | 错因→知识点映射表 + 学生档案增强 | `error_code_knowledge_map` 数据表 + `student_service.py` 扩展字段 |
+| BI-023 | DOING | 前端展示课本章节级薄弱知识点 | `calc_forest/web/src/components/forest/` |
+| BI-024 | TODO | 竖式计算分步动画（Photomath对标） | `calc_forest/web/src/components/` |
+| BI-025 | TODO | SSE Agent执行流可视化 | `development/app/` + 前端组件 |
+| BI-026 | TODO | 上下文感知引导（历史错因注入Dify prompt） | Dify workflow + `session_draft.py` |
+| BI-033 | TODO | 评估森林视图 API 是否仍保留在后续扩展层 | 范围澄清后再决定是否实现 |
+| BI-034 | DONE | 建立产品侧 Dify 工作区和首个工作流清单 | `calc_forest/dify/` |
+| BI-035 | DONE | 实现 Dify 夜间版组合接口 | `development/app/services/session_draft.py` + `POST /api/dify/session-draft` |
+| BI-036 | DONE | 产出正式版 V2 多节点 Dify 工作流 | `calc_forest/dify/my_calc_forest_dify_formal_v2.yml` |
+| BI-037 | DONE | 补齐 Dify 设计文档、运行脚本和知识源文档 | `calc_forest/dify/formal_workflow_design.md` + `knowledge_sources/` + `scripts/` |
+| BI-038 | DONE | 扩展 DB schema — 6 张新表 + students 扩展字段 | `teaching_units`, `teaching_schedule`, `calendar_weeks`, `student_error_trajectory`, `scanned_submissions`, `homework_pdfs` |
+| BI-039 | DONE | 人教版六年级下册种子数据 | `development/scripts/seed_curriculum.py` |
+| BI-040 | DONE | 课程 API 端点 — units/schedule/calendar/trajectory | `development/app/services/curriculum_service.py` |
+| BI-041 | DONE | 《火山的女儿》视觉风格重构 — 色板/卡片/字体 | `globals.css` parchment/warm/volcano/ink/sage 色系 |
+| BI-042 | DONE | 森林网格缩略/展开 Zoom 模式 | `ClassForestGrid.tsx` + `StudentTreeCard.tsx` compact |
+| BI-043 | DONE | 学生 3-tab 详情 drawer (数据概览/错因轨迹/学习画像) | `StudentDetailDrawer.tsx` |
+| BI-044 | DONE | PDF 作业生成 (weasyprint + jinja2) | `development/app/services/pdf_service.py` + `templates/homework.html` |
+| BI-045 | DONE | 前端 bundle 优化 — dynamic import + memo + tree-shaking | 首页 277kB→167kB (-40%) |
+| BI-046 | DONE | OCR schema stub + API (returns 501) | `scanned_submissions` table + `/api/ocr/stub`, `/api/ocr/upload` |
+| BI-047 | DOING | 首页接入真实后端 API (替换 mock) | `page.tsx` + `ClassForestGrid.tsx` |
 
 ## Competition Material Backlog
 

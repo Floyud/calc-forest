@@ -47,3 +47,13 @@ Every diagnosis must include:
 - Teacher action.
 - Student-facing hint.
 - Review status.
+
+## 人教版六年级下册 知识点映射
+
+> E01-E11 错因代码与人教版六年级下册各单元知识点的详细映射，见 `error_code_knowledge_map` 数据表。
+>
+> 核心发现：
+> - **第三单元 圆柱与圆锥** 是本册计算错误密度最高的单元
+> - E08 步骤遗漏（漏×⅓、漏底面积）是第三单元最高频错误
+> - E06 小数点/分数单位错误在第二、三、四单元都是核心错因
+> - E10 审题与单位理解错误在比例尺计算（km↔cm换算）中高发
