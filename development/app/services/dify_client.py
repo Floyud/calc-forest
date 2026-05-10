@@ -19,7 +19,7 @@ DIFY_ENABLED = os.getenv("DIFY_ENABLED", "false").lower() in ("true", "1", "yes"
 LOCAL_DIFY_BASE_URL = os.getenv("LOCAL_DIFY_BASE_URL", "http://127.0.0.1:18080/v1")
 LOCAL_DIFY_ENABLED = os.getenv("LOCAL_DIFY_ENABLED", "false").lower() in ("true", "1", "yes")
 
-DEFAULT_TIMEOUT = 60
+DEFAULT_TIMEOUT = 15
 MAX_CONCURRENT_REQUESTS = int(os.getenv("DIFY_MAX_CONCURRENCY", "5"))
 
 # chatflow 类型标记 — student_guidance 用 /chat-messages，其余用 /workflows/run
@@ -230,6 +230,17 @@ async def call_dify_or_llm(
     response_format: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     """尝试 Dify（local → cloud），失败后回退到 DeepSeek。"""
+    # Fast-fail: if no LLM backend has valid credentials, skip immediately
+    local_has_key = dify_config.local.enabled and bool(_get_api_key(workflow_key, "local"))
+    cloud_has_key = dify_config.cloud.enabled and bool(_get_api_key(workflow_key, "cloud"))
+    deepseek_has_key = bool(DEEPSEEK_API_KEY)
+
+    if not (local_has_key or cloud_has_key or deepseek_has_key):
+        raise RuntimeError(
+            f"No LLM backend available for '{workflow_key}': "
+            "local_dify disabled, cloud_dify no key, deepseek no key"
+        )
+
     # Track 1: Local Dify
     if dify_config.local.enabled:
         api_key = _get_api_key(workflow_key, "local")
