@@ -178,7 +178,7 @@ async def get_weak_knowledge_points(student_id: str) -> list[dict]:
         if acc is None:
             zone = "no_data"
         elif acc >= 0.85:
-            zone = "mastered"
+            continue  # skip mastered error codes
         elif acc >= 0.5:
             zone = "learning"
         else:
@@ -248,7 +248,7 @@ async def get_class_weak_points(class_id: str) -> list[dict]:
         if acc is None:
             zone = "no_data"
         elif acc >= 0.85:
-            zone = "mastered"
+            continue  # skip mastered error codes
         elif acc >= 0.5:
             zone = "learning"
         else:
