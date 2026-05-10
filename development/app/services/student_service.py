@@ -8,15 +8,21 @@ from app.schemas import Student, StudentProfile
 
 
 def _row_to_student(row) -> Student:
+    import json
+
     return Student(
         student_id=row["id"],
         name=row["name"],
         grade=row["grade"],
         class_id=row["class_id"],
+        student_number=row["student_number"] if "student_number" in row.keys() else "",
         guidance_mode=row["guidance_mode"],
         textbook_version=row["textbook_version"],
         start_grade=row["start_grade"],
         enrolled_at=row["enrolled_at"],
+        personality_tags=json.loads(row["personality_tags"]) if "personality_tags" in row.keys() and row["personality_tags"] else [],
+        learning_style=row["learning_style"] if "learning_style" in row.keys() else "",
+        notes=row["notes"] if "notes" in row.keys() else "",
     )
 
 
@@ -102,6 +108,145 @@ async def batch_update_error_stats(
                 ),
             )
         await db.commit()
+
+
+async def get_weak_knowledge_points(student_id: str) -> list[dict]:
+    """
+    Returns weak knowledge points for a student, ordered by accuracy (worst first).
+    Each entry includes: error_code, unit_id, unit_title, knowledge_point,
+    typical_error, accuracy, total_attempts, mastery_zone.
+    Gracefully returns [] if error_code_knowledge_map table doesn't exist.
+    """
+    async with get_db() as db:
+        try:
+            cursor = await db.execute("""
+                SELECT
+                    eckm.error_code,
+                    eckm.unit_title,
+                    eckm.knowledge_point,
+                    eckm.typical_error,
+                    eckm.unit_id,
+                    ses.total_attempts,
+                    ses.correct_count,
+                    CASE WHEN ses.total_attempts > 0
+                        THEN CAST(ses.correct_count AS FLOAT) / ses.total_attempts
+                        ELSE NULL END as accuracy
+                FROM error_code_knowledge_map eckm
+                LEFT JOIN student_error_stats ses
+                    ON eckm.error_code = ses.error_code AND ses.student_id = ?
+                WHERE eckm.error_code != 'OK'
+                ORDER BY accuracy ASC, ses.total_attempts DESC
+            """, (student_id,))
+            rows = await cursor.fetchall()
+        except Exception:
+            # Table doesn't exist yet (parallel task creates it)
+            return []
+
+    results = []
+    for row in rows:
+        acc = row["accuracy"]
+        if acc is None:
+            zone = "no_data"
+        elif acc >= 0.85:
+            zone = "mastered"
+        elif acc >= 0.5:
+            zone = "learning"
+        else:
+            zone = "needs_practice"
+
+        results.append({
+            "error_code": row["error_code"],
+            "unit_id": row["unit_id"],
+            "unit_title": row["unit_title"],
+            "knowledge_point": row["knowledge_point"],
+            "typical_error": row["typical_error"],
+            "accuracy": round(acc, 2) if acc is not None else None,
+            "total_attempts": row["total_attempts"] or 0,
+            "mastery_zone": zone,
+        })
+
+    # Deduplicate: keep best entry per error_code (lowest accuracy = weakest)
+    seen: dict[str, dict] = {}
+    for r in results:
+        code = r["error_code"]
+        if code not in seen or (
+            r["accuracy"] is not None
+            and (seen[code]["accuracy"] is None or r["accuracy"] < seen[code]["accuracy"])
+        ):
+            seen[code] = r
+
+    return sorted(seen.values(), key=lambda x: x["accuracy"] if x["accuracy"] is not None else 1.0)
+
+
+async def get_class_weak_points(class_id: str) -> list[dict]:
+    """
+    Aggregates weak knowledge points across all students in a class.
+    Returns entries ordered by class-wide accuracy (worst first).
+    Gracefully returns [] if error_code_knowledge_map table doesn't exist.
+    """
+    async with get_db() as db:
+        try:
+            cursor = await db.execute("""
+                SELECT
+                    eckm.error_code,
+                    eckm.unit_title,
+                    eckm.unit_id,
+                    eckm.knowledge_point,
+                    eckm.typical_error,
+                    SUM(ses.total_attempts) AS total_attempts,
+                    SUM(ses.correct_count) AS correct_count,
+                    COUNT(DISTINCT ses.student_id) AS affected_students,
+                    CASE WHEN SUM(ses.total_attempts) > 0
+                        THEN CAST(SUM(ses.correct_count) AS FLOAT) / SUM(ses.total_attempts)
+                        ELSE NULL END as accuracy
+                FROM error_code_knowledge_map eckm
+                LEFT JOIN student_error_stats ses
+                    ON eckm.error_code = ses.error_code
+                LEFT JOIN students s ON s.id = ses.student_id AND s.class_id = ?
+                WHERE eckm.error_code != 'OK'
+                GROUP BY eckm.error_code, eckm.unit_title, eckm.unit_id,
+                         eckm.knowledge_point, eckm.typical_error
+                ORDER BY accuracy ASC, total_attempts DESC
+            """, (class_id,))
+            rows = await cursor.fetchall()
+        except Exception:
+            return []
+
+    results = []
+    for row in rows:
+        acc = row["accuracy"]
+        if acc is None:
+            zone = "no_data"
+        elif acc >= 0.85:
+            zone = "mastered"
+        elif acc >= 0.5:
+            zone = "learning"
+        else:
+            zone = "needs_practice"
+
+        results.append({
+            "error_code": row["error_code"],
+            "unit_id": row["unit_id"],
+            "unit_title": row["unit_title"],
+            "knowledge_point": row["knowledge_point"],
+            "typical_error": row["typical_error"],
+            "accuracy": round(acc, 2) if acc is not None else None,
+            "total_attempts": row["total_attempts"] or 0,
+            "affected_students": row["affected_students"] or 0,
+            "mastery_zone": zone,
+        })
+
+    # Deduplicate: keep best entry per error_code
+    seen: dict[str, dict] = {}
+    for r in results:
+        code = r["error_code"]
+        if code not in seen or (
+            r["accuracy"] is not None
+            and (seen[code]["accuracy"] is None or r["accuracy"] < seen[code]["accuracy"])
+        ):
+            seen[code] = r
+
+    return sorted(seen.values(), key=lambda x: x["accuracy"] if x["accuracy"] is not None else 1.0)
 
 
 async def get_error_code_accuracy(student_id: str) -> dict[str, float]:
@@ -216,6 +361,7 @@ async def get_student_profile(student_id: str) -> StudentProfile | None:
         accuracy=accuracy,
         dominant_error_tags=dominant_error_tags,
         accuracy_by_error_code=accuracy_by_error_code,
+        weak_knowledge_points=await get_weak_knowledge_points(student_id),
         weekly_accuracy=weekly_accuracy,
         recent_accuracy_trend=recent_accuracy_trend,
         last_active_date=last_active_date,

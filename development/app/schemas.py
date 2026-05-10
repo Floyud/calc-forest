@@ -162,10 +162,25 @@ class Student(BaseModel):
     name: str
     grade: int = Field(ge=1, le=6)
     class_id: str
+    student_number: str = ""
     guidance_mode: GuidanceMode = GuidanceMode.STANDARD
     textbook_version: str = "PEP"
     start_grade: int = Field(ge=1, le=6)
     enrolled_at: str
+    personality_tags: list[str] = Field(default_factory=list)
+    learning_style: str = ""
+    notes: str = ""
+
+
+class WeakKnowledgePoint(BaseModel):
+    error_code: str
+    error_label: str
+    unit_id: str
+    unit_title: str
+    knowledge_point: str
+    typical_error: str
+    accuracy: float = 0.0
+    mastery_zone: str = "needs_practice"
 
 
 class StudentProfile(BaseModel):
@@ -176,6 +191,7 @@ class StudentProfile(BaseModel):
     accuracy: float = 0.0
     dominant_error_tags: list[str] = Field(default_factory=list)
     accuracy_by_error_code: dict[str, float] = Field(default_factory=dict)
+    weak_knowledge_points: list[dict] = Field(default_factory=list)
     weekly_accuracy: list[WeeklyAccuracy] = Field(default_factory=list)
     recent_accuracy_trend: str = "stable"
     current_guidance_mode: GuidanceMode = GuidanceMode.STANDARD
@@ -240,6 +256,7 @@ class ClassSummary(BaseModel):
     class_accuracy: float = 0.0
     top_error_tags: list[dict[str, int | str]] = Field(default_factory=list)
     students_needing_attention: list[str] = Field(default_factory=list)
+    class_weak_points: list[dict] = Field(default_factory=list)
     teacher_brief: str = ""
 
 
@@ -572,3 +589,8 @@ class ExerciseTypeCategory(BaseModel):
 class ExerciseTypeCatalogResponse(BaseModel):
     """Full exercise type catalog as a tree structure."""
     categories: list[ExerciseTypeCategory] = Field(default_factory=list)
+
+
+class TTSRequest(BaseModel):
+    text: str
+    voice: str | None = None
