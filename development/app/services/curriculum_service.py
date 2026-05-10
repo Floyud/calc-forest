@@ -69,14 +69,17 @@ async def get_calendar(academic_year: str, semester: int = 2) -> list[dict[str, 
 async def get_student_trajectory(student_id: str) -> list[dict[str, Any]]:
     async with get_db() as db:
         cursor = await db.execute(
-            """SELECT error_code,
+            """SELECT dh.error_code,
+                      eckm.unit_id,
+                      eckm.unit_title,
                       COUNT(*) as total_count,
-                      SUM(CASE WHEN is_correct = 0 THEN 1 ELSE 0 END) as error_count,
-                      SUM(CASE WHEN is_correct = 1 THEN 1 ELSE 0 END) as correct_count,
-                      ROUND(AVG(CASE WHEN is_correct = 1 THEN 1.0 ELSE 0.0 END), 4) as accuracy
-               FROM diagnosis_history
-               WHERE student_id = ? AND error_code != 'OK'
-               GROUP BY error_code
+                      SUM(CASE WHEN dh.is_correct = 0 THEN 1 ELSE 0 END) as error_count,
+                      SUM(CASE WHEN dh.is_correct = 1 THEN 1 ELSE 0 END) as correct_count,
+                      ROUND(AVG(CASE WHEN dh.is_correct = 1 THEN 1.0 ELSE 0.0 END), 4) as accuracy
+               FROM diagnosis_history dh
+               LEFT JOIN error_code_knowledge_map eckm ON dh.error_code = eckm.error_code
+               WHERE dh.student_id = ? AND dh.error_code != 'OK'
+               GROUP BY dh.error_code
                ORDER BY error_count DESC""",
             (student_id,),
         )
@@ -87,8 +90,8 @@ async def get_student_trajectory(student_id: str) -> list[dict[str, Any]]:
             result.append({
                 "id": f"TRAJ_{student_id}_{i}",
                 "student_id": student_id,
-                "unit_id": None,
-                "unit_title": None,
+                "unit_id": r["unit_id"],
+                "unit_title": r["unit_title"],
                 "unit_number": None,
                 "week_number": None,
                 "error_code": r["error_code"],
