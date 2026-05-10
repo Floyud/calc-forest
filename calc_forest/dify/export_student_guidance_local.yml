@@ -1,12 +1,3 @@
-version: 0.5.0
-kind: app
-app:
-  mode: advanced-chat
-  name: 我的计算森林_学生引导助手
-  icon: 🌱
-  icon_background: '#E4FBF5'
-  description: 学生引导 chatflow — 用四步引导法帮助小学生理解计算错误，温和地引导学生思考。
-dependencies: []
 workflow:
   graph:
     nodes:
@@ -931,3 +922,5 @@ workflow:
         attachment_image_file_size_limit: 2
   environment_variables: []
   conversation_variables: []
+version: 1.14.0
+kind: app

@@ -1,12 +1,3 @@
-version: 0.5.0
-kind: app
-app:
-  mode: workflow
-  name: 我的计算森林_AI批改画像助手
-  icon: null
-  icon_background: null
-  description: AI批改与画像分析助手
-dependencies: []
 workflow:
   graph:
     nodes:
@@ -104,8 +95,8 @@ workflow:
         code: "import json\n\ndef main(grading_results: str, student_info: str) ->\
           \ dict:\n    try:\n        data = json.loads(grading_results)\n    except:\n\
           \        data = []\n    items = []\n    if isinstance(data, list):\n   \
-          \     items = data\n    elif isinstance(data, dict):\n        items = data.get('results', data.get('problems',\
-          \ []))\n    total = len(items)\n    error_count = 0\n    error_codes = []\n\
+          \     items = data\n    elif isinstance(data, dict):\n        items = data.get('results',\
+          \ [])\n    total = len(items)\n    error_count = 0\n    error_codes = []\n\
           \    for item in items:\n        if not isinstance(item, dict):\n      \
           \      continue\n        is_wrong = not item.get('correct', not item.get('is_correct',\
           \ True))\n        if is_wrong:\n            error_count += 1\n         \
@@ -1490,3 +1481,5 @@ workflow:
         attachment_image_file_size_limit: 2
   environment_variables: []
   conversation_variables: []
+version: 1.14.0
+kind: workflow
