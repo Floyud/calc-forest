@@ -15,7 +15,11 @@ build/
 *.env.production
 
 *.db
+*.db-shm
+*.db-wal
 *.sqlite3
+
+screenshots/
 
 node_modules/
 .next/
