@@ -90,7 +90,7 @@ def _response(
     if secondary:
         secondary_text = "；可能还伴随" + "、".join(tag.label for tag in secondary)
     teacher_summary = (
-        f"{record.student_id} 本题{'正确' if is_correct else '错误'}。"
+        f"{record.student_id or 'unknown'} 本题{'正确' if is_correct else '错误'}。"
         f"主要判断：{primary.label}{secondary_text}。证据：{primary.evidence}"
     )
     return DiagnosisResponse(
@@ -337,7 +337,7 @@ def _detect_missing_step(
     if not record.student_steps and expression and any(op in expression for op in ["+", "-", "*", "×", "/", "÷"]):
         return _tag(
             ErrorCode.MISSING_STEP,
-            0.55,
+            0.40,
             "学生未提供中间步骤，当前只能根据最终答案推断，诊断证据不足。",
             "要求学生补写关键步骤，再判断是计算错误还是方法错误。",
             "把中间步骤写出来，方便检查是哪一步开始出错。",

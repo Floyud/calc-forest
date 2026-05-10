@@ -42,8 +42,7 @@ async def search_knowledge(query: str, limit: int = 5) -> list[dict]:
         if len(query) >= 3:
             cursor = await db.execute(
                 """
-                SELECT path, title,
-                       snippet(knowledge_fts, 2, '>>', '<<', '...', 20) AS snippet
+                SELECT path, title, content
                 FROM knowledge_fts
                 WHERE knowledge_fts MATCH ?
                 ORDER BY rank
@@ -54,7 +53,7 @@ async def search_knowledge(query: str, limit: int = 5) -> list[dict]:
         else:
             cursor = await db.execute(
                 """
-                SELECT path, title, '' AS snippet
+                SELECT path, title, content
                 FROM knowledge_fts
                 WHERE content LIKE ?
                 LIMIT ?
@@ -62,6 +61,19 @@ async def search_knowledge(query: str, limit: int = 5) -> list[dict]:
                 (f"%{query}%", limit),
             )
         rows = await cursor.fetchall()
-        return [
-            {"path": row[0], "title": row[1], "snippet": row[2]} for row in rows
-        ]
+        results = []
+        for row in rows:
+            snippet = _extract_snippet(row[2], query)
+            results.append({"path": row[0], "title": row[1], "snippet": snippet})
+        return results
+
+
+def _extract_snippet(content: str, query: str, context_chars: int = 80) -> str:
+    idx = content.find(query)
+    if idx == -1:
+        return content[:context_chars * 2] + ("..." if len(content) > context_chars * 2 else "")
+    start = max(0, idx - context_chars)
+    end = min(len(content), idx + len(query) + context_chars)
+    prefix = "..." if start > 0 else ""
+    suffix = "..." if end < len(content) else ""
+    return prefix + content[start:end] + suffix
