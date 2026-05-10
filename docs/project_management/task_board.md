@@ -53,7 +53,8 @@
 | BI-020 | DONE | Edge-TTS语音端点 + Fake IRT掌握度API | `development/app/services/tts_service.py` + `/api/tts/*`, `/api/mastery/*` |
 | BI-021 | DONE | Canvas粒子系统增强（萤火虫+生长脉冲） | `calc_forest/web/src/components/forest/ForestBackground.tsx` |
 | BI-022 | DONE | 错因→知识点映射表 + 学生档案增强 | `error_code_knowledge_map` 数据表 + `student_service.py` 扩展字段 |
-| BI-023 | DOING | 前端展示课本章节级薄弱知识点 | `calc_forest/web/src/components/forest/` |
+| BI-023 | DONE | 前端展示课本章节级薄弱知识点 | `calc_forest/web/src/components/forest/StudentDetailDrawer.tsx` |
+| BI-048 | DONE | 真实感多轮作业模拟（好中差学生 + 写→批→改循环） | `development/scripts/simulate_realistic.py` — 824行, 10学生×3层级×8周, 218作业/506提交/2111答题 |
 | BI-024 | TODO | 竖式计算分步动画（Photomath对标） | `calc_forest/web/src/components/` |
 | BI-025 | TODO | SSE Agent执行流可视化 | `development/app/` + 前端组件 |
 | BI-026 | TODO | 上下文感知引导（历史错因注入Dify prompt） | Dify workflow + `session_draft.py` |

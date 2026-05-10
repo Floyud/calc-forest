@@ -177,7 +177,7 @@ async def grade_homework(
         student = await get_student(student_id)
         student_info = {
             "student_id": student_id,
-            "name": student.get("name", "") if student else "",
+            "name": student.name if student else "",
             "grade": 6,
         }
         grading_input = {

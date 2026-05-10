@@ -67,6 +67,8 @@ npm run build  # production build  (use --no-lint flag via npx)
 - `PATCH /api/students/{id}/profile` — update personality tags, learning style, notes
 - `/api/students/{id}/trajectory` — per-unit error trajectory
 - `/api/students/{id}/growth` — student growth progress
+- `GET /api/students/{id}/mastery` — BKT mastery per error code (Bayesian Knowledge Tracing)
+- `POST /api/tts/generate` — Edge-TTS text-to-speech, returns MP3 audio
 - `/api/classes/{id}` — class entity
 - `/api/classes/{id}/summary` — class summary stats
 - `/api/classes/{id}/forest` — class forest view (all students' trees + weekly accuracy)
@@ -105,7 +107,8 @@ npm run build  # production build  (use --no-lint flag via npx)
 - `quiz_service.py` — in-class quiz CRUD + teacher response recording + summary
 - `curriculum_service.py` — teaching units, schedule, calendar, student trajectory
 - `pdf_service.py` — PDF homework generation (weasyprint + jinja2)
-- `profiles.py`, `summaries.py` — stubs, not yet implemented
+- `profiles.py` — student/class profile summaries with weak knowledge point analysis (`get_student_profile_summary()`, `get_class_profile_summary()`)
+- `summaries.py` — class-level error summaries (`get_class_error_summary()`, `get_class_period_summary()`, `get_error_code_breakdown()`)
 
 **Pipeline layer:** `development/app/pipeline/`
 - `__init__.py` — `BaseNode`, `Pipeline`, `NodeResult`, `NodeStatus`
@@ -113,10 +116,10 @@ npm run build  # production build  (use --no-lint flag via npx)
 - `profile_update_node.py`, `growth_update_node.py`, `homework_gen_node.py`
 - `session_draft_pipeline.py`, `response_assembler.py`, `student_feedback_builder.py`
 
-**Schemas:** `development/app/schemas.py` — all Pydantic models (40+ classes).
+**Schemas:** `development/app/schemas.py` — all Pydantic models (40+ classes). Key additions: `WeakKnowledgePoint` (error_code + unit_id + unit_title + knowledge_point + typical_error + accuracy + mastery_zone), enriched `Student` model (student_number, personality_tags, learning_style, notes).
 
-**Database:** 20 data tables in `development/app/db.py` (`_SCHEMA_SQL`):
-`students`, `classes`, `academic_cycles`, `diagnosis_history`, `student_cycle_progress`, `homework`, `homework_problems`, `homework_submissions`, `student_answers`, `practice_weeks`, `student_error_stats`, `quiz_sessions`, `quiz_problems`, `quiz_responses`, `teaching_units`, `teaching_schedule`, `calendar_weeks`, `student_error_trajectory`, `scanned_submissions`, `homework_pdfs`
+**Database:** 21 data tables in `development/app/db.py` (`_SCHEMA_SQL`):
+`students`, `classes`, `academic_cycles`, `diagnosis_history`, `student_cycle_progress`, `homework`, `homework_problems`, `homework_submissions`, `student_answers`, `practice_weeks`, `student_error_stats`, `quiz_sessions`, `quiz_problems`, `quiz_responses`, `teaching_units`, `teaching_schedule`, `calendar_weeks`, `student_error_trajectory`, `scanned_submissions`, `homework_pdfs`, `error_code_knowledge_map` (30 rows mapping E01-E11 to 人教版六年级下册 units)
 Plus 6 FTS5 virtual tables for knowledge base search.
 
 **Static data:** `development/data/` — JSON files + SQLite DB + knowledge base markdown.
@@ -124,8 +127,10 @@ Plus 6 FTS5 virtual tables for knowledge base search.
 **Simulators:** `development/scripts/`
 - `seed_data.py` — seed 10 students, 1 class, 4 cycles, 24 demo records
 - `seed_curriculum.py` — seed 人教版六年级下册 6 units, 18 weeks, 10 students, calendar
+- `seed_knowledge_map.py` — seed 30-row E01-E11 → 人教版六年级下册知识点映射
 - `simulate_homework.py` — single-round 10-student homework simulation
-- `simulate_multiround.py` — 8-week multi-round simulation with adaptive difficulty
+- `simulate_multiround.py` — 8-week multi-round simulation with adaptive difficulty (basic)
+- `simulate_realistic.py` — **realistic 8-week simulation** with 3-tier students (优秀/中等/需关注), per-error-code accuracy modeling, streak-based improvement tracking, error-specific wrong answer generators (E01-E11), and adaptive difficulty progression. Generates 218 homework records, 506 submissions, 2111 answers
 
 **Frontend pages:** `calc_forest/web/src/app/`
 - `/` — Home (班级森林 grid with emotional states, zoom toggle)
@@ -138,10 +143,13 @@ Plus 6 FTS5 virtual tables for knowledge base search.
 - `classroom/WhiteboardDisplay.tsx` — full-screen forest-themed whiteboard with animated problem display
 - `classroom/QuizSummaryView.tsx` — post-quiz summary with error distribution
 - `forest/` — SVG tree system, forest background, student cards, 3-tab detail drawer (overview/trajectory/profile)
+- `forest/ErrorRadarChart.tsx` — E01-E11 radar chart in StudentDetailDrawer
+- `forest/ClassErrorHeatmap.tsx` — student×error_code matrix heatmap on home page
 - `layout/` — navbar (4 tabs), footer
 - `ui/` — shadcn/ui base-nova primitives
+- `GuidanceChat` — Edge-TTS backend integration with Web Speech API fallback
 
-**Frontend performance:** Heavy components use `next/dynamic` (WhiteboardDisplay, AccuracyTrendChart, StudentDetailDrawer). `recharts` only loads on drawer open. `optimizePackageImports` enabled in `next.config.ts`.
+**Frontend performance:** Heavy components use `next/dynamic` (WhiteboardDisplay, AccuracyTrendChart, StudentDetailDrawer). `recharts` only loads on drawer open. `optimizePackageImports` enabled in `next.config.ts`. Botanical page uses lazy loading + collapsible facts for 60% DOM reduction.
 
 ## Critical Constraints
 
@@ -172,15 +180,17 @@ Plus 6 FTS5 virtual tables for knowledge base search.
 1. **分层递进**: 习题有层次，根据答题情况逐步提高难度（A基础→B中档→C高档）
 2. **靶向强化**: 根据学生实际学习能力和薄弱点出题，薄弱点强化训练，举一反三
 3. **算理引导**: 不会做或做错时，一步步引导思考，让学生真正理解算理、学会算法
-4. **语音交互**: 长期目标 — 像小老师一样辅导孩子一步步做题（TTS/STT 集成）
+4. **语音交互**: Edge-TTS 已集成（后端 `/api/tts/generate`），前端 GuidanceChat 带 Web Speech API 回退；长期目标 — 像小老师一样辅导孩子一步步做题
 5. **情绪价值**: 引导过程中用严谨的数学语言，同时给予充足情绪支持 — 不断肯定孩子，也明确指出问题所在
 
 ## Key Context Files
 
 - `Agent.md` — session handoff, project rules, and status (update when scope/paths/APIs change)
-- `docs/project_management/task_board.md` — current task status
-- `docs/project_management/decision_log.md` — major decisions
-- `docs/specs/04_error_taxonomy.md` — error code definitions (PM-facing source of truth)
+- `docs/project_management/task_board.md` — current task status (updated with BI-018 through BI-026)
+- `docs/project_management/decision_log.md` — major decisions (product leap decision recorded)
+- `docs/specs/04_error_taxonomy.md` — error code definitions (PM-facing source of truth, includes 人教版六年级下册 knowledge mapping)
+- `docs/competition/demo_script_v2.md` — 5-act frontend-first demo narrative
+- `docs/competition/elevator_pitch.md` — 30-second competition pitch
 
 ## Dify Cloud Integration
 
@@ -272,7 +282,7 @@ Plus 6 FTS5 virtual tables for knowledge base search.
 ## Known Gaps
 
 - Mixed-operation parenthesis diagnosis and two-digit multiplication partial-product alignment cases not yet covered (BI-011, BI-012).
-- `profiles.py` and `summaries.py` are stubs (BI-006, BI-008).
+- ~~`profiles.py` and `summaries.py` are stubs~~ → BI-006/BI-008 已实现。
 - Growth milestone update logic not implemented (BI-015).
 - 4-step guided feedback (standard mode) not yet in code (BI-016).
 - Grade 1-2 mental arithmetic diagnosis rules not yet implemented (BI-017).
@@ -282,3 +292,40 @@ Plus 6 FTS5 virtual tables for knowledge base search.
 - Frontend pages use mock data; only `/diagnose` calls real backend API。
 - `problem_generation` 无独立 Dify workflow，始终走 DeepSeek 回退。
 - `.mcp.json` 配置了 Playwright MCP（需重载 session 生效，设置 `TMPDIR=/tmp` 解决 WSL Unix socket 问题）。
+
+## CI/CD and Infrastructure
+
+**GitHub Actions:** CI pipeline with DB seeding, test exclusion for E2E.
+
+**Docker Compose:** backend + frontend + dify profile.
+
+**Test counts:**
+| Layer | Count |
+|---|---|
+| Backend (pytest) | 105 |
+| Frontend (Vitest) | 73 |
+| Playwright E2E | 6 |
+| Dify E2E | 3 |
+
+## Product Strategy
+
+**核心定位:** "从功能实现者升级为产品主导者"
+
+- **可视化优先:** 让 E01-E11 被雷达图看见、被 TTS 听见、被粒子动画感受到
+- **教师审核 = 合规优势:** 2025 教育部 13 岁以下禁独立 AI，教师审核门是我们的合规护城河
+- **森林隐喻 = 情感差异化:** 对标 Duolingo 猫头鹰，用成长隐喻替代排名压力
+
+**竞赛演示叙事 (5幕):**
+1. 班级森林总览 — 看见每棵树的情绪状态
+2. 点击学生 — 雷达图 + 薄弱知识点卡片 + 掌握度徽章
+3. 课堂模式 — 白板展示 → 即时反馈 → 错误分布
+4. 引导对话 — Edge-TTS 语音 + 步步引导（不给答案）
+5. 成长轨迹 — 时间线 + 作业自适应难度
+
+## Competition Materials
+
+- `docs/competition/demo_script_v2.md` — 5-act frontend-first demo narrative
+- `docs/competition/elevator_pitch.md` — 30-second competition pitch
+- `docs/project_management/decision_log.md` — product leap decision recorded
+- `docs/project_management/task_board.md` — updated with BI-018 through BI-026
+- `docs/specs/04_error_taxonomy.md` — added 人教版六年级下册 knowledge mapping section
