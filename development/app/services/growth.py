@@ -15,7 +15,14 @@ def _load_json(filename: str) -> list[dict]:
 
 
 def list_tree_species() -> list[TreeSpecies]:
-    return [TreeSpecies(**item) for item in _load_json("tree_species.json")]
+    return [TreeSpecies(**_map_species(item)) for item in _load_json("tree_species.json")]
+
+
+def _map_species(item: dict) -> dict:
+    item = {**item}
+    if "id" in item and "species_id" not in item:
+        item["species_id"] = item.pop("id")
+    return item
 
 
 def list_encouragement_rules() -> list[EncouragementRule]:
@@ -27,7 +34,7 @@ def get_tree_species_by_id(tree_species_id: str | None) -> TreeSpecies | None:
         return None
 
     for item in list_tree_species():
-        if item.id == tree_species_id:
+        if item.species_id == tree_species_id:
             return item
     return None
 
