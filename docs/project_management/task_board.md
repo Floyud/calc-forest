@@ -41,8 +41,8 @@
 | BI-008 | DONE | 实现班级摘要接口 | `development/app/services/summaries.py` — `get_class_error_summary()`, `get_class_period_summary()`, `get_error_code_breakdown()` |
 | BI-009 | DONE | 写首批诊断单元测试 | `development/tests/test_diagnosis.py` |
 | BI-010 | DONE | 写 README 和本地运行命令 | `README.md` |
-| BI-011 | TODO | 增强括号混合运算步骤错误诊断 | `development/app/services/diagnosis.py` |
-| BI-012 | TODO | 增强两位数乘法部分积错位合并诊断 | `development/app/services/diagnosis.py` |
+| BI-011 | DONE | 增强括号混合运算步骤错误诊断 | `development/app/services/diagnosis.py` — 括号检测+部分积对齐+E09/E10/E11增强+6新测试 |
+| BI-012 | DONE | 增强两位数乘法部分积错位合并诊断 | `development/app/services/diagnosis.py` — 部分积对齐检测 |
 | BI-013 | DONE | 将成长里程碑 + 树种 + 引导模式加入 schemas | `development/app/schemas.py` |
 | BI-014 | DONE | 创建8种核心树种数据和鼓励语配置 | `development/data/tree_species.json` + `development/data/encouragements.json` |
 | BI-015 | DONE | 实现成长里程碑更新逻辑 | `development/app/services/growth_milestone.py` — 9阶段自动递进 |
@@ -55,8 +55,8 @@
 | BI-022 | DONE | 错因→知识点映射表 + 学生档案增强 | `error_code_knowledge_map` 数据表 + `student_service.py` 扩展字段 |
 | BI-023 | DONE | 前端展示课本章节级薄弱知识点 | `calc_forest/web/src/components/forest/StudentDetailDrawer.tsx` |
 | BI-048 | DONE | 真实感多轮作业模拟（好中差学生 + 写→批→改循环） | `development/scripts/simulate_realistic.py` — 824行, 10学生×3层级×8周, 218作业/506提交/2111答题 |
-| BI-024 | TODO | 竖式计算分步动画（Photomath对标） | `calc_forest/web/src/components/` |
-| BI-025 | TODO | SSE Agent执行流可视化 | `development/app/` + 前端组件 |
+| BI-024 | DONE | 竖式计算分步动画（Photomath对标） | `calc_forest/web/src/components/guidance/VerticalCalcAnimation.tsx` — 退位减法+进位加法+framer-motion+中文旁白 |
+| BI-025 | DONE | SSE Agent执行流可视化 | `POST /api/dify/pipeline-stream` SSE端点 + `PipelineProgress.tsx` 实时节点状态 |
 | BI-026 | DONE | 上下文感知引导（历史错因注入Dify prompt） | `student_service.py` build_guidance_context() + Dify DSL student_context变量 + GuidanceChat首条消息注入 |
 | BI-033 | TODO | 评估森林视图 API 是否仍保留在后续扩展层 | 范围澄清后再决定是否实现 |
 | BI-034 | DONE | 建立产品侧 Dify 工作区和首个工作流清单 | `calc_forest/dify/` |
