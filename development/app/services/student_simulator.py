@@ -436,7 +436,7 @@ def simulate_student_answers(
 
 async def simulate_class_answers(
     homework_id: str,
-    class_id: str = "G6A1",
+    class_id: str = "G6C1",
     *,
     seed: int | None = None,
 ) -> dict[str, Any]:

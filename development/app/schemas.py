@@ -383,7 +383,7 @@ class StudentAnswer(BaseModel):
 
 
 class HomeworkGenerateRequest(BaseModel):
-    class_id: str = "G6A1"
+    class_id: str = "G6C1"
     student_id: str | None = None
     grade: int = Field(default=6, ge=1, le=6)
     error_codes_target: list[str] = Field(default_factory=list)
@@ -478,7 +478,7 @@ class QuizProblemItem(BaseModel):
 
 
 class QuizGenerateRequest(BaseModel):
-    class_id: str = "G6A1"
+    class_id: str = "G6C1"
     grade: int = Field(default=6, ge=1, le=6)
     error_codes_target: list[str] = Field(default_factory=list)
     problem_count: int = Field(default=5, ge=1, le=10)
@@ -537,7 +537,7 @@ class TeacherLoginResponse(BaseModel):
 
 
 class HomeworkLifecycleRequest(BaseModel):
-    class_id: str = "G6A1"
+    class_id: str = "G6C1"
     grade: int = Field(default=6, ge=1, le=6)
     problem_count: int = Field(default=5, ge=1, le=10)
     error_codes: list[str] | None = None
@@ -550,7 +550,7 @@ class HomeworkLifecycleRequest(BaseModel):
 
 
 class SimulateRequest(BaseModel):
-    class_id: str = "G6A1"
+    class_id: str = "G6C1"
 
 
 # ---------------------------------------------------------------------------

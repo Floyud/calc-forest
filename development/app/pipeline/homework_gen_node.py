@@ -15,7 +15,7 @@ class HomeworkGenNode(BaseNode):
 
     async def execute(self, context: dict[str, Any]) -> NodeResult:
         result = await generate_homework(
-            class_id=context.get("class_id", "G6A1"),
+            class_id=context.get("class_id", "G6C1"),
             grade=context.get("grade", 6),
             student_id=context.get("student_id"),
             error_codes_target=context.get("error_codes_target"),

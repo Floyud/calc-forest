@@ -36,7 +36,7 @@ _FALLBACK_COMMENTS: dict[str, str] = {
 
 async def ai_grade_homework(
     homework_id: str,
-    class_id: str = "G6A1",
+    class_id: str = "G6C1",
 ) -> dict[str, Any]:
     """Grade all students' homework with rule-based + LLM analysis."""
     from app.services.grading_service import grade_homework

@@ -439,7 +439,7 @@ _MIGRATE_SQL = [
 
 _DEFAULT_TEACHER_SQL = """
 INSERT OR IGNORE INTO teachers (id, name, phone, password_hash, class_ids)
-VALUES ('T001', '王老师', '13800000001', 'dev', '["G6A1"]');
+VALUES ('T001', '王老师', '13800000001', 'dev', '["G6C1"]');
 """
 
 

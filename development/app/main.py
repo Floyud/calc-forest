@@ -651,7 +651,7 @@ async def homework_pdf_list_endpoint(homework_id: str):
 
 @app.post("/api/homework/batch-pipeline")
 async def homework_batch_pipeline_endpoint(
-    class_id: str = "G6A1",
+    class_id: str = "G6C1",
     grade: int = 6,
     semester: int = 1,
     difficulty: str = "A",
@@ -751,7 +751,7 @@ async def homework_batch_pipeline_endpoint(
 
 @app.post("/api/homework/batch-pipeline/class")
 async def homework_batch_class_endpoint(
-    class_id: str = Body("G6A1"),
+    class_id: str = Body("G6C1"),
     grade: int = Body(6),
     semester: int = Body(1),
     difficulty: str = Body("A"),
@@ -1048,14 +1048,14 @@ async def simulate_answers(homework_id: str, request: SimulateRequest):
 
 
 @app.post("/api/homework/{homework_id}/ai-grade")
-async def ai_grade_homework_endpoint(homework_id: str, class_id: str = "G6A1"):
+async def ai_grade_homework_endpoint(homework_id: str, class_id: str = "G6C1"):
     from app.services.ai_grading_service import ai_grade_homework
 
     return await ai_grade_homework(homework_id, class_id)
 
 
 @app.post("/api/homework/{homework_id}/ai-profile")
-async def ai_profile_homework_endpoint(homework_id: str, class_id: str = "G6A1"):
+async def ai_profile_homework_endpoint(homework_id: str, class_id: str = "G6C1"):
     from app.services.ai_profile_service import ai_update_profiles_after_grading
 
     return await ai_update_profiles_after_grading(homework_id)
@@ -1234,6 +1234,14 @@ async def generate_tts_endpoint(request: TTSRequest):
         raise HTTPException(status_code=400, detail=str(e))
     except RuntimeError as e:
         raise HTTPException(status_code=502, detail=str(e))
+    except Exception as e:
+        import logging
+
+        logging.getLogger(__name__).warning("TTS generation failed: %s", e)
+        raise HTTPException(
+            status_code=503,
+            detail="TTS服务暂不可用，请使用浏览器语音",
+        )
     return Response(content=audio_bytes, media_type="audio/mpeg")
 
 

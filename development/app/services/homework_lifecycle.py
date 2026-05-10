@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 async def run_full_lifecycle(
-    class_id: str = "G6A1",
+    class_id: str = "G6C1",
     *,
     grade: int = 6,
     problem_count: int = 5,
@@ -116,7 +116,7 @@ async def run_single_step(step: str, homework_id: str, **kwargs: Any) -> dict[st
         from app.services.homework_service import generate_homework, assign_homework
 
         hw = await generate_homework(
-            class_id=kwargs.get("class_id", "G6A1"),
+            class_id=kwargs.get("class_id", "G6C1"),
             grade=kwargs.get("grade", 6),
             error_codes_target=kwargs.get("error_codes"),
             problem_count=kwargs.get("problem_count", 5),
@@ -129,7 +129,7 @@ async def run_single_step(step: str, homework_id: str, **kwargs: Any) -> dict[st
         from app.services.student_simulator import simulate_class_answers
         from app.services.grading_service import submit_homework
 
-        class_id = kwargs.get("class_id", "G6A1")
+        class_id = kwargs.get("class_id", "G6C1")
         sim = await simulate_class_answers(homework_id, class_id)
         submitted = {}
         for student_id, answers in sim["answers"].items():
@@ -143,7 +143,7 @@ async def run_single_step(step: str, homework_id: str, **kwargs: Any) -> dict[st
     elif step == "grade":
         from app.services.ai_grading_service import ai_grade_homework
 
-        class_id = kwargs.get("class_id", "G6A1")
+        class_id = kwargs.get("class_id", "G6C1")
         result = await ai_grade_homework(homework_id, class_id)
         return {"step": "grade", "result": result}
 

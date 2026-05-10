@@ -44,7 +44,7 @@ async def ai_analyze_student(
 
 
 async def ai_analyze_class(
-    class_id: str = "G6A1",
+    class_id: str = "G6C1",
 ) -> dict[str, Any]:
     """Analyze all students in a class, returning per-student snapshots."""
     from app.services.student_service import list_students
