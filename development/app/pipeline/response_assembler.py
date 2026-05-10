@@ -34,6 +34,10 @@ def assemble_response(
     if request.guidance_mode != GuidanceMode.STANDARD:
         teacher_summary += f" 当前引导模式为 {request.guidance_mode.value}。"
 
+    dify_summary = context.get("teacher_summary_dify")
+    if dify_summary is not None and "teacher_summary" in dify_summary:
+        teacher_summary += f"\n\n---\n\n### AI 深度分析\n{dify_summary['teacher_summary']}"
+
     return DifySessionDraftResponse(
         diagnosis=diagnosis,
         practice=practice,
