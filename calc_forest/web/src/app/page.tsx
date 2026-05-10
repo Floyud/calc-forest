@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import dynamic from "next/dynamic";
+import { motion } from "framer-motion";
 import {
   ArrowRight,
   BookOpen,
@@ -21,7 +22,8 @@ import {
   useCurrentCycle,
 } from "@/lib/api/hooks";
 import { DEFAULT_CLASS_ID, DEFAULT_STUDENT_ID, DEFAULT_GRADE } from "@/lib/config";
-import { getEmotionLabel } from "@/components/forest/trees/useEmotionState";
+import { getEmotionLabel, getEmotionEmoji } from "@/components/forest/trees/useEmotionState";
+import { ERROR_LABELS } from "@/lib/types";
 
 const ClassErrorHeatmap = dynamic(
   () => import("@/components/forest/ClassErrorHeatmap").then((m) => ({ default: m.ClassErrorHeatmap })),
@@ -123,8 +125,17 @@ export default function HomePage() {
           </div>
 
           <div className="flex flex-wrap gap-3">
-            <Link href="/diagnose">
+            <Link href="/diagnose?demo=1">
               <Button className="bg-orange-500 text-white hover:bg-orange-400">
+                开始演示
+                <ArrowRight className="ml-1" />
+              </Button>
+            </Link>
+            <Link href="/diagnose">
+              <Button
+                variant="outline"
+                className="border-forest-300 text-forest-700 hover:bg-forest-50"
+              >
                 进入诊断台
                 <ArrowRight className="ml-1" />
               </Button>
@@ -253,6 +264,102 @@ export default function HomePage() {
             </Link>
           </CardContent>
         </Card>
+      </section>
+
+      <section className="mt-8">
+        <div className="mb-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-lg">🌳</span>
+            <h2 className="text-lg font-semibold text-forest-800">班级森林</h2>
+            <span className="text-xs text-muted-foreground">实时成长状态</span>
+          </div>
+          <Link
+            href="/forest"
+            className="group flex items-center gap-1 text-sm text-forest-600 transition-colors hover:text-forest-800"
+          >
+            查看完整森林
+            <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+          {forest.trees.map((tree, i) => {
+            const pct = Math.round(tree.overall_accuracy * 100);
+            const barColor =
+              pct >= 80
+                ? "bg-forest-400"
+                : pct >= 50
+                  ? "bg-warm-300"
+                  : "bg-volcano-400";
+            const barGlow =
+              pct >= 80
+                ? "shadow-forest-400/40"
+                : pct >= 50
+                  ? "shadow-warm-300/40"
+                  : "shadow-volcano-400/40";
+            const topError =
+              tree.dominant_errors.length > 0 ? tree.dominant_errors[0] : null;
+
+            return (
+              <motion.div
+                key={tree.student_id}
+                initial={{ opacity: 0, y: 16, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{
+                  delay: i * 0.05,
+                  duration: 0.4,
+                  ease: [0.25, 0.46, 0.45, 0.94],
+                }}
+                whileHover={{ y: -4, scale: 1.03 }}
+                className="group relative cursor-pointer overflow-hidden rounded-xl border border-forest-200/70 bg-white p-3.5 shadow-sm transition-shadow hover:shadow-md hover:shadow-forest-200/40"
+              >
+                <div className="pointer-events-none absolute -right-3 -top-3 h-14 w-14 rounded-full bg-forest-50/60 blur-xl transition-opacity group-hover:opacity-80" />
+
+                <div className="relative flex items-start justify-between">
+                  <span className="text-xl leading-none">{tree.tree_species_emoji}</span>
+                  <span className="text-xs" title={getEmotionLabel(tree.emotional_state)}>
+                    {getEmotionEmoji(tree.emotional_state)}
+                  </span>
+                </div>
+
+                <p className="relative mt-2 truncate text-sm font-medium text-forest-800">
+                  {tree.student_name}
+                </p>
+
+                <div className="relative mt-2.5">
+                  <div className="h-2 overflow-hidden rounded-full bg-forest-100">
+                    <motion.div
+                      className={`h-full rounded-full ${barColor} shadow-sm ${barGlow}`}
+                      initial={{ width: 0 }}
+                      animate={{ width: `${pct}%` }}
+                      transition={{ delay: 0.3 + i * 0.05, duration: 0.6, ease: "easeOut" }}
+                    />
+                  </div>
+                  <p
+                    className={`mt-1 text-right text-xs font-semibold tabular-nums ${
+                      pct >= 80
+                        ? "text-forest-600"
+                        : pct >= 50
+                          ? "text-warm-400"
+                          : "text-volcano-500"
+                    }`}
+                  >
+                    {pct}%
+                  </p>
+                </div>
+
+                {topError && (
+                  <Badge
+                    variant="outline"
+                    className="mt-1.5 border-forest-200/60 px-1.5 py-0 text-[10px] text-muted-foreground"
+                  >
+                    {topError} {ERROR_LABELS[topError as keyof typeof ERROR_LABELS]?.slice(0, 4) ?? ""}
+                  </Badge>
+                )}
+              </motion.div>
+            );
+          })}
+        </div>
       </section>
 
       <section className="mt-8">
