@@ -1,0 +1,35 @@
+# Version control
+.git
+.gitignore
+
+# Node
+node_modules
+.next
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+.pytest_cache
+
+# Environment
+.env
+.env.*
+
+# IDE
+.vscode
+.idea
+
+# Data & screenshots (mounted as volumes)
+screenshots/
+*.db
+
+# Dify DSL & knowledge base (separately managed)
+calc_forest/dify/
+
+# Docs (not needed in container)
+docs/
+给mom看的/
+
+# OpenCode
+.opencode/

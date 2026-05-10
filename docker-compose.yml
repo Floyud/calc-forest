@@ -1,0 +1,97 @@
+# =============================================================
+#  我的计算森林 — Docker Compose (Reference Architecture)
+# =============================================================
+#
+#  用法:
+#    docker compose up --build          # 启动 backend + frontend
+#    docker compose up --build --profile full  # 含 dify placeholder
+#
+#  注意:
+#    - Dify 通过独立部署管理, 位于 /home/lyzhang/dify/docker/
+#      不在此 compose 文件中启动, 仅作为 external network 引用
+#    - 本地模型服务 (bge-m3 + jina-reranker) 需要 GPU,
+#      通常在宿主机以 tmux 运行, 不纳入 compose
+#    - 如需连接 Dify, 先确保 Dify 已启动并加入 calc-forest 网络:
+#      docker network connect calc-forest <dify-container>
+# =============================================================
+
+services:
+  backend:
+    build:
+      context: ./development
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./development/data:/app/data
+      - ./knowledge_base:/app/knowledge_base
+    environment:
+      # --- Dify Cloud 配置 ---
+      - DIFY_BASE_URL=${DIFY_BASE_URL:-https://api.dify.ai/v1}
+      - DIFY_ENABLED=${DIFY_ENABLED:-false}
+      - DIFY_API_KEY=${DIFY_API_KEY:-}
+      - DIFY_WORKFLOW_GUIDANCE_KEY=${DIFY_WORKFLOW_GUIDANCE_KEY:-}
+      - DIFY_WORKFLOW_SUMMARY_KEY=${DIFY_WORKFLOW_SUMMARY_KEY:-}
+      - DIFY_WORKFLOW_GRADING_KEY=${DIFY_WORKFLOW_GRADING_KEY:-}
+      - DIFY_WORKFLOW_PROFILE_KEY=${DIFY_WORKFLOW_PROFILE_KEY:-}
+      - DIFY_WORKFLOW_PROBLEM_KEY=${DIFY_WORKFLOW_PROBLEM_KEY:-}
+      # --- Local Dify 配置 ---
+      - LOCAL_DIFY_ENABLED=${LOCAL_DIFY_ENABLED:-true}
+      - LOCAL_DIFY_BASE_URL=${LOCAL_DIFY_BASE_URL:-http://dify:8080/v1}
+      - LOCAL_DIFY_WORKFLOW_GUIDANCE_KEY=${LOCAL_DIFY_WORKFLOW_GUIDANCE_KEY:-}
+      - LOCAL_DIFY_WORKFLOW_SUMMARY_KEY=${LOCAL_DIFY_WORKFLOW_SUMMARY_KEY:-}
+      - LOCAL_DIFY_WORKFLOW_GRADING_KEY=${LOCAL_DIFY_WORKFLOW_GRADING_KEY:-}
+      - LOCAL_DIFY_WORKFLOW_PROFILE_KEY=${LOCAL_DIFY_WORKFLOW_PROFILE_KEY:-}
+      - LOCAL_DIFY_WORKFLOW_PROBLEM_KEY=${LOCAL_DIFY_WORKFLOW_PROBLEM_KEY:-}
+      # --- DeepSeek 直连 ---
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
+      - DEEPSEEK_MODE=${DEEPSEEK_MODE:-official}
+      - DEEPSEEK_MODEL=${DEEPSEEK_MODEL:-deepseek-chat}
+      # --- 智谱 GLM ---
+      - GLM_API_KEY=${GLM_API_KEY:-}
+      - GLM_MODEL=${GLM_MODEL:-glm-4-flash}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  frontend:
+    build:
+      context: ./calc_forest/web
+      dockerfile: Dockerfile
+    ports:
+      - "3002:3000"
+    environment:
+      # 客户端浏览器访问时需要用 localhost (不是容器名)
+      - NEXT_PUBLIC_API_BASE=http://localhost:8000
+      - NEXT_PUBLIC_DIFY_BASE_URL=http://localhost:18080
+      - NEXT_PUBLIC_DIFY_STUDENT_GUIDANCE_KEY=${LOCAL_DIFY_WORKFLOW_GUIDANCE_KEY:-}
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # =============================================================
+  #  Dify 服务 — 通过 profile 控制, 默认不启动
+  #
+  #  Dify 已通过独立 docker-compose 在 /home/lyzhang/dify/docker/ 运行.
+  #  如需与此 compose 联通:
+  #    1. 确保 Dify 容器加入 calc-forest 网络:
+  #       docker network connect calc-forest <dify-web-container>
+  #    2. backend 的 LOCAL_DIFY_BASE_URL 改为 http://dify容器名:8080/v1
+  #    3. 或使用 --profile full 启动 (需替换 image 为实际 Dify 镜像)
+  # =============================================================
+  dify:
+    image: "busybox:1.36"  # 占位 — Dify 由独立部署管理
+    profiles:
+      - full
+    command: ["echo", "Dify is managed separately at /home/lyzhang/dify/docker/"]
+    networks:
+      - default
+
+networks:
+  default:
+    name: calc-forest
+    driver: bridge
