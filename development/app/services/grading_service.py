@@ -8,7 +8,7 @@ from datetime import date
 from typing import Any
 
 from app.db import get_db
-from app.schemas import AnswerRecord
+from app.schemas import AnswerRecord, HomeworkAnswerInput
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 async def submit_homework(
     homework_id: str,
     student_id: str,
-    answers: list[dict[str, str]],
+    answers: list[HomeworkAnswerInput] | list[dict[str, str]],
 ) -> dict[str, Any]:
     today = date.today().isoformat()
     submission_id = f"SUB{uuid.uuid4().hex[:8].upper()}"
@@ -41,8 +41,12 @@ async def submit_homework(
 
         answer_records = []
         for ans in answers:
-            seq = int(ans.get("problem_sequence", 0))
-            student_answer = ans.get("student_answer", "")
+            if isinstance(ans, HomeworkAnswerInput):
+                seq = ans.problem_sequence
+                student_answer = ans.raw_answer
+            else:
+                seq = int(ans.get("problem_sequence", 0))
+                student_answer = ans.get("raw_answer", "") or ans.get("student_answer", "")
 
             problem = None
             for p in problems:
@@ -165,15 +169,58 @@ async def grade_homework(
 
         await db.commit()
 
+    ai_analysis = None
+    try:
+        from app.services.dify_client import ai_grade_answers
+        from app.services.student_service import get_student
+
+        student = await get_student(student_id)
+        student_info = {
+            "student_id": student_id,
+            "name": student.get("name", "") if student else "",
+            "grade": 6,
+        }
+        grading_input = {
+            "results": [
+                {
+                    "sequence": i + 1,
+                    "problem": str(_record.problem),
+                    "student_answer": str(_record.student_answer),
+                    "correct_answer": str(_record.correct_answer),
+                    "is_correct": diagnosis.is_correct,
+                    "error_code": diagnosis.primary_error.code.value,
+                }
+                for i, (_ans_id, _record, diagnosis) in enumerate(diagnosis_results)
+            ]
+        }
+        ai_result = await ai_grade_answers(
+            grading_results=grading_input,
+            student_info=student_info,
+            student_id=student_id,
+        )
+        if ai_result and not ai_result.get("parse_error"):
+            ai_analysis = ai_result
+    except Exception:
+        logger.warning("AI grading analysis failed for student %s", student_id, exc_info=True)
+
     profile_updated = False
     growth_updated = False
     try:
-        from app.services.student_service import update_error_stats
+        from app.services.student_service import batch_update_error_stats
 
-        for _ans_id, _record, diagnosis in diagnosis_results:
-            await update_error_stats(student_id, diagnosis.primary_error.code.value, diagnosis.is_correct)
+        batch_results = [
+            (diagnosis.primary_error.code.value, diagnosis.is_correct)
+            for _ans_id, _record, diagnosis in diagnosis_results
+        ]
+        await batch_update_error_stats(student_id, batch_results)
     except Exception:
         logger.warning("Failed to update error stats for student %s", student_id, exc_info=True)
+
+    try:
+        from app.services.growth_milestone import record_practice_day
+        await record_practice_day(student_id)
+    except Exception:
+        logger.warning("Failed to record practice day for student %s", student_id, exc_info=True)
 
     try:
         from app.schemas import DiagnosisResponse, ErrorTag, ErrorCode, GuidanceMode
@@ -230,4 +277,5 @@ async def grade_homework(
         "profile_updated": profile_updated,
         "growth_updated": growth_updated,
         "next_suggestion": next_suggestion,
+        "ai_analysis": ai_analysis,
     }

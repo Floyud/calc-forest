@@ -52,7 +52,7 @@ async def ai_grade_homework(
     if not student_ids:
         # Fall back to all class students
         students = await list_students(class_id)
-        student_ids = [s.id for s in students]
+        student_ids = [s.student_id for s in students]
 
     # Step 3: Run rule-based grading for each student
     grading_results: list[dict[str, Any]] = []

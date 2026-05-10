@@ -56,11 +56,11 @@ async def ai_analyze_class(
     snapshots: list[dict[str, Any]] = []
     for s in students:
         try:
-            result = await ai_analyze_student(s.id)
+            result = await ai_analyze_student(s.student_id)
             snapshots.append(result)
         except Exception:
-            logger.warning("Failed to analyze student %s", s.id, exc_info=True)
-            snapshots.append({"student_id": s.id, "error": "analysis failed"})
+            logger.warning("Failed to analyze student %s", s.student_id, exc_info=True)
+            snapshots.append({"student_id": s.student_id, "error": "analysis failed"})
 
     with_analysis = [s for s in snapshots if "analysis" in s and "error" not in s.get("analysis", {})]
     avg_acc = 0.0
