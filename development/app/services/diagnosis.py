@@ -49,12 +49,16 @@ def diagnose_answer(record: AnswerRecord) -> DiagnosisResponse:
 
     checks = [
         _detect_transcription,
+        _detect_parenthesis_error,
         _detect_operation_order,
         _detect_borrow,
         _detect_carry,
         _detect_place_value_alignment,
+        _detect_partial_product_misalignment,
         _detect_decimal_error,
         _detect_basic_fact,
+        _detect_conceptual_error,
+        _detect_wording_unit_error,
         _detect_missing_step,
         _detect_no_checking,
     ]
@@ -126,6 +130,36 @@ def _detect_operation_order(
             "让学生先在算式上标出第一步、第二步，再计算。",
             "先圈出要最先计算的部分，再一步一步写。",
         )
+    return None
+
+
+def _detect_parenthesis_error(
+    record: AnswerRecord, expression: str | None, computed: ComputedValues
+) -> ErrorTag | None:
+    """BI-011: Detect when student ignores or misinterprets parentheses."""
+    if not expression or "(" not in expression or computed.student is None:
+        return None
+    if "/" in record.correct_answer or "/" in record.student_answer:
+        return None
+
+    flat_expr = expression.replace("(", "").replace(")", "")
+    if not flat_expr.strip():
+        return None
+
+    flat_precedence = _eval_expression(flat_expr)
+    if (
+        flat_precedence is not None
+        and flat_precedence == computed.student
+        and flat_precedence != computed.expected
+    ):
+        return _tag(
+            ErrorCode.OPERATION_ORDER,
+            0.91,
+            f"学生可能忽略了括号：去掉括号后按运算优先级计算得 {flat_precedence}，与学生答案一致。",
+            "让学生在有括号的算式上用彩色笔圈出「最先算」的部分，再分步计算。",
+            "看到括号要先算括号里的，用彩色笔圈出来再计算。",
+        )
+
     return None
 
 
@@ -253,6 +287,82 @@ def _detect_place_value_alignment(
     return None
 
 
+def _detect_partial_product_misalignment(
+    record: AnswerRecord, expression: str | None, computed: ComputedValues
+) -> ErrorTag | None:
+    """BI-012: Partial-product alignment errors in multi-digit multiplication."""
+    if not expression or "*" not in expression:
+        return None
+    if computed.student is None or computed.expected is None:
+        return None
+
+    numbers = _integer_numbers(expression)
+    if len(numbers) != 2:
+        return None
+    a, b = numbers
+    if a < 10 or b < 10:
+        return None
+
+    if a > b:
+        a, b = b, a
+
+    b_ones = b % 10
+    b_tens = b // 10
+    a_tens = a // 10
+    a_ones = a % 10
+    correct_total = a * b
+
+    partial1 = a * b_ones
+    partial2 = a * b_tens
+
+    forgot_shift = partial1 + partial2
+    if Fraction(forgot_shift, 1) == computed.student and forgot_shift != correct_total and partial2 > 0:
+        return _tag(
+            ErrorCode.PLACE_VALUE_ALIGNMENT,
+            0.88,
+            f"学生可能忘记错位：部分积 {partial1} + {partial2}（未错位）= {forgot_shift}，"
+            f"正确应为 {partial1} + {partial2 * 10} = {correct_total}。",
+            "用竖式方格纸练习两位数乘法，要求在第二行部分积前标注「代表几个十」。",
+            "第二行部分积要向左错一位，因为它代表的是几个十。",
+        )
+
+    over_shift = partial1 + partial2 * 100
+    if Fraction(over_shift, 1) == computed.student and over_shift != correct_total and partial2 > 0:
+        return _tag(
+            ErrorCode.PLACE_VALUE_ALIGNMENT,
+            0.82,
+            f"学生可能过度错位：部分积 {partial2} 被多移了一位变成 {partial2 * 100}。",
+            "用竖式方格纸练习，强调第二行部分积从十位开始写。",
+            "第二行部分积的个位写 0，从十位开始写。",
+        )
+
+    if a_tens > 0 and b_tens > 0:
+        cross_miss = a_tens * b_tens * 100 + a_ones * b_ones
+        if Fraction(cross_miss, 1) == computed.student and cross_miss != correct_total:
+            return _tag(
+                ErrorCode.MISSING_STEP,
+                0.80,
+                f"学生可能只算了十位×十位和个位×个位（{a_tens}×{b_tens}×100 + {a_ones}×{b_ones} = {cross_miss}），"
+                f"遗漏了交叉项 {a_tens}×{b_ones} 和 {a_ones}×{b_tens}。",
+                "用面积模型展示两个部分积的四个来源，强调每位都要乘到。",
+                "每一位都要和对方的每一位分别相乘，不要漏掉。",
+            )
+
+    if a_tens > 0 and b_tens > 0 and b_ones > 0:
+        tens_only = partial1 + a_tens * 10 * b_tens * 10
+        if Fraction(tens_only, 1) == computed.student and tens_only != correct_total:
+            return _tag(
+                ErrorCode.MISSING_STEP,
+                0.78,
+                f"学生第二部分积只用了十位（{a_tens * 10}×{b_tens * 10}={a_tens * 10 * b_tens * 10}），"
+                f"遗漏了个位×十位的交叉项 {a_ones}×{b_tens * 10}={a_ones * b_tens * 10}。",
+                "要求学生写出每位分别相乘的四个小部分积，再逐个合并。",
+                "每一位都要和对方的每一位分别相乘，不要漏掉。",
+            )
+
+    return None
+
+
 def _detect_decimal_error(
     record: AnswerRecord, expression: str | None, computed: ComputedValues
 ) -> ErrorTag | None:
@@ -331,6 +441,150 @@ def _looks_like_word_problem(problem: str) -> bool:
     )
 
 
+def _detect_conceptual_error(
+    record: AnswerRecord, expression: str | None, computed: ComputedValues
+) -> ErrorTag | None:
+    """E09: Detect conceptual misunderstandings (算理理解不足)."""
+    if computed.student is None or computed.expected is None:
+        return None
+
+    numbers = _integer_numbers(expression) if expression else []
+    if len(numbers) != 2:
+        return None
+
+    a, b = numbers
+
+    if a == b:
+        if computed.expected == Fraction(a * a, 1) and computed.student == Fraction(2 * a, 1):
+            return _tag(
+                ErrorCode.CONCEPTUAL_UNDERSTANDING,
+                0.88,
+                f"学生可能将 {a}² 理解为 {a}×2={2 * a}，而非 {a}×{a}={a * a}。",
+                "用正方形面积模型区分「边长×边长」和「边长×2」的含义。",
+                "r² 表示 r×r（边长乘边长），和 2×r（两倍）不一样。",
+            )
+        if computed.expected == Fraction(2 * a, 1) and computed.student == Fraction(a * a, 1):
+            return _tag(
+                ErrorCode.CONCEPTUAL_UNDERSTANDING,
+                0.86,
+                f"学生可能将 2×{a} 理解为 {a}²={a * a}，混淆了「两倍」和「平方」。",
+                "用正方形面积模型区分「边长×边长」和「边长×2」的含义。",
+                "2×r 表示 r 的两倍，r² 表示 r×r，两者不同。",
+            )
+
+    if a != b:
+        if computed.expected == Fraction(a * b, 1) and computed.student == Fraction(2 * (a + b), 1):
+            return _tag(
+                ErrorCode.CONCEPTUAL_UNDERSTANDING,
+                0.85,
+                f"学生可能混淆了面积（{a}×{b}={a * b}）和周长（2×({a}+{b})={2 * (a + b)}）的公式。",
+                "用图形直观对比面积和周长的含义，强调面积是「铺满」，周长是「绕一圈」。",
+                "面积是整个面铺满，周长是边框绕一圈，公式不一样。",
+            )
+        if computed.expected == Fraction(2 * (a + b), 1) and computed.student == Fraction(a * b, 1):
+            return _tag(
+                ErrorCode.CONCEPTUAL_UNDERSTANDING,
+                0.85,
+                f"学生可能混淆了周长（2×({a}+{b})={2 * (a + b)}）和面积（{a}×{b}={a * b}）的公式。",
+                "用图形直观对比面积和周长的含义，强调面积是「铺满」，周长是「绕一圈」。",
+                "周长是边框绕一圈，面积是整个面铺满，公式不一样。",
+            )
+        if (
+            computed.expected == Fraction(a * b, 1)
+            and computed.student == Fraction(a * b * 3, 1)
+            and a * b * 3 != a * b
+        ):
+            return _tag(
+                ErrorCode.CONCEPTUAL_UNDERSTANDING,
+                0.82,
+                f"学生答案 {a * b * 3} 是正确答案 {a * b} 的 3 倍，可能遗漏了圆锥体积公式中的 ÷3。",
+                "对比圆柱和圆锥体积公式，用等底等高沙子实验演示 1/3 关系。",
+                "圆锥体积 = 底面积 × 高 ÷ 3，别忘了除以 3。",
+            )
+        if (
+            computed.expected == Fraction(a * b * 3, 1)
+            and computed.student == Fraction(a * b, 1)
+            and a * b * 3 != a * b
+        ):
+            return _tag(
+                ErrorCode.CONCEPTUAL_UNDERSTANDING,
+                0.80,
+                f"学生答案 {a * b} 是正确答案 {a * b * 3} 的 1/3，可能在圆柱体积中多除了 3。",
+                "对比圆柱和圆锥体积公式，明确圆柱不需要 ÷3。",
+                "圆柱体积 = 底面积 × 高，不用除以 3。",
+            )
+
+    return None
+
+
+def _detect_wording_unit_error(
+    record: AnswerRecord, expression: str | None, computed: ComputedValues
+) -> ErrorTag | None:
+    """E10: Detect problem misreading (审题与单位理解错误)."""
+    if computed.student is None or computed.expected is None:
+        return None
+    if not expression:
+        return None
+
+    numbers = _integer_numbers(expression)
+    if len(numbers) < 2:
+        return None
+
+    a, b = numbers[0], numbers[1]
+
+    has_mult = "*" in expression
+    has_add = "+" in expression
+    has_sub = "-" in expression
+
+    if has_mult and computed.student == Fraction(a + b, 1) and computed.expected != Fraction(a + b, 1):
+        return _tag(
+            ErrorCode.WORDING_UNIT,
+            0.82,
+            f"题目含乘法运算 {a}×{b}={a * b}，学生答案 {a + b} 恰好等于 {a}+{b}，疑似将乘号看成加号。",
+            "让学生手指指着运算符号，出声读出每一步要做什么运算。",
+            "先看清符号是 + 还是 ×，再决定算法。",
+        )
+
+    if has_add and computed.student == Fraction(a * b, 1) and computed.expected != Fraction(a * b, 1):
+        return _tag(
+            ErrorCode.WORDING_UNIT,
+            0.82,
+            f"题目含加法运算 {a}+{b}={a + b}，学生答案 {a * b} 恰好等于 {a}×{b}，疑似将加号看成乘号。",
+            "让学生手指指着运算符号，出声读出每一步要做什么运算。",
+            "先看清符号是 + 还是 ×，再决定算法。",
+        )
+
+    if has_sub and computed.student == Fraction(a + b, 1) and computed.expected != Fraction(a + b, 1):
+        return _tag(
+            ErrorCode.WORDING_UNIT,
+            0.78,
+            f"题目含减法运算 {a}-{b}={a - b}，学生答案 {a + b} 恰好等于 {a}+{b}，疑似将减号看成加号。",
+            "让学生手指指着运算符号，出声读出每一步要做什么运算。",
+            "先看清符号是 - 还是 +，再决定算法。",
+        )
+
+    expected_str = str(abs(int(computed.expected)))
+    student_str = str(abs(int(computed.student)))
+    if (
+        computed.expected.denominator == 1
+        and computed.student.denominator == 1
+        and len(expected_str) == len(student_str)
+        and len(expected_str) >= 2
+        and expected_str != student_str
+    ):
+        diffs = [(c, s) for c, s in zip(expected_str, student_str) if c != s]
+        if len(diffs) == 2 and diffs[0] == diffs[1][::-1]:
+            return _tag(
+                ErrorCode.WORDING_UNIT,
+                0.72,
+                f"学生答案 {student_str} 与正确答案 {expected_str} 相比恰好是两位数字颠换，疑似抄写时看串位。",
+                "要求学生写完答案后，从右到左逐位与自己的计算过程对照。",
+                "写完答案后，把每一位数字和算的过程对照一下。",
+            )
+
+    return None
+
+
 def _detect_missing_step(
     record: AnswerRecord, expression: str | None, computed: ComputedValues
 ) -> ErrorTag | None:
@@ -374,7 +628,11 @@ def _detect_no_checking(
 ) -> ErrorTag | None:
     if computed.student is None or computed.expected is None:
         return None
-    if computed.expected and abs(float(computed.student - computed.expected)) / max(abs(float(computed.expected)), 1.0) > 1.0:
+
+    expected_abs = abs(float(computed.expected))
+    student_abs = abs(float(computed.student))
+
+    if expected_abs > 0 and student_abs / expected_abs > 2.0:
         return _tag(
             ErrorCode.NO_CHECKING,
             0.52,
@@ -382,6 +640,24 @@ def _detect_no_checking(
             "训练先估算范围，再用逆运算或代入检查。",
             "算完先问自己：这个答案和题目里的数比起来合理吗？",
         )
+
+    if (
+        computed.expected.denominator == 1
+        and computed.student.denominator == 1
+        and expected_abs >= 20
+    ):
+        expected_int = int(computed.expected)
+        student_int = int(computed.student)
+        diff = abs(expected_int - student_int)
+        if diff >= 10 and diff % 10 == 0 and diff != 0:
+            return _tag(
+                ErrorCode.NO_CHECKING,
+                0.50,
+                f"学生答案与正确答案差 {diff}，属于某个数位上的整十偏差，通过逐位验算可以发现。",
+                "培养做完后逐位检查的习惯，特别关注个位和十位。",
+                "算完后再检查每一位数字对不对。",
+            )
+
     return None
 
 

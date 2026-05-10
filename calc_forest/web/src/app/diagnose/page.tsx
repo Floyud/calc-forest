@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
+import dynamic from "next/dynamic";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Send,
@@ -31,8 +32,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { DifySessionDraftResponse, GuidanceMode } from "@/lib/types";
-import { useSessionDraft } from "@/lib/api/hooks";
+import type { DifySessionDraftResponse, DifySessionDraftRequest, GuidanceMode } from "@/lib/types";
+import PipelineProgress from "@/components/diagnose/PipelineProgress";
+
+const VerticalCalcAnimation = dynamic(
+  () =>
+    import("@/components/guidance/VerticalCalcAnimation").then(
+      (m) => m.VerticalCalcAnimation,
+    ),
+  { ssr: false },
+);
 
 type DemoExample = {
   label: string;
@@ -82,13 +91,23 @@ export default function DiagnosePage() {
   const [guidanceMode, setGuidanceMode] = useState<GuidanceMode>("standard");
   const [result, setResult] = useState<DifySessionDraftResponse | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [streamingRequest, setStreamingRequest] = useState<DifySessionDraftRequest | null>(null);
+  const [streamError, setStreamError] = useState<string | null>(null);
 
-  const sessionDraft = useSessionDraft();
+  const handleStreamComplete = useCallback((res: DifySessionDraftResponse) => {
+    setResult(res);
+    setStreamingRequest(null);
+  }, []);
+
+  const handleStreamError = useCallback((error: string) => {
+    setStreamError(error);
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setResult(null);
     setValidationError(null);
+    setStreamError(null);
 
     if (!problem.trim()) {
       setValidationError("请输入题目内容");
@@ -103,7 +122,7 @@ export default function DiagnosePage() {
       return;
     }
 
-    const body = {
+    const body: DifySessionDraftRequest = {
       grade,
       problem_text: problem,
       correct_answer_text: correctAnswer,
@@ -112,12 +131,7 @@ export default function DiagnosePage() {
       guidance_mode: guidanceMode,
     };
 
-    try {
-      const res = await sessionDraft.mutateAsync(body);
-      setResult(res);
-    } catch {
-      setResult(null);
-    }
+    setStreamingRequest(body);
   }
 
   function fillExample(ex: DemoExample) {
@@ -127,10 +141,11 @@ export default function DiagnosePage() {
     setStudentAnswer(ex.student);
     setStudentSteps("");
     setResult(null);
+    setStreamingRequest(null);
+    setStreamError(null);
   }
 
-  const loading = sessionDraft.isPending;
-  const apiError = sessionDraft.isError;
+  const loading = streamingRequest !== null && result === null;
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
@@ -278,6 +293,14 @@ export default function DiagnosePage() {
 
         {/* Right: Result */}
         <div className="space-y-4">
+          {streamingRequest && !result && (
+            <PipelineProgress
+              request={streamingRequest}
+              onComplete={handleStreamComplete}
+              onError={handleStreamError}
+            />
+          )}
+
           <AnimatePresence mode="wait">
             {result && (
               <motion.div
@@ -351,6 +374,16 @@ export default function DiagnosePage() {
                     )}
                   </CardContent>
                 </Card>
+
+                {!result.diagnosis.is_correct && (
+                  <VerticalCalcAnimation
+                    expression={problem.replace(/=$/, "")}
+                    correctAnswer={correctAnswer}
+                    studentAnswer={studentAnswer}
+                    errorType={result.diagnosis.primary_error.code}
+                    autoPlay={false}
+                  />
+                )}
 
                 {/* Teacher Summary */}
                 <Card>
@@ -458,14 +491,14 @@ export default function DiagnosePage() {
             )}
           </AnimatePresence>
 
-          {apiError && !result && (
+          {streamError && !result && (
             <div className="flex items-center gap-2 rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-600">
               <AlertTriangle className="h-4 w-4 shrink-0" />
-              诊断请求失败，请确认后端服务正在运行
+              {streamError}
             </div>
           )}
 
-          {!result && !apiError && (
+          {!result && !streamingRequest && !streamError && (
             <div className="flex h-64 items-center justify-center rounded-lg border border-dashed text-muted-foreground">
               <div className="text-center">
                 <ClipboardList className="mx-auto mb-2 h-8 w-8 opacity-40" />

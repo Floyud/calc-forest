@@ -46,7 +46,7 @@
 | BI-013 | DONE | 将成长里程碑 + 树种 + 引导模式加入 schemas | `development/app/schemas.py` |
 | BI-014 | DONE | 创建8种核心树种数据和鼓励语配置 | `development/data/tree_species.json` + `development/data/encouragements.json` |
 | BI-015 | DONE | 实现成长里程碑更新逻辑 | `development/app/services/growth_milestone.py` — 9阶段自动递进 |
-| BI-016 | TODO | 实现4步引导法（标准模式） | 扩展 `development/app/services/diagnosis.py` 的 student_feedback |
+| BI-016 | DONE | 4步引导法动态化 — /guidance页交互式引导体验 | `calc_forest/web/src/app/guidance/page.tsx` — E01-E11错因内容映射+渐进式问题揭示+Demo示例 |
 | BI-017 | TODO | 实现1-2年级口算题型诊断规则 | `development/app/services/diagnosis.py` |
 | BI-018 | DONE | E01-E11错因雷达图 | `calc_forest/web/src/components/forest/ErrorRadarChart.tsx` |
 | BI-019 | DONE | 班级错因热力图 | `calc_forest/web/src/components/forest/ClassErrorHeatmap.tsx` |
@@ -57,7 +57,7 @@
 | BI-048 | DONE | 真实感多轮作业模拟（好中差学生 + 写→批→改循环） | `development/scripts/simulate_realistic.py` — 824行, 10学生×3层级×8周, 218作业/506提交/2111答题 |
 | BI-024 | TODO | 竖式计算分步动画（Photomath对标） | `calc_forest/web/src/components/` |
 | BI-025 | TODO | SSE Agent执行流可视化 | `development/app/` + 前端组件 |
-| BI-026 | TODO | 上下文感知引导（历史错因注入Dify prompt） | Dify workflow + `session_draft.py` |
+| BI-026 | DONE | 上下文感知引导（历史错因注入Dify prompt） | `student_service.py` build_guidance_context() + Dify DSL student_context变量 + GuidanceChat首条消息注入 |
 | BI-033 | TODO | 评估森林视图 API 是否仍保留在后续扩展层 | 范围澄清后再决定是否实现 |
 | BI-034 | DONE | 建立产品侧 Dify 工作区和首个工作流清单 | `calc_forest/dify/` |
 | BI-035 | DONE | 实现 Dify 夜间版组合接口 | `development/app/services/session_draft.py` + `POST /api/dify/session-draft` |

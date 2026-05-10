@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, Suspense, Fragment } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -28,6 +29,14 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+
+const VerticalCalcAnimation = dynamic(
+  () =>
+    import("@/components/guidance/VerticalCalcAnimation").then(
+      (m) => m.VerticalCalcAnimation,
+    ),
+  { ssr: false },
+);
 
 interface GuidanceContent {
   label: string;
@@ -589,6 +598,13 @@ function GuidancePageInner() {
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
+                    <VerticalCalcAnimation
+                      expression={scenario.problem.replace(/=$/, "")}
+                      correctAnswer={scenario.correct}
+                      studentAnswer={scenario.answer}
+                      errorType={scenario.error}
+                      autoPlay={false}
+                    />
                     <div className="space-y-3 rounded-xl bg-white p-5">
                       <p className="text-xs font-medium text-muted-foreground">
                         逐步引导学生思考（点击揭示下一个问题）：

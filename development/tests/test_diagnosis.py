@@ -155,6 +155,84 @@ def test_api_dify_session_draft() -> None:
     assert payload["tree_species"]["id"] == "cherry"
 
 
+def test_parenthesis_ignored() -> None:
+    result = diagnose_answer(
+        AnswerRecord(
+            grade=6,
+            problem="(2+3)×4=",
+            correct_answer="20",
+            student_answer="14",
+        )
+    )
+    assert result.is_correct is False
+    assert result.primary_error.code == ErrorCode.OPERATION_ORDER
+
+
+def test_partial_product_forgot_shift() -> None:
+    result = diagnose_answer(
+        AnswerRecord(
+            grade=6,
+            problem="12×34=",
+            correct_answer="408",
+            student_answer="84",
+        )
+    )
+    assert result.is_correct is False
+    assert result.primary_error.code == ErrorCode.PLACE_VALUE_ALIGNMENT
+
+
+def test_partial_product_cross_term_miss() -> None:
+    result = diagnose_answer(
+        AnswerRecord(
+            grade=6,
+            problem="23×45=",
+            correct_answer="1035",
+            student_answer="815",
+        )
+    )
+    assert result.is_correct is False
+    assert result.primary_error.code == ErrorCode.MISSING_STEP
+
+
+def test_conceptual_square_vs_double() -> None:
+    result = diagnose_answer(
+        AnswerRecord(
+            grade=6,
+            problem="7×7=",
+            correct_answer="49",
+            student_answer="14",
+        )
+    )
+    assert result.is_correct is False
+    assert result.primary_error.code == ErrorCode.CONCEPTUAL_UNDERSTANDING
+
+
+def test_wording_multiply_read_as_add() -> None:
+    result = diagnose_answer(
+        AnswerRecord(
+            grade=6,
+            problem="5×8=",
+            correct_answer="40",
+            student_answer="13",
+        )
+    )
+    assert result.is_correct is False
+    assert result.primary_error.code == ErrorCode.WORDING_UNIT
+
+
+def test_partial_product_tens_only() -> None:
+    result = diagnose_answer(
+        AnswerRecord(
+            grade=6,
+            problem="23×45=",
+            correct_answer="1035",
+            student_answer="915",
+        )
+    )
+    assert result.is_correct is False
+    assert result.primary_error.code in (ErrorCode.PLACE_VALUE_ALIGNMENT, ErrorCode.MISSING_STEP)
+
+
 def test_homework_ocr_simulation_loop() -> None:
     generate = client.post(
         "/api/homework/generate",
