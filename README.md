@@ -1,10 +1,6 @@
 <div align="center">
 
-<img src="docs/images/cover.png" alt="我的计算森林" width="100%">
-
-<br/>
-
-<h1>🌲 我的计算森林</h1>
+<img src="docs/images/logo.png" alt="我的计算森林" width="320">
 
 **✨ AI 批阅，教师把关 ✨** — 小学数学智能错因诊断与自适应练习系统
 
