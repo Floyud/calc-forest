@@ -35,6 +35,8 @@ data/logs/
 .opencode/
 .omo/
 .playwright-mcp/
+AGENTS.md
+.mcp.json
 nul
 
 # Local-only / non-public
@@ -47,6 +49,7 @@ Upload/
 Upload.zip
 *.png
 !calc_forest/web/public/**
+!docs/images/**
 
 # Personal notes / scratch
 goal.md

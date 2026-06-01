@@ -98,6 +98,40 @@ export default function StudentPracticePage() {
     setShowSummary(true);
   };
 
+  if (pageLoading) {
+    return (
+      <div className="max-w-lg mx-auto px-4 py-12 text-center">
+        <div className="text-3xl mb-3 animate-pulse">📐</div>
+        <p className="text-sm" style={{ color: "var(--color-soft-400)" }}>正在准备题目...</p>
+      </div>
+    );
+  }
+
+  if (pageError && !problem) {
+    return (
+      <div className="max-w-lg mx-auto px-4 py-12 text-center">
+        <div className="text-3xl mb-3">😔</div>
+        <p className="text-sm mb-4" style={{ color: "var(--color-soft-500)" }}>{pageError}</p>
+        <div className="flex gap-3 justify-center">
+          <button
+            onClick={() => router.push("/s/home")}
+            className="px-4 py-2 rounded-2xl text-sm font-medium"
+            style={{ background: "var(--color-sand-100)", color: "#3e3a36" }}
+          >
+            返回首页
+          </button>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 rounded-2xl text-sm font-medium text-white"
+            style={{ background: "var(--color-mist-500)" }}
+          >
+            重新加载
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (showSummary && summary) {
     return (
       <div className="max-w-lg mx-auto px-4 py-6">
@@ -180,6 +214,17 @@ export default function StudentPracticePage() {
           结束练习
         </button>
       </div>
+
+      {/* Error banner */}
+      {pageError && problem && (
+        <div className="rounded-2xl p-3 mb-4 text-center text-sm" style={{
+          background: "var(--color-blush-50)",
+          color: "var(--color-blush-400)",
+          border: "1px solid rgba(242, 168, 171, 0.2)",
+        }}>
+          {pageError}
+        </div>
+      )}
 
       {/* Problem card */}
       {problem && (

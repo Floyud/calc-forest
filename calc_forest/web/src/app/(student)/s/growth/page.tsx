@@ -12,6 +12,12 @@ const EChartsBase = dynamic(
   { ssr: false },
 );
 
+const ECODE_LABELS: Record<string, string> = {
+  E01: "基础事实", E02: "进位", E03: "退位", E04: "数位对齐",
+  E05: "运算顺序", E06: "小数分数", E07: "抄写", E08: "步骤遗漏",
+  E09: "算理理解", E10: "审题单位", E11: "未验算", E99: "未识别",
+};
+
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "";
 
 const STAGE_EMOJI: Record<string, string> = {
@@ -127,15 +133,26 @@ export default function StudentGrowthPage() {
     if (!data?.weak_areas?.length) return null;
     return {
       radar: {
-        indicator: data.weak_areas.map((w) => ({ name: w.error_code, max: 100 })),
+        indicator: data.weak_areas.map((w) => ({
+          name: ECODE_LABELS[w.error_code] || w.error_code,
+          max: 100,
+        })),
         radius: "65%",
         axisName: { color: "#b0a899", fontSize: 11 },
         splitArea: { areaStyle: { color: ["rgba(155, 170, 200, 0.04)", "rgba(155, 170, 200, 0.08)"] } },
       },
       series: [{
         type: "radar" as const,
-        data: [{ value: data.weak_areas.map((w) => Math.round(w.accuracy * 100)), areaStyle: { color: "rgba(155, 170, 200, 0.18)" }, lineStyle: { color: "#9baac8" }, itemStyle: { color: "#9baac8" } }],
+        data: [{
+          value: data.weak_areas.map((w) => Math.round(w.accuracy * 100)),
+          areaStyle: { color: "rgba(155, 170, 200, 0.18)" },
+          lineStyle: { color: "#9baac8", width: 2 },
+          itemStyle: { color: "#9baac8" },
+          symbol: "circle",
+          symbolSize: 6,
+        }],
       }],
+      tooltip: { trigger: "item" as const },
     };
   }, [data]);
 
@@ -216,7 +233,7 @@ export default function StudentGrowthPage() {
         </div>
       )}
 
-      {radarOption && (
+      {radarOption ? (
         <div className="surface-soft rounded-2xl p-4">
           <h2 className="text-sm font-semibold mb-3 flex items-center gap-1.5" style={{ color: "#3e3a36" }}>
             <Target className="w-4 h-4" style={{ color: "var(--color-mist-400)" }} /> 薄弱环节分析
@@ -224,6 +241,15 @@ export default function StudentGrowthPage() {
           <div className="h-56">
             <EChartsBase option={radarOption} className="h-full w-full" />
           </div>
+        </div>
+      ) : (
+        <div className="surface-soft rounded-2xl p-4 text-center">
+          <h2 className="text-sm font-semibold mb-2 flex items-center justify-center gap-1.5" style={{ color: "#3e3a36" }}>
+            <Target className="w-4 h-4" style={{ color: "var(--color-mist-400)" }} /> 薄弱环节分析
+          </h2>
+          <p className="text-xs" style={{ color: "var(--color-soft-400)" }}>
+            完成更多练习后，这里会显示你的能力雷达图 📊
+          </p>
         </div>
       )}
 

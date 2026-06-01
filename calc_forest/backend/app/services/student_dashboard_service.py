@@ -126,9 +126,9 @@ async def _get_weak_areas(db, student_id: str) -> list[dict]:
         SELECT error_code, total_attempts, correct_count,
                ROUND(CASE WHEN total_attempts > 0 THEN correct_count * 1.0 / total_attempts ELSE 0 END, 2) as accuracy
         FROM student_error_stats
-        WHERE student_id = ? AND total_attempts > 0
+        WHERE student_id = ? AND total_attempts > 0 AND error_code != 'OK'
         ORDER BY accuracy ASC
-        LIMIT 3
+        LIMIT 5
         """,
         (student_id,),
     )

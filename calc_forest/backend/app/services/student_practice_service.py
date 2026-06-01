@@ -8,6 +8,7 @@ from datetime import datetime
 from app.db import get_db
 from app.services.problem_generator import generate_problems
 from app.services.diagnosis import diagnose_answer, AnswerRecord
+from app.repositories.stats_repo import batch_update_error_stats
 
 
 async def start_practice(student_id: str, error_codes: list[str] | None = None) -> dict:
@@ -141,6 +142,9 @@ async def submit_practice_answer(student_id: str, session_id: str, problem_id: s
             """,
             (int(is_correct), session_id),
         )
+        stats_error_code = error_code if not is_correct else problem["target_error_code"]
+        if stats_error_code and stats_error_code != "OK":
+            await batch_update_error_stats(db, student_id, [(stats_error_code, is_correct)])
         await db.commit()
 
         return {
