@@ -18,12 +18,12 @@
 services:
   backend:
     build:
-      context: ./development
+      context: ./calc_forest/backend
       dockerfile: Dockerfile
     ports:
       - "8000:8000"
     volumes:
-      - ./development/data:/app/data
+      - ./calc_forest/backend/data:/app/data
       - ./knowledge_base:/app/knowledge_base
     environment:
       # --- Dify Cloud 配置 ---

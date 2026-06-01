@@ -1,4 +1,5 @@
 import "@testing-library/jest-dom/vitest";
+import { vi } from "vitest";
 
 // Mock framer-motion to avoid animation errors in tests
 vi.mock("framer-motion", () => {

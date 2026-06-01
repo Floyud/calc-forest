@@ -277,6 +277,8 @@ export interface HomeworkGenerateRequest {
   error_codes_target?: string[];
   problem_count?: number;
   difficulty?: string;
+  exercise_types?: string[];
+  difficulty_strategy?: string;
 }
 
 export interface HomeworkGenerateResponse {
@@ -366,15 +368,60 @@ export interface HomeworkPdfRecord {
   hw_created: string;
 }
 
+// ─── AI Grading Flow ───
+
+export interface SubmitHomeworkRequest {
+  homework_id: string;
+  student_id: string;
+  answers: Record<number, string>;
+}
+
+export interface SubmitHomeworkResponse {
+  homework_id: string;
+  student_id: string;
+  submitted_answers: number;
+  status: string;
+}
+
+export interface AIGradingResult {
+  homework_id: string;
+  student_id: string;
+  total_problems: number;
+  correct_count: number;
+  accuracy: number;
+  primary_errors: string[];
+  next_suggestion: string | null;
+  profile_updated?: boolean;
+  growth_updated?: boolean;
+  graded_at?: string;
+  review_status?: string;
+}
+
 export interface WeakKnowledgePoint {
   error_code: string;
   unit_id: string;
   unit_title: string;
   knowledge_point: string;
   typical_error: string;
-  accuracy: number;
+  accuracy: number | null;
   total_attempts: number;
-  mastery_zone: "mastered" | "learning" | "needs_practice";
+  mastery_zone: string;
+}
+
+export interface StudentMasteryErrorCode {
+  mastery_probability: number;
+  zone: string;
+  total_attempts: number;
+  correct_count: number;
+}
+
+export interface StudentMasteryResponse {
+  student_id: string;
+  error_codes: Record<string, StudentMasteryErrorCode>;
+  overall_mastery: number;
+  mastered_count: number;
+  total_error_codes: number;
+  review_status: string;
 }
 
 export interface StudentProfile {
@@ -389,6 +436,9 @@ export interface StudentProfile {
     textbook_version: string;
     start_grade: number;
     enrolled_at: string;
+    personality_tags?: string[];
+    learning_style?: string;
+    notes?: string;
   };
   total_attempts: number;
   correct_count: number;
@@ -401,4 +451,102 @@ export interface StudentProfile {
   growth_milestone: GrowthMilestone | null;
   last_active_date: string | null;
   weak_knowledge_points: WeakKnowledgePoint[];
+}
+
+// ─── Exercise Types ───
+
+export type ExerciseType =
+  | "口算"
+  | "竖式计算"
+  | "脱式计算"
+  | "简便运算"
+  | "列式计算"
+  | "图形计算"
+  | "分数运算"
+  | "比与比例";
+
+export const EXERCISE_TYPES: ExerciseType[] = [
+  "口算",
+  "竖式计算",
+  "脱式计算",
+  "简便运算",
+  "列式计算",
+  "图形计算",
+  "分数运算",
+  "比与比例",
+];
+
+export type DifficultyStrategy =
+  | "auto"
+  | "A"
+  | "B"
+  | "C"
+  | "mixed";
+
+// ─── Homework Analytics ───
+
+export interface ClassHomeworkAnalytics {
+  class_id: string;
+  total_homeworks: number;
+  avg_accuracy: number;
+  completion_rate: number;
+  most_common_error: string | null;
+  recent_homeworks: HomeworkAnalyticsItem[];
+  error_distribution: Record<string, number>;
+  demo_mode?: boolean;
+}
+
+export interface HomeworkAnalyticsItem {
+  homework_id: string;
+  created_at: string;
+  problem_count: number;
+  submission_count: number;
+  avg_accuracy: number;
+  top_error: string | null;
+  status: string;
+}
+
+// ─── Scan & Grade ───
+
+/** Per-problem grading result from scan-and-grade endpoint */
+export interface ScanGradeResult {
+  sequence: number;
+  problem: string;
+  correct_answer: string;
+  student_answer: string;
+  recognized_text: string;
+  is_correct: boolean;
+  error_code: string | null;
+  error_label: string | null;
+  /** Baidu OCR enriched fields — may be null if using local OCR */
+  baidu_question_type: number | null;
+  baidu_crop_url: string | null;
+  baidu_slots: BaiduSlotResult[] | null;
+}
+
+/** Per-slot result from Baidu OCR */
+export interface BaiduSlotResult {
+  slot_id: string;
+  sequence: number;
+  /** 0=未批, 1=正确, 2=错误, 3=未作答 */
+  correct_result: number;
+  reason: string;
+  handwriting_area: { left_x: number; left_y: number; right_x: number; right_y: number } | null;
+}
+
+/** Response from scan-and-grade endpoint */
+export interface ScanGradeResponse {
+  homework_id: string;
+  student_id: string;
+  status: "graded" | "no_ocr_results" | "partial";
+  recognized_count: number;
+  total_problems: number;
+  results: ScanGradeResult[];
+  grading_summary: {
+    total: number;
+    correct: number;
+    accuracy: number;
+  };
+  /** Whether Baidu OCR was used */
+  ocr_source: "baidu" | "local" | null;
 }

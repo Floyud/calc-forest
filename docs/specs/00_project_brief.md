@@ -1,5 +1,7 @@
 # Project Brief
 
+> 相关文档：`docs/engineering/architecture.md` · `docs/specs/01_prd.md` · `docs/specs/02_mvp_scope.md`
+
 ## Product Name
 
 我的计算森林

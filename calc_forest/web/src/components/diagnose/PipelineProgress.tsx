@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, Loader2, Circle, AlertTriangle } from "lucide-react";
 import type { DifySessionDraftResponse, DifySessionDraftRequest } from "@/lib/types";
+import { getSessionDraft } from "@/lib/api";
 
 type NodeStatus = "pending" | "running" | "complete" | "skipped" | "failed";
 
@@ -50,6 +51,7 @@ export default function PipelineProgress({
   const [nodes, setNodes] = useState<PipelineNode[]>(buildInitialNodes);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [pipelineDone, setPipelineDone] = useState(false);
+  const [progress, setProgress] = useState(0);
   const abortRef = useRef<AbortController | null>(null);
 
   const updateNode = useCallback(
@@ -65,97 +67,40 @@ export default function PipelineProgress({
     const controller = new AbortController();
     abortRef.current = controller;
 
-    const API_BASE =
-      process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
+    const NODE_COUNT = NODE_ORDER.length;
+    const STEP_MS = 500;
+    let stepIdx = 0;
+    const stepStart = Date.now();
 
-    fetch(`${API_BASE}/api/dify/pipeline-stream`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(request),
-      signal: controller.signal,
-    })
-      .then(async (res) => {
-        if (!res.ok) {
-          const text = await res.text();
-          throw new Error(`HTTP ${res.status}: ${text}`);
+    const simTimer = setInterval(() => {
+      if (stepIdx < NODE_COUNT) {
+        updateNode(NODE_ORDER[stepIdx].name, { status: "running" });
+        if (stepIdx > 0) {
+          const elapsed = Date.now() - stepStart;
+          const perStep = Math.round(elapsed / stepIdx);
+          updateNode(NODE_ORDER[stepIdx - 1].name, {
+            status: "complete",
+            duration_ms: perStep,
+          });
         }
-
-        const reader = res.body?.getReader();
-        if (!reader) throw new Error("No readable stream");
-
-        const decoder = new TextDecoder();
-        let buffer = "";
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          buffer += decoder.decode(value, { stream: true });
-
-          const parts = buffer.split("\n\n");
-          buffer = parts.pop() ?? "";
-
-          for (const part of parts) {
-            if (!part.trim()) continue;
-
-            let eventType = "";
-            let dataStr = "";
-
-            for (const line of part.split("\n")) {
-              if (line.startsWith("event: ")) {
-                eventType = line.slice(7).trim();
-              } else if (line.startsWith("data: ")) {
-                dataStr = line.slice(6);
-              }
-            }
-
-            if (!dataStr) continue;
-
-            let data: Record<string, unknown>;
-            try {
-              data = JSON.parse(dataStr);
-            } catch {
-              continue;
-            }
-
-            switch (eventType) {
-              case "node_progress": {
-                const nodeName = data.node as string;
-                updateNode(nodeName, {
-                  status: "running",
-                  message: (data.message as string) ?? "",
-                });
-                break;
-              }
-              case "node_complete": {
-                const nodeName = data.node as string;
-                const status = (data.status as string) ?? "complete";
-                updateNode(nodeName, {
-                  status: status === "failed" ? "failed" : status === "skipped" ? "skipped" : "complete",
-                  duration_ms: (data.duration_ms as number) ?? 0,
-                  summary: data as Record<string, string | number | boolean | null>,
-                });
-                break;
-              }
-              case "done": {
-                const result = data.result as DifySessionDraftResponse;
-                if (result) {
-                  onComplete(result);
-                }
-                setPipelineDone(true);
-                break;
-              }
-              case "error": {
-                const msg = (data.message as string) ?? (data.error as string) ?? "未知错误";
-                setErrorMsg(msg);
-                onError(msg);
-                break;
-              }
-            }
-          }
-        }
+        stepIdx++;
+        setProgress(Math.min(90, Math.round((stepIdx / NODE_COUNT) * 90)));
+      }
+    }, STEP_MS);
+    getSessionDraft(request)
+      .then((result) => {
+        clearInterval(simTimer);
+        const totalElapsed = Date.now() - stepStart;
+        const perNode = Math.round(totalElapsed / NODE_COUNT);
+        setNodes((prev) =>
+          prev.map((n) => ({ ...n, status: "complete" as NodeStatus, duration_ms: perNode })),
+        );
+        setProgress(100);
+        setPipelineDone(true);
+        onComplete(result);
       })
       .catch((err) => {
+        clearInterval(simTimer);
         if (controller.signal.aborted) return;
         const msg = err instanceof Error ? err.message : "连接失败";
         setErrorMsg(msg);
@@ -163,6 +108,7 @@ export default function PipelineProgress({
       });
 
     return () => {
+      clearInterval(simTimer);
       controller.abort();
     };
   }, [request, updateNode, onComplete, onError]);
@@ -187,6 +133,15 @@ export default function PipelineProgress({
         <span className="text-sm font-medium text-forest-700">
           {headerText}
         </span>
+      </div>
+
+      <div className="mb-3 h-1.5 w-full overflow-hidden rounded-full bg-forest-100">
+        <motion.div
+          className="h-full rounded-full bg-forest-500"
+          initial={{ width: "0%" }}
+          animate={{ width: `${progress}%` }}
+          transition={{ duration: 0.3, ease: "easeOut" }}
+        />
       </div>
 
       <div className="flex items-start gap-0 overflow-x-auto pb-2">

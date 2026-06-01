@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, QueryCache, MutationCache } from "@tanstack/react-query";
+import { logger } from "@/lib/logger";
 
 function makeQueryClient() {
   return new QueryClient({
@@ -12,6 +13,19 @@ function makeQueryClient() {
         refetchOnWindowFocus: false,
       },
     },
+    queryCache: new QueryCache({
+      onError: (error, query) => {
+        logger.error("query_error", {
+          queryKey: String(query.queryKey),
+          error: error.message,
+        });
+      },
+    }),
+    mutationCache: new MutationCache({
+      onError: (error) => {
+        logger.error("mutation_error", { error: error.message });
+      },
+    }),
   });
 }
 

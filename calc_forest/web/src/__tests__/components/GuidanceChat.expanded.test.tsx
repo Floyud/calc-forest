@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { GuidanceChat } from "@/components/guidance/GuidanceChat";
@@ -27,22 +27,22 @@ describe("GuidanceChat (expanded)", () => {
     expect(input).toBeInTheDocument();
   });
 
-  it("shows config message when no DIFY_API_KEY is set", () => {
-    render(<GuidanceChat />);
+  it("shows welcome bot message when provided", () => {
+    render(<GuidanceChat welcomeMessage="树精灵准备好了" />);
     expect(
-      screen.getByText("树精灵服务尚未配置，请联系老师"),
+      screen.getByText("树精灵准备好了"),
     ).toBeInTheDocument();
   });
 
-  it("renders bot message bubble for config message", () => {
-    render(<GuidanceChat />);
+  it("renders bot message bubble for welcome message", () => {
+    render(<GuidanceChat welcomeMessage="树精灵准备好了" />);
     expect(
-      screen.getByText("树精灵服务尚未配置，请联系老师"),
+      screen.getByText("树精灵准备好了"),
     ).toBeInTheDocument();
   });
 
   it("renders bot avatar (tree icon) in message area", () => {
-    const { container } = render(<GuidanceChat />);
+    const { container } = render(<GuidanceChat welcomeMessage="树精灵准备好了" />);
     const treeIcon = container.querySelector(".lucide-tree-pine");
     expect(treeIcon).toBeInTheDocument();
   });

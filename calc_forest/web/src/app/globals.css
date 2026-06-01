@@ -5,6 +5,7 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme {
+  /* ── Forest palette (teacher / brand identity) ── */
   --color-forest-50: #f4f9f2;
   --color-forest-100: #e4f0df;
   --color-forest-200: #c8e0be;
@@ -16,6 +17,7 @@
   --color-forest-800: #2d5128;
   --color-forest-900: #244220;
 
+  /* ── Warm amber accents ── */
   --color-warm-50: #fef9f0;
   --color-warm-100: #fdf0db;
   --color-warm-200: #fbe4b8;
@@ -23,6 +25,7 @@
   --color-warm-400: #e8945a;
   --color-warm-500: #d4a843;
 
+  /* ── Bark brown ── */
   --color-bark-50: #faf5ef;
   --color-bark-100: #f0e6d8;
   --color-bark-200: #e0ccaf;
@@ -31,6 +34,7 @@
   --color-bark-500: #7a5a38;
   --color-bark-600: #5c4228;
 
+  /* ── Parchment cream ── */
   --color-parchment-50: #fffef8;
   --color-parchment-100: #fdf8ec;
   --color-parchment-200: #fdf0d5;
@@ -38,6 +42,7 @@
   --color-parchment-400: #e8d5a8;
   --color-parchment-500: #d4bc82;
 
+  /* ── Volcano warm-red ── */
   --color-volcano-50: #fef5f3;
   --color-volcano-100: #fce8e3;
   --color-volcano-200: #f5c4b8;
@@ -45,6 +50,7 @@
   --color-volcano-400: #e8945a;
   --color-volcano-500: #c75c3a;
 
+  /* ── Ink dark ── */
   --color-ink-50: #f5f3f0;
   --color-ink-100: #e8e2db;
   --color-ink-200: #c4b8a8;
@@ -52,6 +58,7 @@
   --color-ink-400: #5c4a3a;
   --color-ink-500: #3e2723;
 
+  /* ── Sage muted green ── */
   --color-sage-50: #f2f5f0;
   --color-sage-100: #e0e8da;
   --color-sage-200: #c2d4b8;
@@ -59,43 +66,86 @@
   --color-sage-400: #7d9b76;
   --color-sage-500: #5a7a52;
 
+  /* ── Soft palette (student / calm premium) ── */
+  --color-soft-50: #faf9f7;
+  --color-soft-100: #f3f1ed;
+  --color-soft-200: #e8e4de;
+  --color-soft-300: #d4cfc6;
+  --color-soft-400: #b0a899;
+  --color-soft-500: #8a8072;
+
+  /* ── Mist lavender-blue ── */
+  --color-mist-50: #f8f9fc;
+  --color-mist-100: #eef1f7;
+  --color-mist-200: #dde3ef;
+  --color-mist-300: #c4cee2;
+  --color-mist-400: #9baac8;
+  --color-mist-500: #7488ab;
+
+  /* ── Blush rose ── */
+  --color-blush-50: #fdf5f5;
+  --color-blush-100: #fce8e9;
+  --color-blush-200: #f9d4d6;
+  --color-blush-300: #f2a8ab;
+  --color-blush-400: #e47d82;
+  --color-blush-500: #c94550;
+
+  /* ── Sand warm neutral ── */
+  --color-sand-50: #faf8f4;
+  --color-sand-100: #f4efe6;
+  --color-sand-200: #e8dfd0;
+  --color-sand-300: #d4c7b0;
+  --color-sand-400: #b5a484;
+  --color-sand-500: #968260;
+
+  /* ── Typography ── */
   --font-sans: "LXGW WenKai", "Noto Sans SC", system-ui, -apple-system, sans-serif;
+  --font-heading: "Noto Serif SC", "Source Han Serif SC", "Songti SC", serif;
+  --font-mono: "JetBrains Mono", "SF Mono", ui-monospace, monospace;
 }
 
 @layer base {
   :root {
-    --background: oklch(0.98 0.005 100);
-    --foreground: oklch(0.22 0.02 45);
-    --card: oklch(1.0 0.003 100);
-    --card-foreground: oklch(0.22 0.02 45);
-    --popover: oklch(1.0 0.003 100);
-    --popover-foreground: oklch(0.22 0.02 45);
-    --primary: oklch(0.55 0.14 145);
-    --primary-foreground: oklch(0.98 0.005 100);
-    --secondary: oklch(0.94 0.015 100);
-    --secondary-foreground: oklch(0.30 0.02 45);
-    --muted: oklch(0.95 0.01 100);
-    --muted-foreground: oklch(0.50 0.02 60);
-    --accent: oklch(0.92 0.03 80);
-    --accent-foreground: oklch(0.25 0.02 45);
+    --background: #f7f3e9;
+    --foreground: #253322;
+    --card: rgba(255, 252, 245, 0.86);
+    --card-foreground: #253322;
+    --popover: rgba(255, 252, 245, 0.96);
+    --popover-foreground: #253322;
+    --primary: #4a7551;
+    --primary-foreground: #fdfaf3;
+    --secondary: #efe6d4;
+    --secondary-foreground: #405238;
+    --muted: #f2ecdf;
+    --muted-foreground: #6e6c59;
+    --accent: #d9b96b;
+    --accent-foreground: #3f3522;
     --destructive: oklch(0.577 0.245 27.325);
-    --border: oklch(0.88 0.015 100);
-    --input: oklch(0.90 0.015 100);
-    --ring: oklch(0.55 0.14 145);
-    --chart-1: oklch(0.55 0.14 145);
-    --chart-2: oklch(0.65 0.12 55);
-    --chart-3: oklch(0.75 0.10 90);
-    --chart-4: oklch(0.60 0.09 35);
-    --chart-5: oklch(0.55 0.08 165);
-    --radius: 0.75rem;
-    --sidebar: oklch(0.96 0.01 100);
-    --sidebar-foreground: oklch(0.22 0.02 45);
-    --sidebar-primary: oklch(0.55 0.14 145);
-    --sidebar-primary-foreground: oklch(0.98 0.005 100);
-    --sidebar-accent: oklch(0.92 0.03 80);
-    --sidebar-accent-foreground: oklch(0.25 0.02 45);
-    --sidebar-border: oklch(0.88 0.015 100);
-    --sidebar-ring: oklch(0.55 0.14 145);
+    --border: rgba(105, 120, 79, 0.18);
+    --input: rgba(255, 252, 245, 0.9);
+    --ring: #4a7551;
+    --chart-1: #4a7551;
+    --chart-2: #d6a54c;
+    --chart-3: #7f9b76;
+    --chart-4: #a95e4d;
+    --chart-5: #6b8ca8;
+    --radius: 1rem;
+    --sidebar: rgba(252, 248, 239, 0.92);
+    --sidebar-foreground: #253322;
+    --sidebar-primary: #4a7551;
+    --sidebar-primary-foreground: #fdfaf3;
+    --sidebar-accent: #f1ead9;
+    --sidebar-accent-foreground: #3f3522;
+    --sidebar-border: rgba(105, 120, 79, 0.18);
+    --sidebar-ring: #4a7551;
+    --tone-paper: rgba(255, 252, 245, 0.84);
+    --tone-paper-strong: rgba(255, 252, 245, 0.96);
+    --tone-line: rgba(105, 120, 79, 0.16);
+    --tone-ink: #253322;
+    --tone-muted: #6e6c59;
+    --tone-soft: #f2ecdf;
+    --tone-accent: #d9b96b;
+    --tone-accent-strong: #4a7551;
   }
 
   .dark {
@@ -145,16 +195,84 @@
     min-height: 100%;
     display: flex;
     flex-direction: column;
-    background:
-      radial-gradient(ellipse at top left, rgba(124, 179, 66, 0.06), transparent 50%),
-      radial-gradient(ellipse at bottom right, rgba(255, 183, 77, 0.05), transparent 50%),
-      linear-gradient(180deg, #fafdf7 0%, #f5f0e8 100%);
+    background-color: var(--background);
+    background-image:
+      radial-gradient(circle at top left, rgba(123, 154, 113, 0.16), transparent 34%),
+      radial-gradient(circle at top right, rgba(216, 185, 107, 0.12), transparent 24%),
+      linear-gradient(180deg, rgba(255, 254, 248, 0.55) 0%, rgba(247, 243, 233, 0) 32%),
+      linear-gradient(180deg, #fcf8ef 0%, #f7f3e9 52%, #f1ebdf 100%);
     @apply bg-background text-foreground antialiased;
   }
 
   a {
     color: inherit;
     text-decoration: none;
+  }
+}
+
+@layer components {
+  .surface-panel {
+    background: linear-gradient(180deg, rgba(255, 252, 245, 0.94) 0%, rgba(255, 250, 241, 0.9) 100%);
+    border: 1px solid var(--tone-line);
+    box-shadow: 0 20px 48px rgba(90, 84, 60, 0.08);
+    backdrop-filter: blur(14px);
+  }
+
+  .surface-hero {
+    background:
+      linear-gradient(135deg, rgba(255, 253, 247, 0.9) 0%, rgba(244, 239, 226, 0.82) 100%),
+      radial-gradient(circle at top right, rgba(122, 164, 113, 0.16), transparent 28%);
+    border: 1px solid rgba(105, 120, 79, 0.16);
+    box-shadow: 0 26px 56px rgba(90, 84, 60, 0.1);
+  }
+
+  .paper-grid {
+    background-image:
+      linear-gradient(rgba(105, 120, 79, 0.08) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(105, 120, 79, 0.08) 1px, transparent 1px);
+    background-position: center center;
+    background-size: 18px 18px;
+  }
+
+  .surface-glass {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.72) 0%, rgba(250, 249, 247, 0.65) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    box-shadow:
+      0 8px 32px rgba(120, 115, 100, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(20px) saturate(1.2);
+  }
+
+  .surface-soft {
+    background: linear-gradient(180deg, rgba(255, 255, 254, 0.9) 0%, rgba(250, 249, 247, 0.85) 100%);
+    border: 1px solid rgba(180, 172, 158, 0.18);
+    box-shadow: 0 12px 36px rgba(90, 84, 60, 0.06);
+    backdrop-filter: blur(12px);
+  }
+
+  .surface-double-bezel {
+    background: linear-gradient(135deg, rgba(248, 246, 243, 0.95) 0%, rgba(243, 241, 237, 0.9) 100%);
+    border: 1px solid rgba(180, 172, 158, 0.15);
+    box-shadow:
+      0 1px 2px rgba(90, 84, 60, 0.04),
+      0 4px 16px rgba(90, 84, 60, 0.06),
+      inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  }
+}
+
+@keyframes blob-float {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(10px, -20px) scale(1.02); }
+  66% { transform: translate(-8px, 12px) scale(0.98); }
+}
+
+.blob-float {
+  animation: blob-float 20s ease-in-out infinite;
+}
+
+@media (max-width: 768px) {
+  .blob-float {
+    transform: scale(0.55);
   }
 }
 
@@ -338,4 +456,129 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/* ===== GPU 加速 & 丝滑动效工具类 ===== */
+
+/* 硬件加速层提升 — 动画元素自动提升到合成层 */
+.gpu-layer {
+  will-change: transform, opacity;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+/* 平滑滚动 */
+.smooth-scroll {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* 丝滑淡入 */
+.fade-in {
+  animation: smooth-fade-in 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+@keyframes smooth-fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* 丝滑缩放弹入 */
+.scale-in {
+  animation: smooth-scale-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes smooth-scale-in {
+  from { opacity: 0; transform: scale(0.92); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* 丝滑滑入 */
+.slide-up {
+  animation: smooth-slide-up 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+@keyframes smooth-slide-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* 卡片悬浮提升 — 用于所有可交互卡片 */
+.card-hover {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+              box-shadow 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+.card-hover:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 12px 40px -8px rgba(0, 0, 0, 0.15);
+}
+
+/* 页面过渡容器 */
+.page-transition-enter {
+  animation: page-enter 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+.page-transition-exit {
+  animation: page-exit 0.2s cubic-bezier(0.55, 0.06, 0.68, 0.19) both;
+}
+
+@keyframes page-enter {
+  from { opacity: 0; transform: translateY(12px) scale(0.99); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes page-exit {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to { opacity: 0; transform: translateY(-8px) scale(0.99); }
+}
+
+/* 抽屉/面板滑入 — 用于侧边栏、详情面板 */
+.drawer-slide {
+  animation: drawer-enter 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes drawer-enter {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+/* 涟漪点击反馈 */
+.ripple:active {
+  transform: scale(0.97);
+  transition: transform 0.1s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* 内容渐显列表 — 用于列表项逐个出现 */
+.stagger-item {
+  animation: stagger-in 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+.stagger-item:nth-child(1) { animation-delay: 0ms; }
+.stagger-item:nth-child(2) { animation-delay: 50ms; }
+.stagger-item:nth-child(3) { animation-delay: 100ms; }
+.stagger-item:nth-child(4) { animation-delay: 150ms; }
+.stagger-item:nth-child(5) { animation-delay: 200ms; }
+.stagger-item:nth-child(6) { animation-delay: 250ms; }
+.stagger-item:nth-child(7) { animation-delay: 300ms; }
+.stagger-item:nth-child(8) { animation-delay: 350ms; }
+
+@keyframes stagger-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* 进度条丝滑填充 */
+.progress-fill {
+  transition: width 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* 脉冲呼吸 — 用于加载状态 */
+.pulse-soft {
+  animation: pulse-soft 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+/* Canvas 容器 */
+.canvas-container {
+  will-change: contents;
+  contain: layout style;
 }

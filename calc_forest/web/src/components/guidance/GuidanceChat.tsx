@@ -1,27 +1,44 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Send, TreePine, Volume2, VolumeX } from "lucide-react";
+import { Send, TreePine, Volume2, VolumeX, Mic, MicOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { API_BASE, DEFAULT_STUDENT_ID } from "@/lib/config";
-import { getGuidanceContext } from "@/lib/api";
+import { DEFAULT_STUDENT_ID } from "@/lib/config";
+import { getGuidanceContext, generateTTSAudio, sendDifyChat } from "@/lib/api";
 
-const DIFY_BASE_URL =
-  process.env.NEXT_PUBLIC_DIFY_BASE_URL ?? "http://127.0.0.1:18080";
+const DIFY_CONFIGURED = process.env.NEXT_PUBLIC_DIFY_ENABLED !== "false";
 
-const DIFY_API_KEY =
-  process.env.NEXT_PUBLIC_DIFY_STUDENT_GUIDANCE_KEY ?? "";
+type SpeechRecognitionEventType = {
+  resultIndex: number;
+  results: SpeechRecognitionResultList;
+};
+
+interface SpeechRecognitionInstance extends EventTarget {
+  lang: string;
+  interimResults: boolean;
+  continuous: boolean;
+  onresult: ((e: SpeechRecognitionEventType) => void) | null;
+  onerror: ((e: { error: string }) => void) | null;
+  onend: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+  abort: () => void;
+}
+
+function createSpeechRecognition(): SpeechRecognitionInstance | null {
+  if (typeof window === "undefined") return null;
+  const Ctor =
+    (window as unknown as Record<string, unknown>).SpeechRecognition ??
+    (window as unknown as Record<string, unknown>).webkitSpeechRecognition;
+  if (!Ctor) return null;
+  return new (Ctor as new () => SpeechRecognitionInstance)();
+}
 
 interface ChatMessage {
   id: string;
   role: "user" | "bot";
   content: string;
-}
-
-interface DifyChatResponse {
-  answer: string;
-  conversation_id: string;
 }
 
 function generateId(): string {
@@ -95,15 +112,11 @@ function cleanTextForTTS(raw: string): string {
 // ---------------------------------------------------------------------------
 
 async function playBackendTTS(text: string): Promise<HTMLAudioElement> {
-  const res = await fetch(`${API_BASE}/api/tts/generate`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text }),
-  });
-  if (!res.ok) throw new Error("TTS backend failed");
-  const blob = await res.blob();
+  const blob = await generateTTSAudio(text);
   const url = URL.createObjectURL(blob);
   const audio = new Audio(url);
+  audio.onended = () => URL.revokeObjectURL(url);
+  audio.onerror = () => URL.revokeObjectURL(url);
   return audio;
 }
 
@@ -122,12 +135,20 @@ function speakWithWebAPI(cleaned: string): void {
 function useTTS() {
   const speakingIdRef = useRef<string | null>(null);
   const currentAudioRef = useRef<HTMLAudioElement | null>(null);
+  const currentUrlRef = useRef<string | null>(null);
   const [speakingId, setSpeakingId] = useState<string | null>(null);
 
   const webSpeechSupported =
     typeof window !== "undefined" && typeof window.speechSynthesis !== "undefined";
 
   const supported = true;
+
+  const revokeCurrentUrl = useCallback(() => {
+    if (currentUrlRef.current) {
+      URL.revokeObjectURL(currentUrlRef.current);
+      currentUrlRef.current = null;
+    }
+  }, []);
 
   const speak = useCallback(
     (text: string, messageId: string) => {
@@ -136,6 +157,7 @@ function useTTS() {
           currentAudioRef.current.pause();
           currentAudioRef.current = null;
         }
+        revokeCurrentUrl();
         window.speechSynthesis?.cancel();
         speakingIdRef.current = null;
         setSpeakingId(null);
@@ -146,6 +168,7 @@ function useTTS() {
         currentAudioRef.current.pause();
         currentAudioRef.current = null;
       }
+      revokeCurrentUrl();
       window.speechSynthesis?.cancel();
 
       const cleaned = cleanTextForTTS(text);
@@ -158,9 +181,11 @@ function useTTS() {
         speakingIdRef.current = null;
         setSpeakingId(null);
         currentAudioRef.current = null;
+        revokeCurrentUrl();
       };
 
       const fallbackToWebSpeech = () => {
+        revokeCurrentUrl();
         if (webSpeechSupported) {
           speakWithWebAPI(cleaned);
           setTimeout(onDone, Math.max(cleaned.length * 150, 2000));
@@ -172,13 +197,26 @@ function useTTS() {
       playBackendTTS(cleaned)
         .then((audio) => {
           currentAudioRef.current = audio;
-          audio.onended = onDone;
-          audio.onerror = fallbackToWebSpeech;
-          audio.play().catch(fallbackToWebSpeech);
+          currentUrlRef.current = audio.src;
+          audio.onended = () => {
+            URL.revokeObjectURL(audio.src);
+            currentUrlRef.current = null;
+            onDone();
+          };
+          audio.onerror = () => {
+            URL.revokeObjectURL(audio.src);
+            currentUrlRef.current = null;
+            fallbackToWebSpeech();
+          };
+          audio.play().catch(() => {
+            URL.revokeObjectURL(audio.src);
+            currentUrlRef.current = null;
+            fallbackToWebSpeech();
+          });
         })
         .catch(fallbackToWebSpeech);
     },
-    [webSpeechSupported],
+    [webSpeechSupported, revokeCurrentUrl],
   );
 
   const stop = useCallback(() => {
@@ -186,14 +224,76 @@ function useTTS() {
       currentAudioRef.current.pause();
       currentAudioRef.current = null;
     }
+    revokeCurrentUrl();
     if (webSpeechSupported) {
       window.speechSynthesis.cancel();
     }
     speakingIdRef.current = null;
     setSpeakingId(null);
-  }, [webSpeechSupported]);
+  }, [webSpeechSupported, revokeCurrentUrl]);
 
   return { supported, speakingId, speak, stop };
+}
+
+function useSpeechInput(onResult: (text: string) => void) {
+  const [listening, setListening] = useState(false);
+  const recogRef = useRef<SpeechRecognitionInstance | null>(null);
+
+  const supported = typeof window !== "undefined" && !!createSpeechRecognition();
+
+  const start = useCallback(() => {
+    const recog = createSpeechRecognition();
+    if (!recog) return;
+    recog.lang = "zh-CN";
+    recog.interimResults = true;
+    recog.continuous = false;
+
+    recog.onresult = (e: SpeechRecognitionEventType) => {
+      let transcript = "";
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        transcript += e.results[i][0].transcript;
+      }
+      if (transcript) onResult(transcript);
+    };
+
+    recog.onerror = () => {
+      setListening(false);
+      recogRef.current = null;
+    };
+
+    recog.onend = () => {
+      setListening(false);
+      recogRef.current = null;
+    };
+
+    recogRef.current = recog;
+    setListening(true);
+    recog.start();
+  }, [onResult]);
+
+  const stop = useCallback(() => {
+    if (recogRef.current) {
+      recogRef.current.stop();
+      recogRef.current = null;
+    }
+    setListening(false);
+  }, []);
+
+  const toggle = useCallback(() => {
+    if (listening) {
+      stop();
+    } else {
+      start();
+    }
+  }, [listening, start, stop]);
+
+  useEffect(() => {
+    return () => {
+      if (recogRef.current) recogRef.current.abort();
+    };
+  }, []);
+
+  return { supported, listening, toggle, stop };
 }
 
 function TypingIndicator() {
@@ -247,6 +347,15 @@ export function GuidanceChat({
 
   const tts = useTTS();
 
+  const handleSpeechResult = useCallback((text: string) => {
+    setInput((prev) => {
+      const sep = prev.trim() ? " " : "";
+      return prev + sep + text;
+    });
+  }, []);
+
+  const stt = useSpeechInput(handleSpeechResult);
+
   // Ensure voices are loaded (some browsers load them asynchronously)
   useEffect(() => {
     if (typeof window === "undefined" || !window.speechSynthesis) return;
@@ -285,7 +394,7 @@ export function GuidanceChat({
   }, [messages, loading]);
 
   useEffect(() => {
-    if (!DIFY_API_KEY && messages.length === 0) {
+    if (!DIFY_CONFIGURED && messages.length === 0) {
       setMessages([
         { id: generateId(), role: "bot", content: "树精灵服务尚未配置，请联系老师" },
       ]);
@@ -309,27 +418,18 @@ export function GuidanceChat({
     setLoading(true);
 
     try {
-      const res = await fetch(`${DIFY_BASE_URL}/v1/chat-messages`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${DIFY_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          inputs: !conversationId && studentContext ? { student_context: studentContext } : {},
-          query: trimmed,
-          response_mode: "blocking",
-          user: `student-${studentId}`,
-          conversation_id: conversationId || "",
-        }),
+      const historyForApi = messages.map((m) => ({
+        role: m.role === "bot" ? "bot" as const : "user" as const,
+        content: m.content,
+      }));
+
+      const data = await sendDifyChat({
+        inputs: !conversationId && studentContext ? { student_context: studentContext } : {},
+        query: trimmed,
+        user: `student-${studentId}`,
+        conversation_id: conversationId || "",
+        history: historyForApi,
       });
-
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(`Dify ${res.status}: ${text}`);
-      }
-
-      const data = (await res.json()) as DifyChatResponse;
 
       const botMsg: ChatMessage = {
         id: generateId(),
@@ -484,15 +584,41 @@ export function GuidanceChat({
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="输入计算题或问题..."
+            placeholder={stt.listening ? "正在听你说话..." : "输入计算题或问题..."}
             aria-label="输入计算题或问题"
-            disabled={loading}
-            className="h-10 flex-1 rounded-xl border border-forest-200 bg-forest-50/40 px-4 text-sm text-foreground placeholder:text-muted-foreground focus:border-forest-400 focus:outline-none focus:ring-2 focus:ring-forest-200 disabled:opacity-50"
+            disabled={loading || !DIFY_CONFIGURED}
+            className={cn(
+              "h-10 flex-1 rounded-xl border bg-forest-50/40 px-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 disabled:opacity-50",
+              stt.listening
+                ? "border-forest-400 ring-2 ring-forest-300 animate-pulse"
+                : "border-forest-200 focus:border-forest-400 focus:ring-forest-200",
+            )}
           />
+          {stt.supported && (
+            <Button
+              size="icon-lg"
+              variant="outline"
+              onClick={stt.toggle}
+              disabled={loading || !DIFY_CONFIGURED}
+              className={cn(
+                "rounded-xl transition-colors",
+                stt.listening
+                  ? "bg-forest-500 text-white border-forest-500 hover:bg-forest-600 hover:border-forest-600 animate-pulse"
+                  : "border-forest-200 text-forest-500 hover:bg-forest-50 hover:text-forest-700",
+              )}
+              aria-label={stt.listening ? "停止语音输入" : "语音输入"}
+            >
+              {stt.listening ? (
+                <MicOff className="h-4 w-4" />
+              ) : (
+                <Mic className="h-4 w-4" />
+              )}
+            </Button>
+          )}
           <Button
             size="icon-lg"
             onClick={sendMessage}
-            disabled={loading || !input.trim()}
+            disabled={loading || !input.trim() || !DIFY_CONFIGURED}
             className="rounded-xl bg-forest-500 text-white hover:bg-forest-600 disabled:opacity-40"
             aria-label="发送消息"
           >

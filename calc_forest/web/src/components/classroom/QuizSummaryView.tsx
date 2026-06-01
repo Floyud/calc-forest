@@ -56,10 +56,10 @@ export function QuizSummaryView({ problems, responses, onBack, onNewQuiz }: Quiz
   const isGreat = stats.mood === "great";
 
   return (
-    <div className="relative mx-auto max-w-3xl space-y-6 px-4 py-8">
+    <div className="relative space-y-6">
       {/* Celebration sparkles */}
       {isGreat && (
-        <div className="fixed inset-0 pointer-events-none z-50">
+        <div className="pointer-events-none absolute inset-0 z-10 overflow-hidden">
           {Array.from({ length: 16 }, (_, i) => (
             <motion.div
               key={i}
@@ -94,7 +94,7 @@ export function QuizSummaryView({ problems, responses, onBack, onNewQuiz }: Quiz
 
       {/* Stat cards */}
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.15 }}>
-        <Card>
+        <Card className="surface-panel rounded-[24px] border-0 shadow-none">
           <CardContent className="py-6">
             <div className="grid grid-cols-3 gap-4">
               {[
@@ -173,7 +173,7 @@ export function QuizSummaryView({ problems, responses, onBack, onNewQuiz }: Quiz
 
         {/* Error distribution */}
         <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.4 }} className="md:col-span-2">
-          <Card className="h-full">
+          <Card className="surface-panel h-full rounded-[24px] border-0 shadow-none">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm">错因分布</CardTitle>
             </CardHeader>
@@ -194,7 +194,7 @@ export function QuizSummaryView({ problems, responses, onBack, onNewQuiz }: Quiz
                   </div>
                   <div className="h-2 rounded-full bg-muted overflow-hidden">
                     <motion.div
-                      className="h-full rounded-full bg-fruit-400"
+                      className="h-full rounded-full bg-[var(--tone-accent)]"
                       initial={{ width: 0 }}
                       animate={{ width: `${(count / stats.total) * 100}%` }}
                       transition={{ duration: 0.6, delay: 0.6 + i * 0.1 }}
@@ -231,9 +231,9 @@ export function QuizSummaryView({ problems, responses, onBack, onNewQuiz }: Quiz
       </div>
 
       {/* Actions */}
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="flex gap-3 justify-center">
-        <Button variant="outline" onClick={onBack}>← 返回准备</Button>
-        <Button onClick={onNewQuiz} className="gap-1">🔄 再来一组</Button>
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="flex flex-wrap justify-center gap-3">
+        <Button variant="outline" onClick={onBack} className="rounded-full border-[color:var(--tone-line)] bg-white/80 text-[var(--tone-ink)] hover:bg-white">← 返回准备</Button>
+        <Button onClick={onNewQuiz} className="gap-1 rounded-full bg-[var(--tone-accent-strong)] text-white hover:bg-[color:color-mix(in_oklab,var(--tone-accent-strong)_88%,black)]">🔄 再来一组</Button>
       </motion.div>
     </div>
   );

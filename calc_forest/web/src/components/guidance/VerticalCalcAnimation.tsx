@@ -417,8 +417,15 @@ export function VerticalCalcAnimation({
     }
   }, [isComplete]);
 
-  // Guard
-  if (!parsed || totalSteps === 0) return null;
+  if (!parsed || totalSteps === 0) {
+    return (
+      <div className="rounded-xl border border-warm-200 bg-warm-50/50 p-4 text-center">
+        <p className="text-sm text-muted-foreground">
+          该题型的竖式动画暂不支持，请参考下方引导问题进行练习
+        </p>
+      </div>
+    );
+  }
 
   const { topDigits, bottomDigits, numCols, operator } = parsed;
 
@@ -472,7 +479,7 @@ export function VerticalCalcAnimation({
                         initial={{ opacity: 0, scale: 0.4, y: 6 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.4, y: -4 }}
-                        transition={{ type: "spring", stiffness: 400, damping: 22 }}
+transition={{ type: "spring", stiffness: 200, damping: 18 }}
                         className="text-sm font-bold leading-none text-volcano-500"
                       >
                         {borrows.get(i)}

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { GuidanceChat } from "@/components/guidance/GuidanceChat";
 
@@ -17,10 +17,10 @@ describe("GuidanceChat", () => {
     ).toBeInTheDocument();
   });
 
-  it("shows config message when no DIFY_API_KEY is set", () => {
-    render(<GuidanceChat />);
+  it("shows a bot message when welcome message is provided", () => {
+    render(<GuidanceChat welcomeMessage="树精灵准备好了" />);
     expect(
-      screen.getByText("树精灵服务尚未配置，请联系老师"),
+      screen.getByText("树精灵准备好了"),
     ).toBeInTheDocument();
   });
 

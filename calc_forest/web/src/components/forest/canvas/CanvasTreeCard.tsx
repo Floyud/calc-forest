@@ -141,7 +141,7 @@ export function CanvasTree({
   return (
     <canvas
       ref={canvasRef}
-      style={{ width: dw, height: dh, display: "block" }}
+      style={{ width: dw, height: dh, display: "block", willChange: "contents" }}
     />
   );
 }

@@ -36,16 +36,16 @@ const RESPONSE_CONFIG: Record<ClassResponse, { label: string; icon: string; colo
 
 const skyStyles: Record<string, { bg: string; ground: string[] }> = {
   default: {
-    bg: "bg-gradient-to-b from-sky-300 via-sky-100 to-emerald-100",
-    ground: ["#86efac", "#4ade80", "#22c55e"],
+    bg: "bg-gradient-to-br from-[#163f31] via-[#0f241c] to-[#08120f]",
+    ground: ["#215846", "#163f31", "#102a20"],
   },
   correct: {
-    bg: "bg-gradient-to-b from-emerald-300 via-amber-100 to-sky-100",
-    ground: ["#86efac", "#6ee7b7", "#34d399"],
+    bg: "bg-gradient-to-br from-[#17644d] via-[#0f3126] to-[#08120f]",
+    ground: ["#2b7a61", "#1f5d49", "#164535"],
   },
   wrong: {
-    bg: "bg-gradient-to-b from-amber-200 via-orange-100 to-sky-100",
-    ground: ["#fcd34d", "#fbbf24", "#f59e0b"],
+    bg: "bg-gradient-to-br from-[#4a3418] via-[#1f2719] to-[#08120f]",
+    ground: ["#8a6633", "#5f4b2c", "#44351f"],
   },
 };
 
@@ -115,10 +115,9 @@ export function WhiteboardDisplay({ problems, quizId, onExit, onComplete }: Whit
         class_response: response,
         notes: "",
       });
+      setSyncError(null);
     } catch (err) {
-      console.error("答题数据同步失败:", err);
       setSyncError("答题数据同步失败，请检查网络连接");
-      setTimeout(() => setSyncError(null), 3000);
     }
   }, [problems, quizId]);
 
@@ -187,14 +186,19 @@ export function WhiteboardDisplay({ problems, quizId, onExit, onComplete }: Whit
   if (!problem) return null;
 
   const sky = skyStyles[skyKey];
+  const problemFontSize = problem.problem.length > 28
+    ? "clamp(2rem, 4vw, 4.5rem)"
+    : problem.problem.length > 16
+      ? "clamp(2.6rem, 6vw, 5.8rem)"
+      : "clamp(3.4rem, 9vw, 7.5rem)";
 
   return (
-    <div className="fixed inset-0 z-[100] flex flex-col overflow-hidden select-none" onMouseMove={resetIdle}>
+    <div className="fixed -top-[73px] left-0 right-0 z-[1000] flex h-[calc(100vh+73px)] min-h-[calc(100vh+73px)] flex-col overflow-hidden bg-[#08120f] text-white select-none" onMouseMove={resetIdle}>
       {/* Sky */}
       <div className={`absolute inset-0 ${sky.bg} transition-all duration-[1200ms] ease-in-out`} />
 
-      {/* Clouds */}
-      <div className="absolute inset-x-0 top-0 h-[40%] pointer-events-none overflow-hidden">
+      {/* Ambient light */}
+      <div className="absolute inset-x-0 top-0 h-[40%] pointer-events-none overflow-hidden opacity-60">
         <div className="absolute top-[8%] left-[10%] w-32 h-12 bg-white/30 rounded-full blur-xl" style={{ animation: "cloud-drift 40s linear infinite" }} />
         <div className="absolute top-[15%] left-[50%] w-40 h-14 bg-white/20 rounded-full blur-2xl" style={{ animation: "cloud-drift 55s 10s linear infinite" }} />
         <div className="absolute top-[5%] left-[75%] w-24 h-10 bg-white/25 rounded-full blur-xl" style={{ animation: "cloud-drift 35s 5s linear infinite" }} />
@@ -270,40 +274,40 @@ export function WhiteboardDisplay({ problems, quizId, onExit, onComplete }: Whit
       </AnimatePresence>
 
       {/* Main content area */}
-      <div className="relative z-10 flex flex-1 flex-col items-center justify-center px-6 pb-20 pt-10">
+      <div className="relative z-10 flex flex-1 flex-col items-center justify-center px-8 pb-24 pt-10">
+        <div className="mb-5 flex w-full max-w-[1180px] items-center justify-between rounded-2xl border border-white/10 bg-white/10 px-5 py-3 backdrop-blur-xl">
+          <div>
+            <p className="text-xs text-white/55">课堂投屏模式</p>
+            <p className="text-lg font-semibold text-white">六年级综合计算讲评</p>
+          </div>
+          <div className="flex items-center gap-3 text-sm text-white/70">
+            <span>第 {currentIndex + 1} 题 / 共 {problems.length} 题</span>
+            <span className="rounded-full bg-white/12 px-3 py-1 text-xs">
+              {step === "showing_problem" ? "读题" : step === "showing_hint" ? "提示" : step === "revealing_answer" ? "揭示答案" : "课堂反馈"}
+            </span>
+          </div>
+        </div>
         <AnimatePresence mode="wait">
           <motion.div
             key={cardKey}
             initial={{ opacity: 0, rotateY: 90 }}
             animate={{ opacity: 1, rotateY: 0 }}
             exit={{ opacity: 0, rotateY: -90, scale: 0.9 }}
-            transition={{ type: "spring", damping: 22, stiffness: 180 }}
-            className="w-full max-w-[700px]"
+            transition={{ type: "spring", damping: 20, stiffness: 120 }}
+            className="w-full max-w-[1180px]"
             style={{ perspective: 1200 }}
           >
             <div className="relative">
-              {/* Branch hanging the sign */}
-              <svg className="absolute -top-8 left-1/2 -translate-x-1/2 w-40 h-10" viewBox="0 0 160 40" fill="none">
-                <path d="M10,38 Q30,10 80,8 Q130,6 150,38" stroke="#8B6F47" strokeWidth="4" strokeLinecap="round" fill="none" />
-                <path d="M76,8 L76,0" stroke="#6b5535" strokeWidth="2" />
-                <path d="M84,8 L84,0" stroke="#6b5535" strokeWidth="2" />
-                {/* Leaves on branch */}
-                <ellipse cx="25" cy="22" rx="8" ry="4" fill="#4ade80" opacity="0.6" transform="rotate(-30 25 22)" />
-                <ellipse cx="135" cy="20" rx="8" ry="4" fill="#4ade80" opacity="0.6" transform="rotate(25 135 20)" />
-                <ellipse cx="80" cy="6" rx="6" ry="3" fill="#4ade80" opacity="0.5" transform="rotate(-10 80 6)" />
-              </svg>
-
-              {/* Wooden sign board */}
+              {/* Presentation board */}
               <div
-                className="relative rounded-2xl border-2 border-bark-400/60 px-6 py-6 sm:px-10 sm:py-8 shadow-2xl"
+                className="relative rounded-[28px] border border-white/12 px-8 py-7 shadow-2xl sm:px-12 sm:py-10"
                 style={{
-                  background: "linear-gradient(145deg, #faf5f0 0%, #f0e6d8 30%, #e0ccaf 70%, #f0e6d8 100%)",
-                  boxShadow: "0 20px 60px rgba(107,85,53,0.15), inset 0 1px 0 rgba(255,255,255,0.4), inset 0 -1px 0 rgba(0,0,0,0.05)",
+                  background: "linear-gradient(145deg, rgba(255,255,255,0.96) 0%, rgba(246,250,246,0.94) 100%)",
+                  boxShadow: "0 28px 90px rgba(0,0,0,0.32), inset 0 1px 0 rgba(255,255,255,0.75)",
                 }}
               >
-                {/* Wood grain texture overlay */}
                 <div className="absolute inset-0 rounded-2xl opacity-[0.04] pointer-events-none"
-                  style={{ backgroundImage: "repeating-linear-gradient(90deg, transparent, transparent 3px, rgba(107,85,53,0.3) 3px, rgba(107,85,53,0.3) 4px)" }}
+                  style={{ backgroundImage: "linear-gradient(90deg, rgba(22,63,49,0.12) 1px, transparent 1px), linear-gradient(rgba(22,63,49,0.08) 1px, transparent 1px)", backgroundSize: "28px 28px" }}
                 />
 
                 {/* Header row */}
@@ -326,8 +330,8 @@ export function WhiteboardDisplay({ problems, quizId, onExit, onComplete }: Whit
                 {/* Problem display */}
                 <div className="flex min-h-[100px] sm:min-h-[130px] items-center justify-center">
                   <motion.p
-                    className="text-center font-bold tracking-[0.15em] text-bark-700"
-                    style={{ fontSize: "clamp(2rem, 8vw, 4rem)" }}
+                    className="text-center font-bold leading-tight text-[#17342a]"
+                    style={{ fontSize: problemFontSize }}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.15, duration: 0.3 }}
@@ -361,7 +365,7 @@ export function WhiteboardDisplay({ problems, quizId, onExit, onComplete }: Whit
                     <motion.div
                       initial={{ opacity: 0, scale: 0.3 }}
                       animate={{ opacity: 1, scale: 1 }}
-                      transition={{ type: "spring", damping: 12, stiffness: 280, delay: 0.1 }}
+                      transition={{ type: "spring", damping: 16, stiffness: 180, delay: 0.1 }}
                       className="flex items-center justify-center gap-4 py-2"
                     >
                       <span className="text-base text-bark-500">答案</span>
@@ -370,7 +374,7 @@ export function WhiteboardDisplay({ problems, quizId, onExit, onComplete }: Whit
                         style={{ fontSize: "clamp(2.2rem, 9vw, 4.5rem)" }}
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
-                        transition={{ type: "spring", damping: 10, stiffness: 200, delay: 0.2 }}
+                        transition={{ type: "spring", damping: 14, stiffness: 140, delay: 0.2 }}
                       >
                         {problem.correct_answer}
                       </motion.span>
@@ -398,7 +402,13 @@ export function WhiteboardDisplay({ problems, quizId, onExit, onComplete }: Whit
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.5 + idx * 0.1 }}
-                            className={`flex flex-col items-center gap-1 rounded-2xl px-5 py-3 text-sm font-semibold transition-colors ring-2 ring-transparent hover:${cfg.ring} sm:px-6 sm:py-4 ${cfg.color}`}
+                                                  className={`flex flex-col items-center gap-1 rounded-2xl px-5 py-3 text-sm font-semibold transition-colors ring-2 ring-transparent ${
+                        cfg.label === "多数对了"
+                          ? "hover:ring-emerald-300"
+                          : cfg.label === "一半一半"
+                            ? "hover:ring-amber-300"
+                            : "hover:ring-orange-300"
+                      } sm:px-6 sm:py-4 ${cfg.color}`}
                           >
                             <span className="text-xl sm:text-2xl">{cfg.icon}</span>
                             <span>{cfg.label}</span>
@@ -465,7 +475,7 @@ export function WhiteboardDisplay({ problems, quizId, onExit, onComplete }: Whit
                 }}
                 className={`h-3 w-3 rounded-full shadow-sm transition-all ${isActive ? "shadow-lg shadow-primary/40" : ""}`}
                 style={isActive ? { animation: "stone-glow 2s infinite ease-in-out" } : undefined}
-                transition={{ type: "spring", damping: 15, stiffness: 300 }}
+                transition={{ type: "spring", damping: 18, stiffness: 200 }}
               />
             );
           })}
@@ -559,8 +569,14 @@ export function WhiteboardDisplay({ problems, quizId, onExit, onComplete }: Whit
       </AnimatePresence>
 
       {syncError && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 rounded-lg bg-red-500/90 px-4 py-2 text-sm text-white shadow-lg animate-in fade-in slide-in-from-bottom-2">
-          {syncError}
+        <div className="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-lg bg-red-500/90 px-4 py-2 text-sm text-white shadow-lg">
+          <span>{syncError}</span>
+          <button
+            onClick={() => setSyncError(null)}
+            className="rounded px-2 py-0.5 text-xs text-white/70 hover:text-white"
+          >
+            关闭
+          </button>
         </div>
       )}
     </div>

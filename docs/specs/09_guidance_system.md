@@ -1,7 +1,12 @@
 # 分层引导系统设计
 
-> 对应第4次修改中"教材对齐·分层引导"部分。
-> 本文档定义引导模式的数据模型和策略规则。
+> 最后更新：2026-05-19
+>
+> 相关文档：`docs/specs/04_error_taxonomy.md`（错因编码） · `docs/engineering/api_plan.md`（引导相关端点） · `knowledge_base/03_teaching_strategies/`
+
+本文档定义引导模式的数据模型和策略规则。
+
+**当前实现状态：** 三种引导模式 (standard/exploration/challenge) 已实现，4 步引导法前端交互已完成 (`guidance/page.tsx`)，Edge-TTS 语音引导已集成。
 
 ## 一、三种引导模式
 

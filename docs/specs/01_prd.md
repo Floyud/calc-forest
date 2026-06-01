@@ -1,5 +1,7 @@
 # PRD
 
+> 相关文档：`docs/specs/00_project_brief.md` · `docs/specs/02_mvp_scope.md` · `docs/specs/04_error_taxonomy.md`
+
 ## Background
 
 The teacher-authored "我的计算森林"（原名"计算小树苗"）material highlights a real classroom need: calculation practice must follow the current teaching progress, stay short, and produce actionable diagnosis for teachers. The tree-growth metaphor, holiday mode, and home practice are valuable product vision, but the first version must prove the teacher-side diagnosis loop.

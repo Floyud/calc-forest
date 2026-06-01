@@ -126,7 +126,7 @@
 | --- | --- |
 | 案例信息表素材 | `docs/competition/创AI_案例信息表_素材.md` |
 | 开发与应用报告 | `docs/competition/创AI_开发与应用报告_草稿.md` |
-| 演示视频脚本 | `docs/competition/demo_video_script.md` |
+| 演示视频脚本 | `docs/competition/demo_video_script_v2.md` |
 | 证据与 ZIP 清单 | `docs/competition/evidence_checklist.md` |
 | Dify 构建与验证记录 | `calc_forest/dify/local_build_status.md` |
 | Dify 工作流设计 | `docs/engineering/dify_workflow_plan.md` + `calc_forest/dify/formal_workflow_design.md` |

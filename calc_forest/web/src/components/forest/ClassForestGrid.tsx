@@ -59,7 +59,7 @@ export function ClassForestGrid({ forest }: ClassForestGridProps) {
               {forest.class_name}
             </h2>
             <p className="text-sm text-muted-foreground">
-              {forest.academic_year} {forest.semester} · 第 {forest.week_number} 周
+              {forest.academic_year} {forest.semester} · {forest.week_number != null ? `第 ${forest.week_number} 周` : "未开课"}
             </p>
           </div>
 

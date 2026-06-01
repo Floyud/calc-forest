@@ -15,7 +15,7 @@ const NAV_ITEMS = [
   { label: "工作台", href: "/" },
   { label: "课堂模式", href: "/classroom" },
   { label: "诊断台", href: "/diagnose" },
-  { label: "作业闭环", href: "/homework" },
+  { label: "作业批阅", href: "/homework" },
 ];
 
 describe("Navbar", () => {
@@ -39,14 +39,14 @@ describe("Navbar", () => {
     }
   });
 
-  it("renders '更多' dropdown button", () => {
+  it("renders secondary navigation dropdown button", () => {
     render(<Navbar />);
-    expect(screen.getByText("更多")).toBeInTheDocument();
+    expect(screen.getByText("品牌与演示")).toBeInTheDocument();
   });
 
   it("renders mobile menu toggle button", () => {
     render(<Navbar />);
-    expect(screen.getByLabelText("Toggle menu")).toBeInTheDocument();
+    expect(screen.getByLabelText("切换菜单")).toBeInTheDocument();
   });
 
   it("renders header element", () => {

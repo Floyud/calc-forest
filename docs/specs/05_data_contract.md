@@ -1,10 +1,14 @@
 # Data Contract
 
+> 最后更新：2026-05-19
+>
+> 相关文档：`docs/engineering/api_plan.md`（完整端点清单） · `docs/engineering/data_model.md`（数据模型）
+
 ## Primary Endpoint
 
 `POST /api/diagnose`
 
-This is the MVP endpoint. Older multi-endpoint sketches in engineering notes are future-standardization ideas, not the current implemented contract.
+当前已实现 ~75 个端点，完整清单见 `docs/engineering/api_plan.md`。
 
 ## Current Supporting Tool Endpoints
 
@@ -72,7 +76,7 @@ These supporting endpoints are intended for the Dify-first teacher workbench wor
 Path:
 
 ```text
-development/data/demo_answer_records.json
+calc_forest/backend/data/demo_answer_records.json
 ```
 
 Required fields:

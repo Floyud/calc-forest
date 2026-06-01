@@ -127,7 +127,7 @@ LLM 节点（DeepSeek chat）
 
 3. 发布应用（右上角"发布"按钮）
 4. 获取 API Key：应用 → API 访问 → 创建密钥
-5. 记录 API Key → 写入 `development/.env` 的 `DIFY_WORKFLOW_GUIDANCE_KEY`
+5. 记录 API Key → 写入 `calc_forest/backend/.env` 的 `DIFY_WORKFLOW_GUIDANCE_KEY`
 
 ---
 
@@ -188,7 +188,7 @@ LLM 节点（DeepSeek chat）
 ```
 
 3. 发布应用
-4. 获取 API Key → 写入 `development/.env` 的 `DIFY_WORKFLOW_SUMMARY_KEY`
+4. 获取 API Key → 写入 `calc_forest/backend/.env` 的 `DIFY_WORKFLOW_SUMMARY_KEY`
 
 ---
 
@@ -271,7 +271,7 @@ LLM 节点（DeepSeek chat）
 ```
 
 5. 发布应用
-6. 获取 API Key → 写入 `development/.env` 的 `DIFY_WORKFLOW_GRADING_KEY`
+6. 获取 API Key → 写入 `calc_forest/backend/.env` 的 `DIFY_WORKFLOW_GRADING_KEY`
 
 ---
 
@@ -279,7 +279,7 @@ LLM 节点（DeepSeek chat）
 
 ### 3.1 更新 .env
 
-在 `development/.env` 中添加：
+在 `calc_forest/backend/.env` 中添加：
 
 ```env
 # Dify 配置
@@ -298,7 +298,7 @@ DIFY_WORKFLOW_PROFILE_KEY=app-YOUR_PROFILE_KEY
 
 ```bash
 # 启动后端
-cd /mnt/d/Ubuntu_WSL/Teaching_agent/development
+cd /mnt/d/Ubuntu_WSL/Teaching_agent/calc_forest/backend
 /home/lyzhang/miniconda3/envs/pyt0/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 
 # 检查 Dify 状态

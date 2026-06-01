@@ -67,7 +67,7 @@
 
 影响：
 
-- 新增 `development/app/services/session_draft.py`
+- 新增 `calc_forest/backend/app/services/session_draft.py`
 - 新增 `POST /api/dify/session-draft`
 - 新增夜间版 Dify DSL：`calc_forest/dify/my_calc_forest_dify_night_build.yml`
 
@@ -120,11 +120,11 @@
 
 ## 2026-05-02: 新增 calc_forest 产品工作区
 
-决策：在仓库根目录新增 `calc_forest/`，作为“我的计算森林”后续正式产品实现目录，与 `development/` 的 MVP 后端验证空间分离。
+决策：在仓库根目录新增 `calc_forest/`，作为“我的计算森林”后续正式产品实现目录，与 `calc_forest/backend/` 的 MVP 后端验证空间分离。
 
 原因：
 
-- `development/` 更偏研发验证和后端 MVP，不适合作为后续产品仓的长期命名。
+- `calc_forest/backend/` 更偏研发验证和后端 MVP，不适合作为后续产品仓的长期命名。
 - 品牌侧实现需要一个更贴近产品语义、也便于未来单独做 git 管理的目录。
 - 使用 ASCII 路径 `calc_forest/`，兼顾品牌识别和工程兼容性。
 
@@ -132,11 +132,11 @@
 
 - 根目录新增 `calc_forest/README.md`。
 - `README.md`、`Agent.md`、`docs/README.md` 同步更新入口说明。
-- 后续正式产品端优先在 `calc_forest/` 开工，`development/` 继续承担 MVP 诊断服务和验证职责。
+- 后续正式产品端优先在 `calc_forest/` 开工，`calc_forest/backend/` 继续承担 MVP 诊断服务和验证职责。
 
 ## 2026-05-02: 顶层目录重组为 docs + development
 
-决策：将仓库顶层收口为两个主体工作区：`docs/` 和 `development/`。保留根目录 `README.md` 与 `Agent.md` 作为统一入口，其余文档目录全部并入 `docs/`，原 `dev/` 重命名为 `development/`。
+决策：将仓库顶层收口为两个主体工作区：`docs/` 和 `calc_forest/backend/`。保留根目录 `README.md` 与 `Agent.md` 作为统一入口，其余文档目录全部并入 `docs/`，原 `dev/` 重命名为 `calc_forest/backend/`。
 
 原因：
 
@@ -147,7 +147,7 @@
 影响：
 
 - 新增 `docs/README.md` 作为文档侧总索引。
-- 根目录主体变为 `docs/` + `development/`。
+- 根目录主体变为 `docs/` + `calc_forest/backend/`。
 - 全量更新文档中的目录引用、运行命令和入口说明。
 
 ## 2026-05-02: 第4次修改评估与框架调整
@@ -245,7 +245,7 @@
 
 ## 2026-05-01: 项目结构收口
 
-决策：将项目分为 `development/`、`docs/specs/`、`docs/source_materials/`、`docs/competition/`、`docs/research/`、`docs/engineering/`、`docs/project_management/`。
+决策：将项目分为 `calc_forest/backend/`、`docs/specs/`、`docs/source_materials/`、`docs/competition/`、`docs/research/`、`docs/engineering/`、`docs/project_management/`。
 
 原因：
 
@@ -255,7 +255,7 @@
 
 影响：
 
-- 纯开发内容只放 `development/`。
+- 纯开发内容只放 `calc_forest/backend/`。
 - PM 审核入口为 `docs/specs/`。
 - 原始资料放 `docs/source_materials/`，视为只读输入。
 - 根目录 `Agent.md` 是新 session 第一入口，路径/API/测试命令变更时必须更新。

@@ -10,7 +10,9 @@ build/
 *.egg-info/
 .DS_Store
 
+# Env files (contain real API keys)
 .env
+**/.env
 *.env.local
 *.env.production
 
@@ -27,8 +29,32 @@ out/
 
 *.pdf
 
+data/logs/
+
+# IDE / tool config
 .opencode/
+.omo/
+.playwright-mcp/
 nul
 
+# Local-only / non-public
 数据备份/
 给mom看的/
+.cloudflared/
+
+# Uploads, scratch files, screenshots
+Upload/
+Upload.zip
+*.png
+!calc_forest/web/public/**
+
+# Personal notes / scratch
+goal.md
+
+# Competition submission archives
+开发与应用报告/
+开发与应用报告备菜.zip
+配套资源/
+附件3：创AI案例征集指南.docx
+scripts/capture_competition_screenshots.cjs
+scripts/quick-tunnel.sh

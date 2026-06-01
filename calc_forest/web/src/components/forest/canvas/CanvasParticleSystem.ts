@@ -7,6 +7,7 @@ export interface ParticleConfig {
   height: number;
   color: string;
   intensity: number;
+  compact?: boolean;
 }
 
 type PKind = "sparkle" | "butterfly" | "heart" | "leaf" | "rain" | "mist" | "firefly" | "growth_pulse";
@@ -311,10 +312,14 @@ export class ParticleSystem {
         for (let i = 0; i < 4; i++) this.particles.push(makeLeaf(this.config));
         for (let i = 0; i < 1; i++) this.particles.push(makeFirefly(this.config));
         break;
-      case "struggling":
-        for (let i = 0; i < 8; i++) this.particles.push(makeRain(this.config));
-        for (let i = 0; i < 3; i++) this.particles.push(makeMist(this.config));
+      case "struggling": {
+        const isCompact = this.config.compact ?? false;
+        const rainCount = isCompact ? 3 : 8;
+        const mistCount = isCompact ? 1 : 3;
+        for (let i = 0; i < rainCount; i++) this.particles.push(makeRain(this.config));
+        for (let i = 0; i < mistCount; i++) this.particles.push(makeMist(this.config));
         break;
+      }
       default: break;
     }
     void cx; void cy; void color;

@@ -1,14 +1,8 @@
 "use client";
 
-import {
-  RadarChart,
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis,
-  Radar,
-  ResponsiveContainer,
-  Tooltip,
-} from "recharts";
+import { useMemo } from "react";
+import type { EChartsOption } from "echarts";
+import { EChartsBase } from "@/components/ui/echarts-base";
 
 const RADAR_LABELS: Record<string, string> = {
   E01: "基础事实",
@@ -33,72 +27,113 @@ interface ErrorRadarChartProps {
   accuracyByErrorCode: Record<string, number>;
 }
 
-interface ChartDatum {
-  code: string;
-  label: string;
-  accuracy: number;
-  hasData: boolean;
-  danger: number;
-}
-
 function accuracyColor(acc: number): string {
-  if (acc >= 80) return "oklch(0.50 0.15 160)";
-  if (acc >= 60) return "oklch(0.72 0.13 85)";
-  return "oklch(0.60 0.18 30)";
-}
-
-function RadarTooltip({
-  active,
-  payload,
-}: {
-  active?: boolean;
-  payload?: Array<{ payload: ChartDatum }>;
-}) {
-  if (!active || !payload?.length) return null;
-  const d = payload[0].payload;
-
-  return (
-    <div
-      style={{
-        fontSize: 12,
-        borderRadius: 8,
-        border: "1px solid oklch(0.88 0.05 160)",
-        background: "white",
-        padding: "8px 12px",
-        boxShadow: "0 2px 8px oklch(0.90 0.02 260 / 0.5)",
-      }}
-    >
-      <p style={{ fontWeight: 600, color: "oklch(0.25 0.03 260)" }}>
-        {d.code} · {d.label}
-      </p>
-      {d.hasData ? (
-        <p style={{ color: accuracyColor(d.accuracy), marginTop: 2 }}>
-          准确率 {d.accuracy}%
-        </p>
-      ) : (
-        <p style={{ color: "oklch(0.60 0.02 260)", marginTop: 2 }}>
-          暂无数据
-        </p>
-      )}
-    </div>
-  );
+  if (acc >= 80) return "#16a34a";
+  if (acc >= 60) return "#ca8a04";
+  return "#dc2626";
 }
 
 export function ErrorRadarChart({ accuracyByErrorCode }: ErrorRadarChartProps) {
-  const data: ChartDatum[] = ALL_CODES.map((code) => {
-    const raw = accuracyByErrorCode[code];
-    return {
-      code,
-      label: RADAR_LABELS[code],
-      accuracy: raw != null ? Math.round(raw * 100) : 0,
-      hasData: raw != null,
-      danger: 60,
+  const { activeCodes, option } = useMemo(() => {
+    const codes = ALL_CODES.filter((code) => accuracyByErrorCode[code] != null);
+
+    const indicators = codes.map((code) => ({
+      name: `${RADAR_LABELS[code]}`,
+      max: 100,
+    }));
+
+    const values = codes.map((code) => Math.round(accuracyByErrorCode[code] * 100));
+
+    const chartOption: EChartsOption = {
+      tooltip: {
+        trigger: "item",
+        formatter: (params: unknown) => {
+          const p = params as { data?: { value?: number[] }; name?: string };
+          if (!p.data?.value) return "";
+          const idx = codes.indexOf(
+            ALL_CODES.find((c) => RADAR_LABELS[c] === p.name) ?? "",
+          );
+          if (idx === -1) return "";
+          const code = codes[idx];
+          const label = RADAR_LABELS[code];
+          const val = p.data.value[idx];
+          const color = accuracyColor(val);
+          return `<div style="font-size:12px;padding:2px 0">
+            <strong style="color:#1e293b">${code} · ${label}</strong><br/>
+            <span style="color:${color}">安全率 ${val}%</span>
+          </div>`;
+        },
+      },
+      radar: {
+        indicator: indicators,
+        shape: "polygon",
+        radius: "68%",
+        axisName: {
+          color: "#64748b",
+          fontSize: 10,
+        },
+        splitArea: {
+          show: false,
+        },
+        splitLine: {
+          lineStyle: {
+            color: "#e2e8f0",
+          },
+        },
+        axisLine: {
+          lineStyle: {
+            color: "#e2e8f0",
+          },
+        },
+      },
+      series: [
+        {
+          type: "radar",
+          symbol: "circle",
+          symbolSize: 6,
+          data: [
+            {
+              name: "危险线",
+              value: codes.map(() => 60),
+              lineStyle: {
+                type: "dashed",
+                color: "#b45309",
+                opacity: 0.35,
+                width: 1,
+              },
+              areaStyle: {
+                opacity: 0,
+              },
+              itemStyle: {
+                opacity: 0,
+              },
+            },
+            {
+              name: "安全率",
+              value: values,
+              lineStyle: {
+                color: "#22c55e",
+                width: 2,
+              },
+              areaStyle: {
+                color: "#22c55e",
+                opacity: 0.18,
+              },
+              itemStyle: {
+                color: "#15803d",
+                borderColor: "#fff",
+                borderWidth: 1,
+              },
+            },
+          ],
+        },
+      ],
     };
-  });
 
-  const hasAnyData = data.some((d) => d.hasData);
+    return { activeCodes: codes, option: chartOption };
+  }, [accuracyByErrorCode]);
 
-  if (!hasAnyData) {
+  if (activeCodes.length === 0) {
     return (
       <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">
         暂无错因诊断数据
@@ -108,53 +143,7 @@ export function ErrorRadarChart({ accuracyByErrorCode }: ErrorRadarChartProps) {
 
   return (
     <div className="h-72 w-full">
-      <ResponsiveContainer width="100%" height="100%">
-        <RadarChart cx="50%" cy="50%" outerRadius="68%" data={data}>
-          <PolarGrid stroke="oklch(0.90 0.02 260)" />
-          <PolarAngleAxis
-            dataKey="label"
-            tick={{ fontSize: 10, fill: "oklch(0.45 0.03 260)" }}
-          />
-          <PolarRadiusAxis
-            angle={90}
-            domain={[0, 100]}
-            ticks={[0, 60, 100]}
-            tick={{ fontSize: 9, fill: "oklch(0.65 0.02 260)" }}
-            tickFormatter={(v: number) => `${v}%`}
-            axisLine={false}
-          />
-          <Tooltip content={<RadarTooltip />} />
-
-          {/* Danger zone reference hexagon at 60% */}
-          <Radar
-            name="危险线"
-            dataKey="danger"
-            stroke="oklch(0.65 0.12 30)"
-            fill="transparent"
-            fillOpacity={0}
-            strokeWidth={1}
-            strokeDasharray="4 3"
-            strokeOpacity={0.35}
-            isAnimationActive={false}
-          />
-
-          {/* Main accuracy radar */}
-          <Radar
-            name="准确率"
-            dataKey="accuracy"
-            stroke="oklch(0.50 0.15 160)"
-            fill="oklch(0.55 0.15 160)"
-            fillOpacity={0.18}
-            strokeWidth={2}
-            dot={{
-              r: 3,
-              fill: "oklch(0.45 0.15 160)",
-              stroke: "white",
-              strokeWidth: 1,
-            }}
-          />
-        </RadarChart>
-      </ResponsiveContainer>
+      <EChartsBase option={option} />
     </div>
   );
 }

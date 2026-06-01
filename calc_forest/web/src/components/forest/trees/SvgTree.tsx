@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useMemo } from "react";
+import { memo, useMemo, useId } from "react";
 import type { EmotionState } from "@/lib/types";
 import type { TreeColorConfig, CanopyType } from "./treeColors";
 import { STAGE_SIZES } from "./treeColors";
@@ -127,28 +127,28 @@ function getCanopyPath(type: CanopyType, cx: number, cy: number, r: number): str
   }
 }
 
-function InlineDefs({ colors }: { colors: TreeColorConfig }) {
+function InlineDefs({ colors, uid }: { colors: TreeColorConfig; uid: string }) {
   return (
     <defs>
-      <linearGradient id="trunk-gradient" x1="0" y1="0" x2="1" y2="0">
+      <linearGradient id={`trunk-gradient-${uid}`} x1="0" y1="0" x2="1" y2="0">
         <stop offset="0%" stopColor={colors.trunkLight} />
         <stop offset="40%" stopColor={colors.trunk} />
         <stop offset="100%" stopColor={colors.trunkDark} />
       </linearGradient>
-      <linearGradient id="ground-gradient" x1="0" y1="0" x2="0" y2="1">
+      <linearGradient id={`ground-gradient-${uid}`} x1="0" y1="0" x2="0" y2="1">
         <stop offset="0%" stopColor={colors.ground} />
         <stop offset="100%" stopColor={colors.groundDark} />
       </linearGradient>
-      <radialGradient id="canopy-gradient" cx="40%" cy="35%" r="60%">
+      <radialGradient id={`canopy-gradient-${uid}`} cx="40%" cy="35%" r="60%">
         <stop offset="0%" stopColor={colors.leafLight} />
         <stop offset="60%" stopColor={colors.leaf} />
         <stop offset="100%" stopColor={colors.leafDark} />
       </radialGradient>
-      <radialGradient id="fruit-gradient" cx="35%" cy="30%" r="60%">
+      <radialGradient id={`fruit-gradient-${uid}`} cx="35%" cy="30%" r="60%">
         <stop offset="0%" stopColor={colors.fruit} stopOpacity={0.9} />
         <stop offset="100%" stopColor={colors.fruit} />
       </radialGradient>
-      <radialGradient id="seed-mound" cx="50%" cy="30%" r="70%">
+      <radialGradient id={`seed-mound-${uid}`} cx="50%" cy="30%" r="70%">
         <stop offset="0%" stopColor={colors.ground} />
         <stop offset="100%" stopColor={colors.groundDark} />
       </radialGradient>
@@ -174,9 +174,9 @@ function Leaf({ x, y, r, color, delay = 0 }: {
   );
 }
 
-function Canopy({ cx, cy, r, colors, stage, canopyType }: {
+function Canopy({ cx, cy, r, colors, stage, canopyType, uid }: {
   cx: number; cy: number; r: number; colors: TreeColorConfig;
-  stage: string; canopyType: CanopyType;
+  stage: string; canopyType: CanopyType; uid: string;
 }) {
   const leafPositions = useMemo(() => {
     const positions: Array<{ x: number; y: number; r: number }> = [];
@@ -241,7 +241,7 @@ function Canopy({ cx, cy, r, colors, stage, canopyType }: {
     <g>
       <path
         d={canopyPath}
-        fill="url(#canopy-gradient)"
+        fill={`url(#canopy-gradient-${uid})`}
         fillRule="evenodd"
         filter="url(#tree-shadow)"
         style={{
@@ -269,14 +269,14 @@ function Canopy({ cx, cy, r, colors, stage, canopyType }: {
         />
       ))}
       {(stage === "flowering" || stage === "bud" || stage === "mature") && (
-        <Flowers cx={cx} cy={cy} r={r} colors={colors} stage={stage} />
+        <Flowers cx={cx} cy={cy} r={r} colors={colors} stage={stage} uid={uid} />
       )}
     </g>
   );
 }
 
-function Flowers({ cx, cy, r, colors, stage }: {
-  cx: number; cy: number; r: number; colors: TreeColorConfig; stage: string;
+function Flowers({ cx, cy, r, colors, stage, uid }: {
+  cx: number; cy: number; r: number; colors: TreeColorConfig; stage: string; uid: string;
 }) {
   const flowerCount = stage === "bud" ? 3 : stage === "flowering" ? 6 : 4;
   const flowers = [];
@@ -349,7 +349,7 @@ function Flowers({ cx, cy, r, colors, stage }: {
                 cx={f.x + (i % 2 ? 5 : -5)}
                 cy={f.y + 7}
                 r={5.5}
-                fill="url(#fruit-gradient)"
+                fill={`url(#fruit-gradient-${uid})`}
                 filter="url(#tree-soft-shadow)"
               />
               <circle
@@ -366,8 +366,8 @@ function Flowers({ cx, cy, r, colors, stage }: {
   );
 }
 
-function Trunk({ cx, baseY, height, width, colors, stage }: {
-  cx: number; baseY: number; height: number; width: number; colors: TreeColorConfig; stage: string;
+function Trunk({ cx, baseY, height, width, colors, stage, uid }: {
+  cx: number; baseY: number; height: number; width: number; colors: TreeColorConfig; stage: string; uid: string;
 }) {
   if (height <= 0) return null;
 
@@ -397,7 +397,7 @@ function Trunk({ cx, baseY, height, width, colors, stage }: {
     <g>
       <path
         d={trunkPath}
-        fill="url(#trunk-gradient)"
+        fill={`url(#trunk-gradient-${uid})`}
         filter="url(#tree-soft-shadow)"
         style={trunkGrowStyle}
       />
@@ -423,7 +423,7 @@ function Trunk({ cx, baseY, height, width, colors, stage }: {
         <>
           <path
             d={`M${cx - 2},${baseY - height * 0.5} C${cx - width * 0.8},${baseY - height * 0.52} ${cx - width * 1.2},${baseY - height * 0.58} ${cx - width * 1.3},${baseY - height * 0.62}`}
-            stroke="url(#trunk-gradient)"
+            stroke={`url(#trunk-gradient-${uid})`}
             strokeWidth={stage === "mature" ? 2.5 : 2}
             fill="none"
             strokeLinecap="round"
@@ -435,7 +435,7 @@ function Trunk({ cx, baseY, height, width, colors, stage }: {
           />
           <path
             d={`M${cx + 2},${baseY - height * 0.45} C${cx + width * 0.7},${baseY - height * 0.48} ${cx + width * 1.0},${baseY - height * 0.54} ${cx + width * 1.2},${baseY - height * 0.58}`}
-            stroke="url(#trunk-gradient)"
+            stroke={`url(#trunk-gradient-${uid})`}
             strokeWidth={stage === "mature" ? 2.5 : 2}
             fill="none"
             strokeLinecap="round"
@@ -451,14 +451,14 @@ function Trunk({ cx, baseY, height, width, colors, stage }: {
   );
 }
 
-function Ground({ cx, baseY, colors }: { cx: number; baseY: number; colors: TreeColorConfig }) {
+function Ground({ cx, baseY, colors, uid }: { cx: number; baseY: number; colors: TreeColorConfig; uid: string }) {
   const hillPath = `M${cx - 30},${baseY + 3} C${cx - 20},${baseY - 2} ${cx - 8},${baseY - 1} ${cx},${baseY + 1} C${cx + 8},${baseY - 1} ${cx + 20},${baseY - 2} ${cx + 30},${baseY + 3}`;
 
   return (
     <g>
       <path
         d={hillPath}
-        fill="url(#ground-gradient)"
+        fill={`url(#ground-gradient-${uid})`}
         opacity={0.6}
         style={{
           transformOrigin: `${cx}px ${baseY}px`,
@@ -487,13 +487,13 @@ function Ground({ cx, baseY, colors }: { cx: number; baseY: number; colors: Tree
   );
 }
 
-function SeedStage({ cx, baseY, colors }: { cx: number; baseY: number; colors: TreeColorConfig }) {
+function SeedStage({ cx, baseY, colors, uid }: { cx: number; baseY: number; colors: TreeColorConfig; uid: string }) {
   const moundPath = `M${cx - 16},${baseY + 1} C${cx - 12},${baseY - 5} ${cx - 5},${baseY - 6} ${cx},${baseY - 5} C${cx + 5},${baseY - 6} ${cx + 12},${baseY - 5} ${cx + 16},${baseY + 1}`;
 
   return (
     <g>
       <path d={moundPath}
-        fill="url(#seed-mound)"
+        fill={`url(#seed-mound-${uid})`}
       />
       <ellipse cx={cx} cy={baseY - 2} rx={10} ry={2}
         fill={colors.groundDark} opacity={0.15}
@@ -552,6 +552,7 @@ export const SvgTree = memo(function SvgTree({
   size,
   animate = true,
 }: SvgTreeProps) {
+  const uid = useId().replace(/:/g, "");
   const config = STAGE_SIZES[stage] || STAGE_SIZES.seed;
   const w = size || config.width;
   const h = size ? size * (config.height / config.width) : config.height;
@@ -577,17 +578,17 @@ export const SvgTree = memo(function SvgTree({
           animation: swayClass ? `${swayClass} ${emotion === "struggling" ? 2 : emotion === "thriving" ? 3 : 4}s infinite ease-in-out` : undefined,
         }}
       >
-        <InlineDefs colors={colors} />
+        <InlineDefs colors={colors} uid={uid} />
         {emotion === "thriving" && (
           <circle cx={cx} cy={crownCy} r={crownR * 1.8} fill="url(#thriving-glow)" />
         )}
         {stage === "seed" ? (
-          <SeedStage cx={cx} baseY={baseY} colors={colors} />
+          <SeedStage cx={cx} baseY={baseY} colors={colors} uid={uid} />
         ) : (
           <>
-            <Ground cx={cx} baseY={baseY} colors={colors} />
-            <Trunk cx={cx} baseY={baseY} height={trunkH} width={trunkW} colors={colors} stage={stage} />
-            <Canopy cx={cx} cy={crownCy} r={crownR} colors={colors} stage={stage} canopyType={canopyType} />
+            <Ground cx={cx} baseY={baseY} colors={colors} uid={uid} />
+            <Trunk cx={cx} baseY={baseY} height={trunkH} width={trunkW} colors={colors} stage={stage} uid={uid} />
+            <Canopy cx={cx} cy={crownCy} r={crownR} colors={colors} stage={stage} canopyType={canopyType} uid={uid} />
           </>
         )}
       </svg>

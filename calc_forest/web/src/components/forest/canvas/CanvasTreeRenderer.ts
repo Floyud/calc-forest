@@ -11,6 +11,21 @@ export interface TreeRenderParams {
   mountTime: number;
 }
 
+/** Pre-computed color cache for a tree */
+interface ColorCache {
+  leaf: RGBColor;
+  leafLight: RGBColor;
+  leafDark: RGBColor;
+}
+
+function buildColorCache(colors: TreeColorConfig): ColorCache {
+  return {
+    leaf: hexToRgb(colors.leaf),
+    leafLight: hexToRgb(colors.leafLight),
+    leafDark: hexToRgb(colors.leafDark),
+  };
+}
+
 // ─── Utility helpers ─────────────────────────────────────────────────────────
 
 function easeOut(t: number): number {
@@ -27,14 +42,26 @@ function jit(v: number, seed: number, amt = 0.35): number {
   return v + Math.sin(seed * 127.1 + v * 311.7) * amt;
 }
 
-/** Subtle brightness breathing for living feel */
-function breathe(hex: string, time: number, amt = 0.025): string {
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
+/** Pre-computed RGB for breathe optimization */
+interface RGBColor { r: number; g: number; b: number; }
+
+function hexToRgb(hex: string): RGBColor {
+  return {
+    r: parseInt(hex.slice(1, 3), 16),
+    g: parseInt(hex.slice(3, 5), 16),
+    b: parseInt(hex.slice(5, 7), 16),
+  };
+}
+
+function breatheRgb(color: RGBColor, time: number, amt = 0.025): string {
   const s = Math.sin(time * 0.0008) * amt * 255;
   const c = (n: number) => Math.max(0, Math.min(255, Math.round(n)));
-  return `rgb(${c(r + s)},${c(g + s * 0.5)},${c(b - s * 0.3)})`;
+  return `rgb(${c(color.r + s)},${c(color.g + s * 0.5)},${c(color.b - s * 0.3)})`;
+}
+
+/** Subtle brightness breathing for living feel */
+function breathe(hex: string, time: number, amt = 0.025): string {
+  return breatheRgb(hexToRgb(hex), time, amt);
 }
 
 function rgba(r: number, g: number, b: number, a: number): string {
@@ -503,6 +530,7 @@ function drawCanopy(
   elapsed: number,
   time: number,
   scale: number,
+  colorCache: ColorCache,
 ) {
   // sprout special case
   if (stage === "sprout") {
@@ -542,9 +570,9 @@ function drawCanopy(
   ctx.translate(-cx, -cy);
 
   // main canopy fill with radial gradient
-  const leafCol = breathe(colors.leaf, time);
-  const leafLightCol = breathe(colors.leafLight, time);
-  const leafDarkCol = breathe(colors.leafDark, time);
+  const leafCol = breatheRgb(colorCache.leaf, time);
+  const leafLightCol = breatheRgb(colorCache.leafLight, time);
+  const leafDarkCol = breatheRgb(colorCache.leafDark, time);
 
   const cGrad = ctx.createRadialGradient(
     cx - r * 0.2, cy - r * 0.3, 0,
@@ -732,6 +760,7 @@ export function renderTree(ctx: CanvasRenderingContext2D, params: TreeRenderPara
 
   const elapsed = time - mountTime;
   const sa = swayAngle(emotion, time);
+  const colorCache = buildColorCache(colors);
 
   // sway (pivot at center, matching CSS default transform-origin)
   ctx.save();
@@ -749,7 +778,7 @@ export function renderTree(ctx: CanvasRenderingContext2D, params: TreeRenderPara
   } else {
     drawGround(ctx, cx, baseY, colors, elapsed);
     drawTrunk(ctx, cx, baseY, trunkH, trunkW, colors, stage, elapsed, sc);
-    drawCanopy(ctx, cx, crownCy, crownR, colors, canopyType, stage, elapsed, time, sc);
+    drawCanopy(ctx, cx, crownCy, crownR, colors, canopyType, stage, elapsed, time, sc, colorCache);
 
     // bloom glow overlay for thriving
     if (emotion === "thriving" && crownR > 5) {

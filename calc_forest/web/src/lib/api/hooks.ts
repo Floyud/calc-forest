@@ -64,7 +64,7 @@ export function useUpdateStudentProfile() {
       data,
     }: {
       studentId: string;
-      data: { personality_tags?: string[]; learning_style?: string; notes?: string };
+      data: { personality_tags?: string[]; learning_style?: string; notes?: string; guidance_mode?: string };
     }) => patchStudentProfile(studentId, data),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["studentProfile", variables.studentId] });

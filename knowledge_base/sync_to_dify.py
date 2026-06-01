@@ -44,40 +44,45 @@ DEFAULT_BASE_URL = "https://api.dify.ai/v1"
 
 # 每个 domain 的推荐分块配置（separator/overlap 影响 RAG 检索粒度）
 DOMAIN_CHUNK_CONFIG: dict[str, dict] = {
-    "01_error_taxonomy": {
+    "00_shared": {
         "separator": "\n---\n",
+        "max_tokens": 600,
+        "chunk_overlap": 80,
+    },
+    "01_error_taxonomy": {
+        "separator": "\n## ",
         "max_tokens": 800,
         "chunk_overlap": 100,
     },
-    "02_textbook_content": {
-        "separator": "\n---\n",
-        "max_tokens": 1000,
-        "chunk_overlap": 150,
+    "02_grade_content": {
+        "separator": "\n## ",
+        "max_tokens": 800,
+        "chunk_overlap": 100,
     },
     "03_teaching_strategies": {
+        "separator": "\n## ",
+        "max_tokens": 800,
+        "chunk_overlap": 100,
+    },
+    "04_grading_system": {
+        "separator": "\n## ",
+        "max_tokens": 600,
+        "chunk_overlap": 80,
+    },
+    "05_curriculum": {
+        "separator": "\n## ",
+        "max_tokens": 600,
+        "chunk_overlap": 80,
+    },
+    "06_classroom": {
+        "separator": "\n## ",
+        "max_tokens": 600,
+        "chunk_overlap": 80,
+    },
+    "07_question_bank": {
         "separator": "\n---\n",
-        "max_tokens": 800,
-        "chunk_overlap": 100,
-    },
-    "04_classroom_management": {
-        "separator": "\n\n",
-        "max_tokens": 800,
-        "chunk_overlap": 100,
-    },
-    "05_growth_system": {
-        "separator": "\n\n",
-        "max_tokens": 600,
-        "chunk_overlap": 80,
-    },
-    "06_grading_and_profile": {
-        "separator": "\n\n",
-        "max_tokens": 800,
-        "chunk_overlap": 100,
-    },
-    "07_curriculum_planning": {
-        "separator": "\n\n",
-        "max_tokens": 600,
-        "chunk_overlap": 80,
+        "max_tokens": 500,
+        "chunk_overlap": 50,
     },
 }
 
@@ -228,14 +233,19 @@ class DifyKBClient:
 
 
 def collect_kb_files(kb_root: Path, target_dir: str | None = None) -> list[tuple[Path, str]]:
+    """递归收集所有 .md 文件，跳过 _old_backup 和隐藏目录。"""
+    skip_dirs = {"_old_backup", ".git", "__pycache__", ".hermes"}
     files = []
     for domain_dir in sorted(kb_root.iterdir()):
-        if not domain_dir.is_dir():
+        if not domain_dir.is_dir() or domain_dir.name in skip_dirs:
             continue
         domain = domain_dir.name
         if target_dir and domain != target_dir:
             continue
-        for md_file in sorted(domain_dir.glob("*.md")):
+        # 递归查找所有 .md 文件
+        for md_file in sorted(domain_dir.rglob("*.md")):
+            if any(skip in md_file.parts for skip in skip_dirs):
+                continue
             files.append((md_file, domain))
     return files
 

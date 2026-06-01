@@ -2,42 +2,10 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { X, ChevronRight } from "lucide-react";
+import { X, ChevronRight, Compass } from "lucide-react";
 import { useState, useEffect, Suspense } from "react";
 import { cn } from "@/lib/utils";
-
-const DEMO_STEPS = [
-  {
-    href: "/",
-    label: "班级森林总览",
-    desc: "查看班级整体情况和错因热力图",
-    emoji: "🌲",
-  },
-  {
-    href: "/diagnose",
-    label: "错因诊断",
-    desc: "录入一条作答，看AI如何分析错因",
-    emoji: "🔍",
-  },
-  {
-    href: "/classroom",
-    label: "课堂模式",
-    desc: "一键投屏白板，现场练习反馈",
-    emoji: "📋",
-  },
-  {
-    href: "/chat?student=S001",
-    label: "AI引导对话",
-    desc: "体验AI一步步引导学生理解错因",
-    emoji: "💬",
-  },
-  {
-    href: "/forest",
-    label: "成长轨迹",
-    desc: "查看学生的错因雷达图和成长记录",
-    emoji: "📈",
-  },
-];
+import { DEMO_STEPS } from "@/lib/presentation";
 
 function DemoGuideInner() {
   const pathname = usePathname();
@@ -67,11 +35,13 @@ function DemoGuideInner() {
     : null;
 
   return (
-    <div className="border-b border-forest-200/60 bg-gradient-to-r from-forest-50 via-warm-50 to-forest-50">
-      <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-2.5">
-        <div className="flex items-center gap-2 text-xs text-forest-600">
-          <span className="text-base">🎯</span>
-          <span className="font-medium">演示引导</span>
+    <div className="border-b border-[color:var(--tone-line)] bg-[linear-gradient(90deg,rgba(255,252,245,0.96),rgba(244,239,226,0.82),rgba(255,252,245,0.96))]">
+      <div className="mx-auto flex max-w-[1440px] items-center gap-3 px-4 py-3 md:px-6">
+        <div className="flex items-center gap-2 text-xs text-[var(--tone-accent-strong)]">
+          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/75 ring-1 ring-[color:var(--tone-line)]">
+            <Compass className="h-3.5 w-3.5" />
+          </span>
+          <span className="font-medium tracking-[0.12em] uppercase">演示路径</span>
         </div>
 
         <div className="flex flex-1 items-center gap-1 overflow-x-auto">
@@ -83,10 +53,10 @@ function DemoGuideInner() {
                 <Link
                   href={`${step.href}${step.href.includes("?") ? "&" : "?"}demo=1`}
                   className={cn(
-                    "flex items-center gap-1.5 whitespace-nowrap rounded-md px-2.5 py-1 text-xs transition-colors",
-                    isActive && "bg-forest-600 text-white font-medium",
-                    isDone && "text-forest-500",
-                    !isActive && !isDone && "text-muted-foreground hover:bg-forest-100",
+                    "flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-xs transition-all",
+                    isActive && "bg-[var(--tone-accent-strong)] text-white shadow-[0_10px_24px_rgba(74,117,81,0.22)]",
+                    isDone && "bg-white/80 text-[var(--tone-accent-strong)] ring-1 ring-[color:var(--tone-line)]",
+                    !isActive && !isDone && "text-[var(--tone-muted)] hover:bg-white/80",
                   )}
                 >
                   <span>{isDone ? "✅" : step.emoji}</span>
@@ -103,7 +73,7 @@ function DemoGuideInner() {
         {nextStep && (
           <Link
             href={`${nextStep.href}${nextStep.href.includes("?") ? "&" : "?"}demo=1`}
-            className="shrink-0 rounded-md bg-forest-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-forest-700"
+            className="shrink-0 rounded-full bg-[var(--tone-accent-strong)] px-3 py-1.5 text-xs font-medium text-white transition-colors hover:opacity-90"
           >
             下一步 → {nextStep.label}
           </Link>
@@ -111,7 +81,7 @@ function DemoGuideInner() {
 
         <button
           onClick={() => setDismissed(true)}
-          className="shrink-0 rounded-md p-1 text-muted-foreground transition-colors hover:bg-forest-100 hover:text-forest-600"
+          className="shrink-0 rounded-full p-1.5 text-[var(--tone-muted)] transition-colors hover:bg-white/80 hover:text-[var(--tone-ink)]"
           aria-label="关闭引导"
         >
           <X className="h-4 w-4" />
@@ -119,10 +89,10 @@ function DemoGuideInner() {
       </div>
 
       {currentIdx >= 0 && (
-        <div className="mx-auto max-w-7xl px-4 pb-2">
-          <p className="text-xs text-muted-foreground">
+        <div className="mx-auto max-w-[1440px] px-4 pb-3 md:px-6">
+          <p className="text-xs text-[var(--tone-muted)]">
             <span className="mr-1">{DEMO_STEPS[currentIdx].emoji}</span>
-            {DEMO_STEPS[currentIdx].desc}
+            {DEMO_STEPS[currentIdx].description}
           </p>
         </div>
       )}

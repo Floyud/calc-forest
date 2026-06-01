@@ -1,12 +1,14 @@
 "use client";
 
-import { useMemo, useState, useCallback, memo } from "react";
+import { useMemo, useCallback } from "react";
 import { useQueries } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { AlertTriangle, Grid3X3 } from "lucide-react";
 import { getStudentProfile } from "@/lib/api";
 import type { StudentTree, ErrorCode, StudentProfile } from "@/lib/types";
 import { ERROR_LABELS } from "@/lib/types";
+import type { EChartsOption } from "echarts";
+import { EChartsBase } from "@/components/ui/echarts-base";
 
 // ─── Error codes displayed in heatmap columns ───
 
@@ -15,55 +17,8 @@ const ERROR_CODES: ErrorCode[] = [
   "E06", "E07", "E08", "E09", "E10", "E11",
 ];
 
-// ─── Color thresholds ───
-
-function cellColor(accuracy: number | null): string {
-  if (accuracy === null) return "bg-muted/40 text-muted-foreground/50";
-  if (accuracy >= 0.85) return "bg-emerald-100/80 text-emerald-700";
-  if (accuracy >= 0.60) return "bg-amber-100/80 text-amber-700";
-  return "bg-red-100/80 text-red-700";
-}
-
-function cellDot(accuracy: number | null): string {
-  if (accuracy === null) return "";
-  if (accuracy >= 0.85) return "bg-emerald-400";
-  if (accuracy >= 0.60) return "bg-amber-400";
-  return "bg-red-400";
-}
-
-function formatCell(accuracy: number | null): string {
-  if (accuracy === null) return "--";
-  return `${Math.round(accuracy * 100)}%`;
-}
-
-// ─── Sub-components ───
-
-interface HeatmapCellProps {
-  accuracy: number | null;
-  delay: number;
-  onClick: () => void;
-}
-
-const HeatmapCell = memo(function HeatmapCell({ accuracy, delay, onClick }: HeatmapCellProps) {
-  return (
-    <motion.button
-      initial={{ opacity: 0, scale: 0.85 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.25, delay }}
-      onClick={onClick}
-      className={`relative flex flex-col items-center justify-center rounded-md px-1.5 py-1.5 text-[11px] font-medium leading-tight transition-shadow hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-forest-400 ${cellColor(accuracy)}`}
-      title={accuracy !== null ? `掌握度 ${Math.round(accuracy * 100)}%` : "暂无数据"}
-    >
-      {accuracy !== null && (
-        <span
-          className={`mb-0.5 inline-block h-1.5 w-1.5 rounded-full ${cellDot(accuracy)}`}
-          aria-hidden
-        />
-      )}
-      <span>{formatCell(accuracy)}</span>
-    </motion.button>
-  );
-});
+// Sentinel value for null/missing data in ECharts heatmap
+const NULL_VAL = -1;
 
 // ─── Main component ───
 
@@ -73,13 +28,12 @@ interface ClassErrorHeatmapProps {
 }
 
 export function ClassErrorHeatmap({ trees, onStudentClick }: ClassErrorHeatmapProps) {
-  const [hoveredCol, setHoveredCol] = useState<string | null>(null);
-
   const profileQueries = useQueries({
     queries: trees.map((tree) => ({
       queryKey: ["studentProfile", tree.student_id],
       queryFn: () => getStudentProfile(tree.student_id),
-      staleTime: 60_000,
+      staleTime: 5 * 60 * 1000,
+      enabled: !!tree.student_id && tree.student_id.length > 0,
     })),
   });
 
@@ -132,16 +86,176 @@ export function ClassErrorHeatmap({ trees, onStudentClick }: ClassErrorHeatmapPr
   const allLoaded = profileQueries.every((q) => q.isSuccess || q.isError);
   const anyLoading = !allLoaded;
 
-  const handleCellClick = useCallback(
-    (tree: StudentTree, errorCode: string) => {
-      onStudentClick?.(tree, errorCode);
-    },
-    [onStudentClick],
+  // ─── Build heatmap data and category arrays ───
+
+  const yCategories = useMemo(
+    () => [...trees.map((t) => t.student_name), "班级平均"],
+    [trees],
   );
 
+  const heatmapData = useMemo(() => {
+    const points: [number, number, number][] = [];
+
+    trees.forEach((tree, yIdx) => {
+      const accMap = profileMap.get(tree.student_id);
+      ERROR_CODES.forEach((code, xIdx) => {
+        const acc = accMap?.[code];
+        points.push([xIdx, yIdx, acc != null ? acc : NULL_VAL]);
+      });
+    });
+
+    // Average row
+    const avgY = trees.length;
+    ERROR_CODES.forEach((code, xIdx) => {
+      const avg = columnAverages[code];
+      points.push([xIdx, avgY, avg !== null ? avg : NULL_VAL]);
+    });
+
+    return points;
+  }, [trees, profileMap, columnAverages]);
+
+  // ─── ECharts option (memoised) ───
+
+  const chartOption = useMemo(() => {
+    const weak = weakestColumn;
+
+    return {
+      tooltip: {
+        formatter(params: Record<string, unknown>) {
+          const d = params.data as [number, number, number] | undefined;
+          if (!d) return "";
+          const [xIdx, yIdx, val] = d;
+          const code = ERROR_CODES[xIdx];
+          const name = yCategories[yIdx];
+          const label = ERROR_LABELS[code as ErrorCode] ?? code;
+          if (val === NULL_VAL) {
+            return `<b>${name}</b><br/>${code} ${label}<br/><span style="color:#94a3b8">暂无数据</span>`;
+          }
+          const pct = Math.round(val * 100);
+          const color = val >= 0.85 ? "#047857" : val >= 0.6 ? "#b45309" : "#b91c1c";
+          return `<b>${name}</b><br/>${code} ${label}<br/>掌握度: <b style="color:${color}">${pct}%</b>`;
+        },
+      },
+      grid: {
+        top: 44,
+        right: 12,
+        bottom: 8,
+        left: 12,
+        containLabel: true,
+      },
+      xAxis: {
+        type: "category" as const,
+        data: ERROR_CODES,
+        position: "top" as const,
+        axisTick: { show: false },
+        axisLine: { lineStyle: { color: "#e2e8f0" } },
+        axisLabel: {
+          fontSize: 10,
+          interval: 0,
+          color(value?: string | number) {
+            return value === weak ? "#dc2626" : "#64748b";
+          },
+          fontWeight(value?: string | number) {
+            return value === weak ? "bold" : "normal";
+          },
+          formatter(value?: string | number) {
+            const v = String(value ?? "");
+            const short = (ERROR_LABELS[v as ErrorCode] ?? "").slice(0, 4);
+            return `${v}\n${short}`;
+          },
+        },
+      },
+      yAxis: {
+        type: "category" as const,
+        data: yCategories,
+        axisTick: { show: false },
+        axisLine: { lineStyle: { color: "#e2e8f0" } },
+        axisLabel: {
+          fontSize: 11,
+          color(value?: string | number) {
+            return value === "班级平均" ? "#64748b" : "#334155";
+          },
+          fontWeight(value?: string | number) {
+            return value === "班级平均" ? 500 : "normal";
+          },
+        },
+      },
+      visualMap: {
+        show: false,
+        type: "piecewise" as const,
+        pieces: [
+          { value: NULL_VAL, color: "#f1f5f9" },
+          { gte: 0, lt: 0.6, color: "#fecaca" },
+          { gte: 0.6, lt: 0.85, color: "#fde68a" },
+          { gte: 0.85, lte: 1, color: "#bbf7d0" },
+        ],
+      },
+      series: [
+        {
+          type: "heatmap" as const,
+          data: heatmapData,
+          label: {
+            show: true,
+            fontSize: 10,
+            fontWeight: 500,
+            formatter(params: Record<string, unknown>) {
+              const d = params.data as [number, number, number] | undefined;
+              if (!d) return "";
+              const val = d[2];
+              if (val === NULL_VAL) return "--";
+              return `${Math.round(val * 100)}%`;
+            },
+            color(params: Record<string, unknown>) {
+              const d = params.data as [number, number, number] | undefined;
+              if (!d) return "#94a3b8";
+              const val = d[2];
+              if (val === NULL_VAL) return "#94a3b8";
+              if (val >= 0.85) return "#047857";
+              if (val >= 0.6) return "#b45309";
+              return "#b91c1c";
+            },
+          },
+          emphasis: {
+            itemStyle: {
+              shadowBlur: 8,
+              shadowColor: "rgba(0,0,0,0.15)",
+            },
+          },
+          itemStyle: {
+            borderColor: "#fff",
+            borderWidth: 2,
+            borderRadius: 4,
+          },
+        },
+      ],
+    };
+  }, [heatmapData, yCategories, weakestColumn]);
+
+  // ─── Chart click → onStudentClick ───
+
+  const handleChartClick = useCallback(
+    (params: Record<string, unknown>) => {
+      if (!onStudentClick) return;
+      const d = params.data as [number, number, number] | undefined;
+      if (!d) return;
+      const [, yIdx] = d;
+      // Ignore clicks on the average row
+      if (yIdx >= trees.length) return;
+      const xIdx = d[0];
+      const errorCode = ERROR_CODES[xIdx];
+      const tree = trees[yIdx];
+      onStudentClick(tree, errorCode);
+    },
+    [onStudentClick, trees],
+  );
+
+  // ─── Render ───
+
+  const chartHeight = Math.max(200, (trees.length + 1) * 36 + 16);
+
   return (
-      <div className="space-y-4">
-        <div className="flex items-center gap-3">
+    <div className="space-y-4">
+      <div className="flex items-center gap-3">
         <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-red-50">
           <Grid3X3 className="h-4 w-4 text-red-500" />
         </div>
@@ -175,92 +289,13 @@ export function ClassErrorHeatmap({ trees, onStudentClick }: ClassErrorHeatmapPr
       )}
 
       {!anyLoading && (
-        <div className="overflow-x-auto rounded-lg border border-forest-200/60 bg-white shadow-sm">
-          <div className="min-w-[640px]">
-            <div
-              className="grid items-center border-b border-forest-100 bg-forest-50/30 px-2 py-2"
-              style={{ gridTemplateColumns: `80px repeat(${ERROR_CODES.length}, minmax(52px, 1fr))` }}
-            >
-              <span className="text-[11px] font-medium text-muted-foreground">学生</span>
-              {ERROR_CODES.map((code) => {
-                const isWeakest = code === weakestColumn;
-                const isHovered = code === hoveredCol;
-                return (
-                  <div
-                    key={code}
-                    className={`flex flex-col items-center gap-0.5 rounded px-1 py-1 text-center transition-colors ${
-                      isWeakest ? "bg-red-50/70" : isHovered ? "bg-forest-50" : ""
-                    }`}
-                    onMouseEnter={() => setHoveredCol(code)}
-                    onMouseLeave={() => setHoveredCol(null)}
-                    title={ERROR_LABELS[code] ?? code}
-                  >
-                    <span className={`text-[11px] font-bold ${isWeakest ? "text-red-600" : "text-foreground/80"}`}>
-                      {code}
-                    </span>
-                    <span className={`text-[9px] leading-tight ${isWeakest ? "text-red-500/70" : "text-muted-foreground/70"}`}>
-                      {(ERROR_LABELS[code] ?? "").slice(0, 4)}
-                    </span>
-                    {isWeakest && (
-                      <AlertTriangle className="mt-0.5 h-3 w-3 text-red-400" />
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-
-            {trees.map((tree, rowIdx) => {
-              const accMap = profileMap.get(tree.student_id);
-              return (
-                <motion.div
-                  key={tree.student_id}
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.2, delay: rowIdx * 0.03 }}
-                  className="grid items-center border-b border-forest-50 px-2 py-1 last:border-b-0"
-                  style={{ gridTemplateColumns: `80px repeat(${ERROR_CODES.length}, minmax(52px, 1fr))` }}
-                >
-                  <span className="truncate text-[11px] font-medium text-foreground/80" title={tree.student_name}>
-                    {tree.student_name}
-                  </span>
-                  {ERROR_CODES.map((code, colIdx) => {
-                    const accuracy = accMap?.[code] ?? null;
-                    return (
-                      <HeatmapCell
-                        key={`${tree.student_id}-${code}`}
-                        accuracy={accuracy}
-                        delay={rowIdx * 0.03 + colIdx * 0.015}
-                        onClick={() => handleCellClick(tree, code)}
-                      />
-                    );
-                  })}
-                </motion.div>
-              );
-            })}
-
-            <div
-              className="grid items-center border-t border-forest-100 bg-forest-50/20 px-2 py-2"
-              style={{ gridTemplateColumns: `80px repeat(${ERROR_CODES.length}, minmax(52px, 1fr))` }}
-            >
-              <span className="text-[11px] font-medium text-muted-foreground">班级平均</span>
-              {ERROR_CODES.map((code) => {
-                const avg = columnAverages[code];
-                const isWeakest = code === weakestColumn;
-                return (
-                  <div
-                    key={`avg-${code}`}
-                    className={`flex flex-col items-center rounded px-1 py-1 ${
-                      isWeakest ? "bg-red-50/50" : ""
-                    }`}
-                  >
-                    <span className={`text-[11px] font-semibold ${avg !== null ? (avg >= 0.85 ? "text-emerald-600" : avg >= 0.60 ? "text-amber-600" : "text-red-600") : "text-muted-foreground/40"}`}>
-                      {formatCell(avg)}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+        <div className="overflow-hidden rounded-lg border border-forest-200/60 bg-white shadow-sm">
+          <EChartsBase
+            option={chartOption as unknown as EChartsOption}
+            onClick={handleChartClick}
+            className="w-full"
+            style={{ height: `${chartHeight}px` }}
+          />
         </div>
       )}
 

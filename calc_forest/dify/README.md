@@ -2,7 +2,7 @@
 
 这是 **我的计算森林** 的 Dify 产品工作区。
 
-在当前《创AI》提交口径下，Dify 是本项目的**主交付入口与主演示链路**。这里保存工作流 DSL、本地验证记录、知识库准备和演示配套资产；算术正确性判断仍由 `development/` 中的 FastAPI 规则服务负责，最终使用边界仍由教师审核把关。
+在当前《创AI》提交口径下，Dify 是本项目的**主交付入口与主演示链路**。这里保存工作流 DSL、本地验证记录、知识库准备和演示配套资产；算术正确性判断仍由 `calc_forest/backend/` 中的 FastAPI 规则服务负责，最终使用边界仍由教师审核把关。
 
 用途：
 
@@ -32,7 +32,7 @@
 - `GET /api/tree-species`
 - `GET /api/encouragements`
 
-它们对应的实现都在 `../../development/` 下，并且所有运行命令统一使用 `pyt0` 环境。
+它们对应的实现都在 `../../calc_forest/backend/` 下，并且所有运行命令统一使用 `pyt0` 环境。
 
 ## Suggested Folder Use
 

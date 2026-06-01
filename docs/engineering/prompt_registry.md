@@ -1,5 +1,9 @@
 # Prompt 注册表
 
+> 最后更新：2026-05-19
+>
+> 相关文档：`docs/engineering/architecture.md` · `calc_forest/dify/`（Dify 工作流） · `knowledge_base/`（知识库源文件）
+
 ## 使用原则
 
 1. Prompt 以模块化方式维护，Dify 和 Coze 复用同一套目标、输入、输出和安全约束。

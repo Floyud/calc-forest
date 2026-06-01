@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Maximize2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -24,6 +24,8 @@ const ERROR_COLORS: Record<string, { bg: string; text: string; border: string; d
   E06: { bg: "bg-cyan-50", text: "text-cyan-700", border: "border-cyan-200", dot: "bg-cyan-400" },
   E07: { bg: "bg-pink-50", text: "text-pink-700", border: "border-pink-200", dot: "bg-pink-400" },
   E08: { bg: "bg-indigo-50", text: "text-indigo-700", border: "border-indigo-200", dot: "bg-indigo-400" },
+  E09: { bg: "bg-lime-50", text: "text-lime-700", border: "border-lime-200", dot: "bg-lime-400" },
+  E10: { bg: "bg-fuchsia-50", text: "text-fuchsia-700", border: "border-fuchsia-200", dot: "bg-fuchsia-400" },
   E11: { bg: "bg-orange-50", text: "text-orange-700", border: "border-orange-200", dot: "bg-orange-400" },
   E99: { bg: "bg-gray-50", text: "text-gray-700", border: "border-gray-200", dot: "bg-gray-400" },
 };
@@ -34,8 +36,11 @@ const ERROR_DESCRIPTIONS: Record<string, string> = {
   E03: "不够减忘记退位，连续退位出错",
   E04: "竖式数位没有对齐，导致错位",
   E05: "混合运算搞错了运算顺序",
+  E06: "小数点或分数单位搞错了",
   E07: "抄题时数字或符号写错",
   E08: "漏算了部分积或中间步骤",
+  E09: "对算理的理解不够充分",
+  E10: "审题不清或单位理解错误",
   E11: "结果明显不合理但没验算",
 };
 
@@ -48,9 +53,11 @@ const MOOD_CONFIG: Record<EmotionState, { emoji: string; label: string; color: s
 };
 
 export function ClassPrepView({ forest, onStartQuiz }: ClassPrepViewProps) {
-  const [selectedErrors, setSelectedErrors] = useState<string[]>(forest.class_top_errors);
-  const [difficulty, setDifficulty] = useState<"A" | "B" | "C">("B");
-  const [problemCount, setProblemCount] = useState(5);
+  const [selectedErrors, setSelectedErrors] = useState<string[]>([
+    ...new Set(["E05", "E06", "E10", "E09", ...forest.class_top_errors]),
+  ].slice(0, 5));
+  const [difficulty, setDifficulty] = useState<"A" | "B" | "C">("C");
+  const [problemCount, setProblemCount] = useState(6);
   const [loading, setLoading] = useState(false);
   const [previewProblems, setPreviewProblems] = useState<QuizProblemItem[] | null>(null);
   const [generatedQuizId, setGeneratedQuizId] = useState<string | null>(null);
@@ -86,23 +93,26 @@ export function ClassPrepView({ forest, onStartQuiz }: ClassPrepViewProps) {
     setLoading(false);
   };
 
-  const handleStart = () => {
+  const handleStart = async () => {
     if (!previewProblems) return;
+    if (document.fullscreenEnabled && !document.fullscreenElement) {
+      await document.documentElement.requestFullscreen().catch(() => {});
+    }
     onStartQuiz(generatedQuizId ?? crypto.randomUUID(), previewProblems);
   };
 
-  const allErrorCodes = ["E01", "E02", "E03", "E04", "E05", "E07", "E08", "E11"];
+  const allErrorCodes = ["E01", "E02", "E03", "E04", "E05", "E06", "E07", "E08", "E09", "E10", "E11"];
   const mood = MOOD_CONFIG[forest.class_emotional_state];
   const accPercent = Math.round(forest.class_accuracy * 100);
   const accColor = accPercent >= 80 ? "text-emerald-600" : accPercent >= 60 ? "text-amber-600" : "text-red-600";
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 px-4 py-6">
+    <div className="space-y-6">
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="space-y-1">
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-bold text-foreground">{forest.class_name} · 课堂模式</h1>
-          <span className={`rounded-full px-3 py-0.5 text-xs font-medium ${mood.color}`}>
+          <h1 className="text-2xl font-semibold tracking-[-0.03em] text-[var(--tone-ink)]">{forest.class_name} · 课堂模式</h1>
+          <span className={`rounded-full px-3 py-1 text-xs font-medium ring-1 ring-black/5 ${mood.color}`}>
             {mood.emoji} {mood.label}
           </span>
         </div>
@@ -119,7 +129,7 @@ export function ClassPrepView({ forest, onStartQuiz }: ClassPrepViewProps) {
           transition={{ delay: 0.1 }}
           className="lg:col-span-3"
         >
-          <Card className="h-full">
+          <Card className="surface-panel h-full rounded-[24px] border-0 shadow-none">
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
                 班级错因画像
@@ -149,7 +159,7 @@ export function ClassPrepView({ forest, onStartQuiz }: ClassPrepViewProps) {
                 {forest.class_top_errors.map((code, rank) => {
                   const c = ERROR_COLORS[code] || ERROR_COLORS.E99;
                   const count = forest.trees.filter((t) => t.dominant_errors.includes(code)).length;
-                  const pct = Math.round((count / forest.trees.length) * 100);
+                  const pct = forest.trees.length > 0 ? Math.round((count / forest.trees.length) * 100) : 0;
                   const desc = ERROR_DESCRIPTIONS[code] || "";
                   return (
                     <motion.div
@@ -157,7 +167,7 @@ export function ClassPrepView({ forest, onStartQuiz }: ClassPrepViewProps) {
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.2 + rank * 0.1 }}
-                      className={`rounded-xl border ${c.border} ${c.bg} p-3`}
+                      className={`rounded-[18px] border ${c.border} ${c.bg} p-3`}
                     >
                       <div className="flex items-center gap-2 mb-1">
                         <Badge variant="outline" className={`${c.bg} ${c.text} ${c.border} text-xs font-bold`}>
@@ -185,7 +195,7 @@ export function ClassPrepView({ forest, onStartQuiz }: ClassPrepViewProps) {
               </div>
 
               {/* Teaching tips */}
-              <div className="rounded-lg bg-primary/5 border border-primary/10 p-3 text-xs text-primary/80">
+              <div className="rounded-[18px] border border-[color:var(--tone-line)] bg-[var(--tone-soft)]/80 p-3 text-xs text-[var(--tone-ink)]/80">
                 <span className="font-semibold">教学建议</span>
                 <span className="ml-1">
                   {forest.class_top_errors.includes("E03") && "用数位表带学生复盘退位过程"}
@@ -206,7 +216,7 @@ export function ClassPrepView({ forest, onStartQuiz }: ClassPrepViewProps) {
           transition={{ delay: 0.2 }}
           className="lg:col-span-2"
         >
-          <Card className="h-full">
+          <Card className="surface-panel h-full rounded-[24px] border-0 shadow-none">
             <CardHeader className="pb-3">
               <CardTitle className="text-base">随堂测验配置</CardTitle>
             </CardHeader>
@@ -234,7 +244,7 @@ export function ClassPrepView({ forest, onStartQuiz }: ClassPrepViewProps) {
                         <span className="font-bold">{code}</span>
                         <span className="truncate">{ERROR_LABELS[code as keyof typeof ERROR_LABELS]}</span>
                         {isTop && !selected && (
-                          <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-fruit-400" />
+                          <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-[var(--tone-accent)]" />
                         )}
                       </button>
                     );
@@ -267,7 +277,7 @@ export function ClassPrepView({ forest, onStartQuiz }: ClassPrepViewProps) {
                   <select
                     value={problemCount}
                     onChange={(e) => { setProblemCount(Number(e.target.value)); setPreviewProblems(null); }}
-                    className="w-full rounded-lg border border-border bg-card px-2 py-2 text-xs"
+                    className="w-full rounded-xl border border-[color:var(--tone-line)] bg-white/90 px-3 py-2 text-xs text-[var(--tone-ink)]"
                   >
                     {[3, 4, 5, 6, 7, 8].map((n) => (
                       <option key={n} value={n}>{n} 题</option>
@@ -280,7 +290,7 @@ export function ClassPrepView({ forest, onStartQuiz }: ClassPrepViewProps) {
               <Button
                 onClick={handleGenerate}
                 disabled={selectedErrors.length === 0 || loading}
-                className="w-full relative overflow-hidden"
+                className="relative w-full overflow-hidden rounded-full bg-[var(--tone-accent-strong)] text-white hover:bg-[color:color-mix(in_oklab,var(--tone-accent-strong)_88%,black)]"
               >
                 {loading ? (
                   <span className="flex items-center gap-2">
@@ -315,16 +325,16 @@ export function ClassPrepView({ forest, onStartQuiz }: ClassPrepViewProps) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
           >
-            <Card>
+            <Card className="surface-panel rounded-[24px] border-0 shadow-none">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-base flex items-center gap-2">
                     预览
                     <span className="text-sm font-normal text-muted-foreground">({previewProblems.length} 题)</span>
                   </CardTitle>
-                  <Button onClick={handleStart} size="lg" className="gap-2">
-                    <span>开始课堂</span>
-                    <span className="text-lg">🎬</span>
+                  <Button onClick={handleStart} size="lg" className="gap-2 rounded-full bg-[var(--tone-accent-strong)] text-white hover:bg-[color:color-mix(in_oklab,var(--tone-accent-strong)_88%,black)]">
+                    <Maximize2 className="h-4 w-4" />
+                    <span>打开教育屏全屏</span>
                   </Button>
                 </div>
               </CardHeader>
@@ -338,7 +348,7 @@ export function ClassPrepView({ forest, onStartQuiz }: ClassPrepViewProps) {
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ delay: i * 0.05 }}
-                        className={`flex items-center gap-2 rounded-xl border ${c.border} ${c.bg} px-3 py-2.5`}
+                        className={`flex items-center gap-2 rounded-[18px] border ${c.border} ${c.bg} px-3 py-2.5`}
                       >
                         <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white/60 text-[10px] font-bold text-muted-foreground">
                           {p.sequence}
