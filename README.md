@@ -14,7 +14,7 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 ![License](https://img.shields.io/badge/License-MIT-green.svg)
 
-[GitHub](https://github.com/Floyud/calc-forest) · [Gitee](https://gitee.com/kwxxf/calc-forest) · [🎬 竞赛演示脚本](docs/competition/demo_video_script_v2.md)
+[GitHub](https://github.com/Floyud/calc-forest) · [Gitee](https://gitee.com/kwxxf/calc-forest) · [🎬 长视频演示](配套资源/07_演示视频/我的计算森林演示视频.mp4)
 
 </div>
 
@@ -177,8 +177,9 @@ cp .env.example .env
 | [🔍 错因分类体系](docs/specs/04_error_taxonomy.md) | 44 种错因定义（E-K/E-H 全表） |
 | [📋 MVP 范围](docs/specs/02_mvp_scope.md) | 已实现功能与未来扩展边界 |
 | [🌱 产品愿景](docs/product/vision.md) | 产品价值、使用场景与长期方向 |
-| [🎬 竞赛演示脚本](docs/competition/demo_video_script_v2.md) | 5 幕演示流程 |
-| [📦 配套资源说明](Upload/04_配套资源/README.md) | 竞赛提交材料、截图与证据 |
+| [📚 知识库](knowledge_base/) | 数学错因、教材内容、教学策略与题库资源 |
+| [📦 配套资源](配套资源/) | 竞赛提交材料、截图、证据与合规说明 |
+| [🎬 长视频演示](配套资源/07_演示视频/我的计算森林演示视频.mp4) | 完整实机演示视频 |
 
 ## 🙏 致谢
 
