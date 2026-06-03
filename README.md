@@ -1,122 +1,118 @@
 <div align="center">
 
-<img src="docs/images/logo.png" alt="我的计算森林" width="320">
+<img src="docs/images/logo.png" alt="我的计算森林" width="260">
+
+# 🌲 我的计算森林
 
 **✨ AI 批阅，教师把关 ✨** — 小学数学智能错因诊断与自适应练习系统
+
+面向《创AI》全国中小学人工智能教育案例征集：用 🧠 规则判定数学对错，用 🤖 AI 生成诊断与引导，用 👩‍🏫 教师审核守住教育现场的最后一关。
 
 [![Python](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Next.js](https://img.shields.io/badge/Next.js-15.5-000000?logo=next.js&logoColor=white)](https://nextjs.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+![License](https://img.shields.io/badge/License-MIT-green.svg)
+
+[GitHub](https://github.com/Floyud/calc-forest) · [Gitee](https://gitee.com/kwxxf/calc-forest) · [🎬 竞赛演示脚本](docs/competition/demo_video_script_v2.md)
 
 </div>
 
----
+<p align="center">
+  <img src="docs/images/readme/hero-workbench.png" alt="教师工作台首页" width="100%">
+</p>
 
-## 🤔 老师真正需要的，不是"对错"
+## 🤔 项目亮点
 
-小学数学批改是一个每天重复的高频场景。传统工具只能回答"对"还是"错"，但同样一道减法题 `402 - 178`，学生写成 `334`，背后的原因可能是：
+小学数学批改不只是判断“对”或“错”。同一道题错了，可能是退位、进位、运算顺序、基础事实、验算习惯等完全不同的问题；对应的教学干预也完全不同。
 
-| 🔍 错因 | 💭 学生怎么想的 | 📚 教学对策 |
-|:---|:---|:---|
-| 🔢 退位错误 | 个位不够减，忘了从十位借 1 | 用数位表复盘退位过程 |
-| ⬆️ 进位错误 | 加法满十后忘了进位 | 显式标注进位 |
-| 🧮 基础事实错误 | 口诀背错了 8×7=54 | 短时低负荷口算练习 |
-| ✅ 未验算 | 算完没检查，结果明显不合理 | 引入逆运算检查习惯 |
+**我的计算森林**把作业批改变成一个可解释、可审核、可追踪的教学闭环：系统先定位错因，AI 生成诊断与引导建议，教师确认后再反馈给学生，最后沉淀为班级画像和个性化练习。
 
-**这些错因的教学对策完全不同。** 把所有错误都归为"粗心"，是对教学时间的浪费。
+| 🎯 44 种错因 | ✅ 341 个测试 | 🧭 17 个页面路由 | 💾 33 张业务表 | ⚙️ 30+ 服务模块 |
+|:---:|:---:|:---:|:---:|:---:|
+| E-K/E-H 细粒度分类 | 覆盖诊断、批改、管道、端点 | 教师端、学生端、课堂屏 | 作业、画像、日志、成长数据 | OCR、诊断、报告、推荐、RAG |
 
-我的计算森林做的事情很简单——告诉老师**这道题错在哪里、为什么错、下一步该怎么练**。
+## 🎬 实机演示
 
----
+下面 5 段视频来自真实运行录屏。README 使用 MP4 链接而不是 GIF，保证清晰度，也避免仓库体积被动图拉大。
 
-## 🌟 五个核心能力
+| 📋 作业生成 | 🔬 单题诊断 |
+|:---:|:---:|
+| <a href="docs/media/demo/01-homework-generation.mp4"><img src="docs/images/readme/teacher-dashboard.png" alt="作业生成演示" width="420"></a><br><a href="docs/media/demo/01-homework-generation.mp4">观看：教师生成个性化作业</a> | <a href="docs/media/demo/02-single-diagnosis.mp4"><img src="docs/images/readme/teacher-dashboard.png" alt="单题诊断演示" width="420"></a><br><a href="docs/media/demo/02-single-diagnosis.mp4">观看：逐题错因诊断</a> |
 
-### 🔬 1. 纳米级错因诊断
+| 🧑‍🏫 智能体辅助课堂练习 | 💡 四步引导 | 🌳 班级林园 |
+|:---:|:---:|:---:|
+| <a href="docs/media/demo/03-agent-class-practice.mp4"><img src="docs/images/readme/classroom-review.png" alt="课堂练习演示" width="300"></a><br><a href="docs/media/demo/03-agent-class-practice.mp4">观看：课堂讲评与练习</a> | <a href="docs/media/demo/04-four-step-guidance.mp4"><img src="docs/images/readme/student-guidance.png" alt="四步引导演示" width="300"></a><br><a href="docs/media/demo/04-four-step-guidance.mp4">观看：学生端四步引导</a> | <a href="docs/media/demo/05-class-forest.mp4"><img src="docs/images/readme/class-forest.png" alt="班级林园演示" width="300"></a><br><a href="docs/media/demo/05-class-forest.mp4">观看：成长森林反馈</a> |
 
-自研 **E-K01~E-K23 + E-H01~E-H21** 共 🎯 44 种错因分类体系，覆盖知识缺陷（23 种）和习惯问题（21 种），是国内小学数学领域最精细的诊断分类。
+## 🌟 核心能力
 
-诊断引擎完全基于**规则推理**（regex + AST 分析），不依赖大模型判断对错。结果可解释、可复现、可审计。大模型仅负责生成评语和教学建议——**🤖 人机各司其职**。
+| 能力 | 说明 |
+|:---|:---|
+| 🔬 规则诊断，可解释 | 诊断引擎基于 regex + AST 分析，优先用规则复核计算过程，不把“判定对错”交给大模型黑箱。 |
+| 👩‍🏫 教师审核门控 | AI 诊断与建议默认进入 `pending_teacher_review`，教师确认后才对学生生效。 |
+| 💡 四步引导，不倒答案 | 学生端按“安慰、推理、归纳、练习”逐步引导，让学生自己发现错在哪里。 |
+| 📋 作业全生命周期 | 支持程序化出题、学生提交、AI 批改、教师审核、PDF 报告、针对性练习。 |
+| 🌳 成长型反馈 | 用成长树和班级林园反馈进步，不做排名榜，不制造额外竞争焦虑。 |
+| 📷 多模态批改证据 | 支持百度智能作业与 PaddleOCR 识别，覆盖拍照上传、结构化批改结果与错因归档。 |
 
-### 👩‍🏫 2. 教师审核门控
+## 🖼️ 功能截图
 
-所有 AI 诊断结果默认标记为 `⏳ pending_teacher_review`，教师确认后才对学生生效。
+| 教师工作台：先看班级现状 | 课堂模式：聚焦共性问题 |
+|:---:|:---:|
+| <img src="docs/images/readme/teacher-dashboard.png" alt="教师工作台" width="420"> | <img src="docs/images/readme/classroom-review.png" alt="课堂讲评大屏" width="420"> |
 
-这不是可选功能，而是系统底层的**默认行为**——AI 是助手，教师是决策者。这天然符合 2025 年教育部《未成年人人工智能使用规范》中"13 岁以下学生不得独立使用生成式 AI"的要求 📜。
+| 学生端：引导学生自己想明白 | 成长森林：用进步代替排名 |
+|:---:|:---:|
+| <img src="docs/images/readme/student-guidance.png" alt="学生四步引导" width="420"> | <img src="docs/images/readme/class-forest.png" alt="班级林园" width="420"> |
 
-### 💡 3. 引导不倒答案
+| 📷 竖式与判断改正题 | 📷 口算与连除应用题 |
+|:---:|:---:|
+| <img src="docs/images/readme/ocr-sample-vertical.png" alt="百度智能批改：竖式与判断改正题" width="320"> | <img src="docs/images/readme/ocr-sample-application.png" alt="百度智能批改：口算与连除应用题" width="320"> |
 
-学生端使用**四步引导法**：
+## 🏗️ 系统架构
 
-> 🤗 安慰（你很接近了）→ 🧠 推理（想想个位够不够减）→ 📝 归纳（所以退位的时候……）→ 🎯 练习（再试一道类似的）
+<p align="center">
+  <img src="docs/images/readme/architecture.png" alt="我的计算森林系统架构图" width="100%">
+</p>
 
-通过 🔊 Edge-TTS 语音合成，一步步引导学生自己想明白，**永远不直接给出答案**。
-
-### 📋 4. 作业全生命周期
-
-```
-🎲 程序化出题 → 📤 教师布置 → ✍️ 学生提交 → 🤖 AI批改 → 👩‍🏫 教师审核 → 📄 PDF报告 → 🎯 针对性练习
-```
-
-- 🎲 **程序化出题器**（142KB）：按错因代码精准出题，A/B/C 三级难度自适应，无限供应
-- ⚙️ **AI 批改管道**（11 个节点）：诊断 → 画像更新 → 成长计算 → 练习推荐，全流程编排
-- 📊 **BKT 掌握度追踪**：贝叶斯知识追踪，量化每个知识点的掌握概率
-
-### 🌳 5. 成长型反馈
-
-每个孩子种一棵树 🌱。做对一道题，树就长高一点 🌿。
-
-没有排名榜 🚫，没有打卡提醒 🚫，没有家长端的焦虑推送 🚫。每个学期一棵树，六年十二棵树长成一片森林——**用成长代替焦虑，让每个孩子都看见自己的进步** 🌲🌲🌲。
-
----
-
-## 🏗️ 技术架构
-
-<div align="center">
-<img src="docs/images/architecture.png" alt="系统架构图" width="100%">
-</div>
-
-### 🛠️ 技术栈概览
+## 🛠️ 技术栈
 
 | 层 | 技术 | 要点 |
 |:---|:---|:---|
-| 🐍 后端框架 | FastAPI 0.115 | 13 路由器，异步，自动 OpenAPI 文档 |
-| 💾 数据库 | SQLite + FTS5 | 33 张业务表 + 全文检索虚拟表 |
-| 🧠 规则引擎 | 自研（regex + AST） | 零 LLM 依赖，44 种错因可解释诊断 |
-| ⚛️ 前端框架 | Next.js 15.5 App Router | 教师端/学生端双布局隔离，17 个页面路由 |
+| 🐍 后端框架 | FastAPI 0.115 | 异步 API、OpenAPI 文档、13 个路由器 |
+| 💾 数据库 | SQLite + FTS5 | 33 张业务表，支持全文检索 |
+| 🧠 规则引擎 | regex + AST | 44 种错因可解释诊断 |
+| ⚛️ 前端框架 | Next.js 15.5 App Router | 教师端/学生端双布局，17 个页面路由 |
 | 📊 可视化 | ECharts 6.x + Canvas | 雷达图、热力图、趋势线、森林粒子渲染 |
-| 🤖 AI 平台 | Dify + DeepSeek/GLM | 三级回退（本地→云端→直连），RAG 知识检索 |
-| 🔍 本地模型 | BAAI/bge-m3 + jina-reranker | Embedding + Reranker，离线可用 |
+| 🤖 AI 平台 | Dify + DeepSeek/GLM | 智能体编排、RAG 检索、三级回退 |
+| 🔍 本地模型 | BAAI/bge-m3 + jina-reranker | Embedding + Reranker，支持离线知识检索 |
 | 🔊 语音 | Edge-TTS | 引导步骤语音合成 |
-| 📷 OCR | 百度智能作业 + PaddleOCR | 拍照识别，自动批改 |
-| 📄 PDF | xelatex + weasyprint | 作业单、学生报告、班级报告 |
-| ✅ 测试 | pytest | 341 个测试，覆盖诊断/批改/管道/端点 |
+| 📷 OCR | 百度智能作业 + PaddleOCR | 拍照识别与自动批改 |
+| 📄 报告 | xelatex + weasyprint | 作业单、学生报告、班级报告 |
+| ✅ 测试 | pytest | 341 个测试，覆盖核心服务与流程 |
 
-### 📁 项目结构
+## 📁 项目结构
 
-```
+```text
 calc_forest/
-├── 🐍 backend/                # FastAPI 后端
+├── backend/                  # FastAPI 后端
 │   ├── app/
-│   │   ├── 🛣️ routers/        # 13 个路由器
-│   │   ├── ⚙️ services/       # 30+ 服务模块
-│   │   ├── 🔀 pipeline/       # 批改管道（11 节点）
-│   │   └── 📦 repositories/   # 数据访问层
-│   ├── ✅ tests/              # 341 个测试
-│   └── 📜 scripts/            # 种子数据、模拟器
-├── ⚛️ web/                    # Next.js 前端
+│   │   ├── routers/          # API 路由
+│   │   ├── services/         # 诊断、批改、报告、AI 服务
+│   │   ├── pipeline/         # 批改管道
+│   │   └── repositories/     # 数据访问层
+│   ├── tests/                # pytest 测试
+│   └── scripts/              # 种子数据、模拟器
+├── web/                      # Next.js 前端
 │   └── src/
-│       ├── 👩‍🏫 app/(teacher)/  # 教师端页面
-│       ├── 👧 app/(student)/  # 学生端页面
-│       └── 🧩 components/     # 44 个组件
-└── 🤖 dify/                   # Dify 工作流 DSL
+│       ├── app/(teacher)/    # 教师端页面
+│       ├── app/(student)/    # 学生端页面
+│       └── components/       # 业务组件
+└── dify/                     # Dify 工作流 DSL
 
-📚 docs/                       # 产品文档、工程文档、竞赛材料
-📖 knowledge_base/             # 147 个知识库文件（1~6 年级）
+docs/                         # 产品、工程、竞赛文档
+knowledge_base/               # 数学知识库与错因体系
 ```
-
----
 
 ## 🚀 快速开始
 
@@ -132,13 +128,11 @@ calc_forest/
 cd calc_forest/backend
 pip install -r requirements.txt
 
-# 运行测试（341 个用例）
 pytest -s tests/ -q \
   --ignore=tests/test_e2e_smoke.py \
   --ignore=tests/test_dify_e2e.py \
   -k "not full_pipeline"
 
-# 启动 API 服务
 uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
@@ -147,48 +141,44 @@ uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```bash
 cd calc_forest/web
 npm install
-
-npm run dev                # 🌀 开发服务器 (port 3002)
-npx next build --no-lint   # 📦 生产构建
+npm run dev
+npx next build --no-lint
 ```
 
 ### 🎲 模拟数据
 
 ```bash
 cd calc_forest/backend
-python scripts/simulate_realistic.py   # 📊 8 周真实感模拟数据
+python scripts/simulate_realistic.py
 ```
 
 ### 🔑 环境变量
 
 ```bash
-cp .env.example .env   # 填入实际 API 密钥
+cp .env.example .env
 ```
 
-需要配置：DeepSeek API Key、智谱 GLM API Key。Dify 为可选项。
+需要按实际情况配置 DeepSeek API Key、智谱 GLM API Key；Dify 为可选集成。
 
----
+## 🎯 设计原则
 
-## 🎯 核心设计原则
-
-| 🛡️ 原则 | 📖 含义 |
+| 原则 | 含义 |
 |:---|:---|
-| 🧠 对错判断只靠规则 | 大模型可以总结和解释，但**绝不**用来判断答案对错 |
-| 👩‍🏫 教师始终是决策者 | 所有 AI 输出必须经教师确认，不可绕过 |
-| 💡 引导不倒答案 | 四步引导法帮学生自己想明白，永远不直接给答案 |
-| 🔒 合成数据 | 不使用真实学生数据，所有演示数据为模拟生成 |
-| 🌳 无排名、无打卡 | 成长型反馈，不制造竞争焦虑 |
+| 🧠 对错判断只靠规则 | 大模型可以总结和解释，但不直接决定学生答案对错。 |
+| 👩‍🏫 教师始终是决策者 | 所有 AI 输出必须经教师确认，不绕过审核。 |
+| 💡 引导不倒答案 | 四步引导帮助学生自己发现问题，不直接给最终答案。 |
+| 🔒 合成数据优先 | 演示数据为模拟生成，不使用真实学生隐私数据。 |
+| 🌳 无排名、无打卡 | 关注个人成长，不制造竞争焦虑。 |
 
-## 📚 文档
+## 📚 文档入口
 
-| 📄 文档 | 📖 说明 |
+| 文档 | 说明 |
 |:---|:---|
 | [🔍 错因分类体系](docs/specs/04_error_taxonomy.md) | 44 种错因定义（E-K/E-H 全表） |
-| [🏗️ 系统架构](docs/engineering/architecture.md) | 端点清单、数据流、模块关系 |
-| [📋 MVP 范围](docs/specs/02_mvp_scope.md) | 已实现功能 + 未来扩展边界 |
+| [📋 MVP 范围](docs/specs/02_mvp_scope.md) | 已实现功能与未来扩展边界 |
+| [🌱 产品愿景](docs/product/vision.md) | 产品价值、使用场景与长期方向 |
 | [🎬 竞赛演示脚本](docs/competition/demo_video_script_v2.md) | 5 幕演示流程 |
-
----
+| [📦 配套资源说明](Upload/04_配套资源/README.md) | 竞赛提交材料、截图与证据 |
 
 ## 🙏 致谢
 
@@ -202,4 +192,4 @@ cp .env.example .env   # 填入实际 API 密钥
 
 ## 📜 License
 
-[MIT](LICENSE)
+MIT
